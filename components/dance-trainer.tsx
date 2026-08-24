@@ -217,7 +217,7 @@ export function DanceTrainer() {
         <section className="group relative overflow-hidden rounded-3xl border border-border/80 bg-card shadow-xl shadow-black/5 transition-all dark:shadow-2xl dark:shadow-black/20">
           <div className="relative h-80 w-full sm:h-[420px]">
             <Image
-              src="/images/4.png"
+              src="/images/4.avif"
               alt={t.STEP_NAME}
               fill
               priority
