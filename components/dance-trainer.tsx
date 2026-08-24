@@ -76,7 +76,6 @@ export function DanceTrainer() {
       | null;
     if (savedRole) setRole(savedRole);
 
-    // Sprawdzenie czy baner cookies był już zaakceptowany
     const savedConsent = localStorage.getItem("dwa_na_jeden_cookie_consent");
     if (!savedConsent) {
       setCookieBannerOpen(true);
@@ -85,7 +84,7 @@ export function DanceTrainer() {
 
   const t = translations[lang];
 
-  // Dynamiczna data praw autorskich: 2026 lub 2026 - 2027 w przyszłości
+  // Dynamiczna data praw autorskich: 2026 lub 2026 - 2027
   const currentYear = new Date().getFullYear();
   const copyrightYear = currentYear > 2026 ? `2026 - ${currentYear}` : "2026";
 
@@ -214,10 +213,10 @@ export function DanceTrainer() {
 
       <main className="mx-auto grid max-w-3xl gap-6 px-4 py-8 pb-20">
         {/* BANER HERO ADAPTACYJNY */}
-        <section className="group relative overflow-hidden rounded-3xl border border-border/80 bg-card shadow-xl shadow-black/5 transition-all dark:shadow-2xl dark:shadow-black/20">
+        <section className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-xl transition-all">
           <div className="relative h-80 w-full sm:h-[420px]">
             <Image
-              src="/images/4.avif"
+              src="/images/4.png"
               alt={t.STEP_NAME}
               fill
               priority
@@ -228,7 +227,7 @@ export function DanceTrainer() {
             <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/80 dark:from-black/60 dark:via-transparent dark:to-black/60" />
 
             <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2.5 p-6 sm:p-8">
-              <div className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-background/80 px-3.5 py-1 text-[11px] font-black uppercase tracking-widest text-primary backdrop-blur-md shadow-sm dark:border-pink-500/50 dark:bg-black/60 dark:text-pink-400 dark:shadow-lg dark:shadow-pink-500/20">
+              <div className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-background/90 px-3.5 py-1 text-[11px] font-black uppercase tracking-widest text-primary backdrop-blur-md shadow-sm dark:border-pink-500/50 dark:bg-black/80 dark:text-pink-400">
                 <Sparkles className="size-3 text-primary dark:text-pink-400" />
                 <span>{t.STYLE_SUBTITLE}</span>
               </div>
@@ -239,16 +238,16 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* BELKA TRYBÓW I NARZĘDZI (Rola, Wibracje, Pełny Ekran) */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-border/80 bg-card/85 p-3 shadow-sm backdrop-blur-md">
+        {/* BELKA TRYBÓW I NARZĘDZI (Wysoki kontrast) */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-sm backdrop-blur-md">
           <button
             type="button"
             onClick={handleRoleToggle}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/80 px-3.5 py-2 text-xs font-bold transition-all hover:bg-secondary"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3.5 py-2 text-xs font-bold text-foreground transition-all hover:bg-accent hover:text-accent-foreground"
           >
             <Users className="size-3.5 text-primary" />
             <span>{t.ROLE_LABEL}:</span>
-            <span className="text-primary font-black">
+            <span className="text-primary font-black underline underline-offset-2">
               {role === "leader" ? t.ROLE_LEADER : t.ROLE_FOLLOWER}
             </span>
           </button>
@@ -261,8 +260,8 @@ export function DanceTrainer() {
               aria-label={t.VIBRATION_LABEL}
               className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all ${
                 vibrate
-                  ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                  : "border-border bg-secondary/80 text-muted-foreground hover:text-foreground"
+                  ? "border-primary bg-primary text-primary-foreground shadow-md"
+                  : "border-border bg-secondary text-foreground hover:bg-accent"
               }`}
             >
               <Vibrate className="size-3.5" />
@@ -274,7 +273,7 @@ export function DanceTrainer() {
               onClick={handleFullscreenToggle}
               title={fullscreen ? t.FULLSCREEN_EXIT : t.FULLSCREEN_ENTER}
               aria-label={fullscreen ? t.FULLSCREEN_EXIT : t.FULLSCREEN_ENTER}
-              className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary/80 p-2 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
+              className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary p-2 text-foreground transition-all hover:bg-accent"
             >
               {fullscreen ? (
                 <Minimize2 className="size-4" />
@@ -298,13 +297,13 @@ export function DanceTrainer() {
         />
 
         {/* TRYB MAŁE KROCZKI */}
-        <section className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/85 p-5 shadow-lg shadow-black/5 backdrop-blur-xl transition-all dark:shadow-black/10">
+        <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
           <div className="flex items-center justify-between">
             <div className="grid gap-0.5">
-              <h2 className="text-sm font-bold uppercase tracking-tight">
+              <h2 className="text-sm font-bold uppercase tracking-tight text-foreground">
                 {t.BABY_STEPS_LABEL}
               </h2>
-              <p className="text-xs text-muted-foreground font-medium">
+              <p className="text-xs text-muted-foreground font-semibold">
                 {t.BABY_STEPS_HINT}
               </p>
             </div>
@@ -312,8 +311,8 @@ export function DanceTrainer() {
               onClick={() => setBaby(!baby)}
               className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
                 baby
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-2 ring-primary/50"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50"
+                  ? "bg-primary text-primary-foreground shadow-lg ring-2 ring-primary/50"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
               }`}
             >
               <MousePointerClick className="size-3.5" />
@@ -322,9 +321,9 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* LICZNIK I BIEŻĄCA INSTRUKCJA */}
-        <section className="grid grid-cols-[auto_1fr] items-center gap-6 rounded-2xl border border-border/70 bg-card/85 p-5 shadow-lg shadow-black/5 backdrop-blur-xl transition-all dark:shadow-black/10">
-          <div className="relative flex size-24 items-center justify-center rounded-2xl bg-muted/40 border border-border/50 shadow-inner">
+        {/* LICZNIK I BIEŻĄCA INSTRUKCJA (Wysoki kontrast) */}
+        <section className="grid grid-cols-[auto_1fr] items-center gap-6 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
+          <div className="relative flex size-24 items-center justify-center rounded-2xl bg-muted border border-border shadow-inner">
             <svg
               viewBox="0 0 100 100"
               className="absolute inset-0 size-full -rotate-90"
@@ -334,7 +333,7 @@ export function DanceTrainer() {
                 cy="50"
                 r={radius}
                 fill="none"
-                className="stroke-border/40"
+                className="stroke-border"
                 strokeWidth="8"
               />
               <motion.circle
@@ -368,7 +367,7 @@ export function DanceTrainer() {
           </div>
 
           <div className="grid gap-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/90">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
               {t.INSTRUCTION_LABEL} · {t.CYCLE_LABEL} {cycle}
             </p>
             <p className="text-base font-bold leading-tight sm:text-lg text-foreground">
@@ -378,16 +377,16 @@ export function DanceTrainer() {
                 ]
               }
             </p>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
               <span>
                 {t.WEIGHT_LABEL}:{" "}
-                <span className="text-foreground font-extrabold">
+                <span className="text-foreground font-black underline underline-offset-2">
                   {footName(weight)}
                 </span>
               </span>
               <span>
                 {t.MOVING_LABEL}:{" "}
-                <span className="text-foreground font-extrabold">
+                <span className="text-foreground font-black underline underline-offset-2">
                   {footName(moving)}
                 </span>
               </span>
@@ -421,7 +420,7 @@ export function DanceTrainer() {
         />
 
         {/* ROZBIÓR KROKU */}
-        <section className="grid gap-4 rounded-2xl border border-border/70 bg-card/85 p-5 shadow-lg shadow-black/5 backdrop-blur-xl transition-all dark:shadow-black/10">
+        <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
           <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-foreground">
             <Footprints className="size-4 text-primary" />
             {t.BREAKDOWN_TITLE}
@@ -432,14 +431,14 @@ export function DanceTrainer() {
                 key={item.title}
                 className={`rounded-xl border p-4 transition-all duration-300 ${
                   index === beat
-                    ? "border-primary bg-primary/10 shadow-lg shadow-primary/10 ring-1 ring-primary/40"
-                    : "border-border/60 bg-muted/20 hover:border-border/90 hover:bg-muted/30"
+                    ? "border-primary bg-primary/10 shadow-lg ring-1 ring-primary"
+                    : "border-border bg-muted/40 hover:border-border"
                 }`}
               >
                 <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">
                   {item.title}
                 </p>
-                <p className="text-xs font-medium leading-relaxed text-muted-foreground">
+                <p className="text-xs font-semibold leading-relaxed text-muted-foreground">
                   {item.body}
                 </p>
               </li>
@@ -447,25 +446,25 @@ export function DanceTrainer() {
           </ol>
         </section>
 
-        {/* 3 GRZECHY GŁÓWNE SZURAŃCA */}
-        <section className="grid gap-4 rounded-2xl border border-border/70 bg-card/85 p-5 shadow-lg shadow-black/5 backdrop-blur-xl transition-all dark:shadow-black/10">
-          <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-amber-500">
-            <AlertTriangle className="size-4 text-amber-500" />
+        {/* 3 GRZECHY GŁÓWNE SZURAŃCA (Wysoki kontrast etykiet) */}
+        <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
+          <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
             {t.MISTAKES_TITLE}
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
             {t.MISTAKES.map((item) => (
               <div
                 key={item.title}
-                className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/20 p-4 transition-all hover:border-border"
+                className="flex flex-col gap-2 rounded-xl border border-border bg-muted/40 p-4 transition-all hover:border-border"
               >
-                <span className="self-start rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-500">
+                <span className="self-start rounded-md bg-amber-500/20 border border-amber-600/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   {item.badge}
                 </span>
                 <h3 className="text-xs font-black uppercase tracking-tight text-foreground">
                   {item.title}
                 </h3>
-                <p className="text-xs font-medium leading-relaxed text-muted-foreground">
+                <p className="text-xs font-semibold leading-relaxed text-muted-foreground">
                   {item.desc}
                 </p>
               </div>
@@ -474,47 +473,47 @@ export function DanceTrainer() {
         </section>
 
         {/* WSKAZÓWKA SKRÓTÓW KLAWIATUROWYCH */}
-        <div className="hidden sm:flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+        <div className="hidden sm:flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
           <Keyboard className="size-3.5" />
           <span>{t.KEYBOARD_HINT}</span>
         </div>
 
-        {/* STOPKA Z DYNAMICZNYMI LINKAMI I18N, USTAWIENIAMI COOKIES I DYNAMICZNYM COPYRIGHT */}
-        <footer className="mt-8 pt-8 border-t border-border/60 flex flex-col items-center gap-6">
+        {/* STOPKA Z DYNAMICZNYMI LINKAMI I18N, USTAWIENIAMI COOKIES I CZYTELNYM COPYRIGHT (WCAG AA) */}
+        <footer className="mt-8 pt-8 border-t border-border flex flex-col items-center gap-6">
           <nav className="flex flex-wrap justify-center gap-x-8 gap-y-2">
             <Link
               href={`/${t.PRIVACY_SLUG}`}
-              className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+              className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
             >
               {t.FOOTER_PRIVACY as string}
             </Link>
             <Link
               href={`/${t.TERMS_SLUG}`}
-              className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+              className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
             >
               {t.FOOTER_TERMS as string}
             </Link>
             <button
               type="button"
               onClick={() => setCookieBannerOpen(true)}
-              className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+              className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
             >
               {t.COOKIE_SETTINGS_BTN as string}
             </button>
           </nav>
 
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
               {t.FOOTER_TEXT}
             </p>
-            <p className="text-[10px] font-medium tracking-wider text-muted-foreground/30">
+            <p className="text-xs font-semibold tracking-wider text-muted-foreground">
               © {copyrightYear} {t.APP_LEGAL_NAME}. {t.COPYRIGHT_RESERVED}
             </p>
           </div>
         </footer>
       </main>
 
-      {/* BANER COOKIE POWIĄZANY Z GTM / GA */}
+      {/* BANER COOKIE */}
       <CookieBanner
         title={t.COOKIE_BANNER_TITLE}
         desc={t.COOKIE_BANNER_DESC}
