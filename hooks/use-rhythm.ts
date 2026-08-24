@@ -55,7 +55,7 @@ export function useRhythm({
   const durationsRef = useRef(phaseDurations);
   durationsRef.current = phaseDurations;
 
-  // Fizyczne impulsy haptyczne dopasowane do synkopy Szurańca
+  // Wyraziste impulsy haptyczne z natychmiastowym resetem poprzedniego impulsu
   const triggerHaptic = useCallback((index: number) => {
     if (
       !vibrateRef.current ||
@@ -65,28 +65,31 @@ export function useRhythm({
       return;
     }
     try {
+      // Reset poprzedniej wibracji przed uruchomieniem kolejnej (wymóg Chrome Android)
+      navigator.vibrate(0);
+
       switch (index) {
         case 0:
-          // Raz: mocny, głęboki impuls rozpoczynający takt
-          navigator.vibrate(65);
+          // Raz: mocny, wyrazisty impuls startowy
+          navigator.vibrate(75);
           break;
         case 1:
-          // Dwa: stabilny impuls dostawienia
-          navigator.vibrate(40);
+          // Dwa: stabilny krok dostawny
+          navigator.vibrate(45);
           break;
         case 2:
-          // Trzy: krótki, zwinny impuls szurnięcia
-          navigator.vibrate(30);
+          // Trzy: szybkie szurnięcie
+          navigator.vibrate(35);
           break;
         case 3:
-          // I: synkopowany podwójny mikro-impuls
-          navigator.vibrate([20, 30, 25]);
+          // I: synkopowany impuls
+          navigator.vibrate(40);
           break;
         default:
-          navigator.vibrate(30);
+          navigator.vibrate(35);
       }
     } catch {
-      // Bezpieczne wyciszenie, jeśli przeglądarka zablokuje wibracje
+      // Bezpieczne wyciszenie
     }
   }, []);
 
@@ -101,6 +104,11 @@ export function useRhythm({
   );
 
   const reset = useCallback(() => {
+    if (typeof window !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate(0);
+      } catch {}
+    }
     beatRef.current = 0;
     lastTickRef.current = 0;
     setBeat(0);
@@ -113,6 +121,11 @@ export function useRhythm({
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
       setProgress(0);
+      if (typeof window !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate(0);
+        } catch {}
+      }
       return;
     }
 
@@ -127,7 +140,6 @@ export function useRhythm({
       const elapsed = now - lastTickRef.current;
 
       if (elapsed >= phaseDurationMs) {
-        // Handle overflow to keep perfect timing
         lastTickRef.current = now - (elapsed - phaseDurationMs);
 
         const next = (currentBeatIdx + 1) % durationsRef.current.length;
