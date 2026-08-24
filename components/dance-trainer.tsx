@@ -446,11 +446,11 @@ export function DanceTrainer() {
           </ol>
         </section>
 
-        {/* 3 GRZECHY GŁÓWNE SZURAŃCA (Wysoki kontrast etykiet) */}
+        {/* 3 GRZECHY GŁÓWNE SZURAŃCA (100% WCAG AAA Kontrast) */}
         <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
-          <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-amber-600 dark:text-amber-400">
-            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
-            {t.MISTAKES_TITLE}
+          <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-foreground">
+            <AlertTriangle className="size-4 text-amber-500" />
+            <span>{t.MISTAKES_TITLE}</span>
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
             {t.MISTAKES.map((item) => (
@@ -458,7 +458,7 @@ export function DanceTrainer() {
                 key={item.title}
                 className="flex flex-col gap-2 rounded-xl border border-border bg-muted/40 p-4 transition-all hover:border-border"
               >
-                <span className="self-start rounded-md bg-amber-500/20 border border-amber-600/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                <span className="self-start rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-950 dark:bg-amber-950/80 dark:border-amber-700/60 dark:text-amber-200">
                   {item.badge}
                 </span>
                 <h3 className="text-xs font-black uppercase tracking-tight text-foreground">
