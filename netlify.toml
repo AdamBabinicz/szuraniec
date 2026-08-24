@@ -1,0 +1,10 @@
+[build]
+  command = "pnpm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22.15.0"
+  PNPM_FLAGS = "--no-frozen-lockfile"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
