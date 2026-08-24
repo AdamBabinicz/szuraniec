@@ -325,7 +325,7 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* LICZNIK I BIEŻĄCA INSTRUKCJA */}
+        {/* LICZNIK I BIEŻĄCA INSTRUKCJA (STABILNA WYSOKOŚĆ - ZERO SKAKANIA LAYOUTU) */}
         <section className="grid grid-cols-[auto_1fr] items-center gap-6 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
           <div className="relative flex size-24 items-center justify-center rounded-2xl bg-muted border border-border shadow-inner">
             <svg
@@ -374,13 +374,16 @@ export function DanceTrainer() {
             <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
               {t.INSTRUCTION_LABEL} · {t.CYCLE_LABEL} {cycle}
             </p>
-            <p className="text-base font-bold leading-tight sm:text-lg text-foreground">
-              {
-                t.INSTRUCTIONS[direction.toUpperCase() as "LEFT" | "RIGHT"][
-                  phase.id
-                ]
-              }
-            </p>
+            {/* Blokada min-h eliminuje skakanie strony w rytm tekstu */}
+            <div className="min-h-[3.25rem] sm:min-h-[2.75rem] flex items-center">
+              <p className="text-base font-bold leading-tight sm:text-lg text-foreground">
+                {
+                  t.INSTRUCTIONS[direction.toUpperCase() as "LEFT" | "RIGHT"][
+                    phase.id
+                  ]
+                }
+              </p>
+            </div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
               <span>
                 {t.WEIGHT_LABEL}:{" "}
