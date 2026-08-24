@@ -49,7 +49,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Tryb Jasny - Pełna zgodność z WCAG AA (kontrast >= 4.5:1) */
+/* Tryb Jasny - Zgodność z WCAG AA (kontrast >= 4.5:1) */
 :root {
   color-scheme: light;
   --radius: 0.75rem;
@@ -154,6 +154,21 @@ html.dark {
         transparent
       );
     background-attachment: fixed;
+  }
+
+  /* BLOKADA NETLIFY (Ukrycie szuflady, paska i ramek Netlify na wszystkich urządzeniach) */
+  #netlify-drawer,
+  .netlify-drawer,
+  [data-netlify-drawer],
+  iframe[src*="netlify"],
+  div[class*="netlify-drawer"],
+  div[id*="netlify-drawer"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    width: 0 !important;
   }
 }
 
