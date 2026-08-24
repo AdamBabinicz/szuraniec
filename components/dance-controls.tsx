@@ -55,43 +55,47 @@ export function DanceControls({
   const t = translations[lang];
 
   return (
-    <div className="grid gap-6 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 text-card-foreground">
-      {/* Wybór piosenki - Pełny kontrast etykiety */}
-      <div className="grid gap-2.5">
+    <div className="grid gap-5 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 text-card-foreground">
+      {/* Wybór piosenki - Zoptymalizowany dla mobilnych list rozwijanych */}
+      <div className="grid gap-2">
         <label
           htmlFor="song"
-          className="text-xs font-black uppercase tracking-[0.2em] text-foreground"
+          className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground"
         >
           {t.SONG_LABEL}
         </label>
         <div className="relative group">
-          <Music4 className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-primary transition-transform group-focus-within:scale-110" />
+          <Music4 className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-primary transition-transform group-focus-within:scale-110" />
           <select
             id="song"
             value={song.id}
             onChange={(event) => onSongChange(event.target.value as Song["id"])}
-            className="w-full appearance-none rounded-xl border border-border bg-muted/60 py-3.5 pl-11 pr-20 text-sm font-bold text-foreground outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+            className="w-full appearance-none rounded-xl border border-border bg-muted/60 py-3 pl-10 pr-16 text-xs sm:text-sm font-semibold text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 truncate"
           >
             {SONGS.map((item) => (
-              <option key={item.id} value={item.id}>
+              <option
+                key={item.id}
+                value={item.id}
+                className="bg-card text-foreground py-2 text-xs sm:text-sm font-medium"
+              >
                 {t.SONG_NAMES[item.id as keyof typeof t.SONG_NAMES]}
               </option>
             ))}
           </select>
-          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 font-mono text-xs font-bold text-muted-foreground">
+          <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 font-mono text-[11px] sm:text-xs font-bold text-muted-foreground">
             <span>{song.bpm}</span>
             <span>{t.BPM_LABEL}</span>
           </div>
         </div>
       </div>
 
-      {/* Wybór tempa - Pełny kontrast */}
-      <div className="grid gap-3">
+      {/* Wybór tempa */}
+      <div className="grid gap-2.5 sm:gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-black uppercase tracking-[0.2em] text-foreground">
+          <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground">
             {t.TEMPO_LABEL}
           </span>
-          <span className="font-mono text-xs font-black text-primary uppercase">
+          <span className="font-mono text-[11px] sm:text-xs font-black text-primary uppercase">
             {Math.round(song.bpm * speed)} {t.BPM_LABEL} · {t.EFFECTIVE_BPM}
           </span>
         </div>
@@ -104,7 +108,7 @@ export function DanceControls({
               aria-pressed={speed === value}
               aria-label={`${value}x ${t.TEMPO_LABEL}`}
               className={cn(
-                "rounded-xl border py-3 font-mono text-sm font-black transition-all",
+                "rounded-xl border py-2.5 sm:py-3 font-mono text-xs sm:text-sm font-black transition-all",
                 speed === value
                   ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
                   : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
@@ -117,22 +121,22 @@ export function DanceControls({
       </div>
 
       {/* Główne sterowanie */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 sm:gap-3">
         <button
           type="button"
           onClick={onTogglePlay}
           aria-label={playing ? (t.PAUSE as string) : (t.PLAY as string)}
           className={cn(
-            "flex flex-1 items-center justify-center gap-3 rounded-xl py-4 font-black uppercase tracking-widest transition-all active:scale-[0.98]",
+            "flex flex-1 items-center justify-center gap-2.5 sm:gap-3 rounded-xl py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98]",
             playing
               ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
               : "bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:opacity-90",
           )}
         >
           {playing ? (
-            <Pause className="size-5 fill-current" />
+            <Pause className="size-4 sm:size-5 fill-current" />
           ) : (
-            <Play className="size-5 fill-current" />
+            <Play className="size-4 sm:size-5 fill-current" />
           )}
           <span>{playing ? t.PAUSE : t.PLAY}</span>
         </button>
@@ -142,9 +146,9 @@ export function DanceControls({
           onClick={onRestart}
           title={t.RESTART as string}
           aria-label={t.RESTART as string}
-          className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-all hover:border-primary hover:text-primary active:rotate-[-45deg]"
+          className="flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-all hover:border-primary hover:text-primary active:rotate-[-45deg]"
         >
-          <RotateCcw className="size-5" />
+          <RotateCcw className="size-4 sm:size-5" />
           <span className="sr-only">{t.RESTART as string}</span>
         </button>
 
@@ -153,16 +157,16 @@ export function DanceControls({
           onClick={onToggleMuted}
           aria-label={muted ? (t.UNMUTED as string) : (t.MUTED as string)}
           className={cn(
-            "flex h-14 shrink-0 items-center gap-2 rounded-xl border px-4 text-xs font-black uppercase tracking-tighter transition-all",
+            "flex h-12 sm:h-14 shrink-0 items-center gap-2 rounded-xl border px-3.5 sm:px-4 text-xs font-black uppercase tracking-tighter transition-all",
             muted
               ? "border-border bg-muted/60 text-muted-foreground"
               : "border-primary bg-primary/10 text-primary",
           )}
         >
           {muted ? (
-            <VolumeX className="size-5" />
+            <VolumeX className="size-4 sm:size-5" />
           ) : (
-            <Volume2 className="size-5" />
+            <Volume2 className="size-4 sm:size-5" />
           )}
           <span className="hidden md:inline">
             {muted ? t.MUTED : t.UNMUTED}
@@ -173,18 +177,18 @@ export function DanceControls({
         </button>
       </div>
 
-      {/* Wybór źródła dźwięku - Pełny kontrast */}
-      <div className="grid gap-3 border-t border-border pt-5">
-        <span className="text-xs font-black uppercase tracking-[0.2em] text-foreground">
+      {/* Wybór źródła dźwięku */}
+      <div className="grid gap-2.5 sm:gap-3 border-t border-border pt-4 sm:pt-5">
+        <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground">
           {t.AUDIO_LABEL}
         </span>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <button
             type="button"
             onClick={() => onSourceChange("click")}
             aria-label={t.SOURCE_CLICK as string}
             className={cn(
-              "flex items-center justify-center gap-2.5 rounded-xl border py-3 text-xs font-black uppercase tracking-widest transition-all",
+              "flex items-center justify-center gap-2 rounded-xl border py-2.5 sm:py-3 text-xs font-black uppercase tracking-widest transition-all",
               source === "click"
                 ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/10"
                 : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
@@ -199,7 +203,7 @@ export function DanceControls({
             disabled={!hasTrack}
             aria-label={t.SOURCE_TRACK as string}
             className={cn(
-              "flex items-center justify-center gap-2.5 rounded-xl border py-3 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed",
+              "flex items-center justify-center gap-2 rounded-xl border py-2.5 sm:py-3 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed",
               source === "track"
                 ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/10"
                 : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
