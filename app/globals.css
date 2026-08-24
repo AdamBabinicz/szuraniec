@@ -49,7 +49,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Tryb Jasny - Zgodność z WCAG AA (kontrast >= 4.5:1) */
+/* Tryb Jasny - Pełna zgodność z WCAG AA */
 :root {
   color-scheme: light;
   --radius: 0.75rem;
@@ -88,7 +88,7 @@
   --sidebar-ring: oklch(0.48 0.24 348);
 }
 
-/* Tryb Ciemny: "Wedding Night" - Wysoki kontrast i klubowa głębia */
+/* Tryb Ciemny: "Wedding Night" */
 .dark,
 :root.dark,
 html.dark {
@@ -156,19 +156,26 @@ html.dark {
     background-attachment: fixed;
   }
 
-  /* BLOKADA NETLIFY (Ukrycie szuflady, paska i ramek Netlify na wszystkich urządzeniach) */
-  #netlify-drawer,
-  .netlify-drawer,
+  /* CAŁKOWITA BLOKADA WIDŻETÓW I ZNACZNIKÓW NETLIFY */
+  netlify-drawer,
   [data-netlify-drawer],
+  #netlify-drawer,
+  #netlify-drawer-root,
+  .netlify-drawer,
+  div[id^="netlify-drawer"],
+  div[class^="netlify-drawer"],
   iframe[src*="netlify"],
-  div[class*="netlify-drawer"],
-  div[id*="netlify-drawer"] {
+  iframe[id*="netlify"],
+  iframe[title*="Netlify"] {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
-    height: 0 !important;
+    position: absolute !important;
+    top: -9999px !important;
+    left: -9999px !important;
     width: 0 !important;
+    height: 0 !important;
   }
 }
 
