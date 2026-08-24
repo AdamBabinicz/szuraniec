@@ -212,7 +212,7 @@ export function DanceTrainer() {
       />
 
       <main className="mx-auto grid max-w-3xl gap-6 px-4 py-8 pb-20">
-        {/* BANER HERO (ZOPTYMALIZOWANY NEXT/IMAGE POD KĄTEM LCP) */}
+        {/* BANER HERO (MAKSYMALNA OPTYMALIZACJA LCP / FETCHPRIORITY HIGH) */}
         <section className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-xl transition-all">
           <div className="relative h-80 w-full sm:h-[420px]">
             <Image
@@ -220,6 +220,8 @@ export function DanceTrainer() {
               alt={t.STEP_NAME}
               fill
               priority
+              loading="eager"
+              fetchPriority="high"
               sizes="(max-width: 768px) 100vw, 768px"
               quality={80}
               className="object-cover object-[center_18%] brightness-100 contrast-100 transition-transform duration-700 group-hover:scale-105 dark:brightness-[0.92] dark:contrast-[1.04]"
