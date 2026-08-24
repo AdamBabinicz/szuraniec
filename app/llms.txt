@@ -1,23 +1,33 @@
-# Dwa na Jeden — Szuraniec Trainer
+# Dwa na Jeden — Szuraniec Dance Trainer
 
-Interactive web application for learning the "Szuraniec" (Disco Polo Shuffle) dance step, a staple of Polish weddings.
+> Interactive PWA trainer for the "Szuraniec" (Disco Fox / 2-on-1) wedding step popular at Polish weddings.
 
-## Description
-A modern, mobile-first dance tutorial focusing on authentic Polish wedding dance moves. It features a syncopated "1, 2, 3 &" chassé rhythm engine, visual shuffling trails, and a "Baby Steps" mode for better balance training.
+## Overview
+Dwa na Jeden (https://dwanajeden.netlify.app) is an interactive, mobile-first dance educational tool. It teaches the popular Polish wedding shuffle step ("Szuraniec") based on the PrimaDance methodology (minimal foot lifting, sliding, bent knees, baby steps).
 
-## Core Features
-- **Interactive Dance Floor**: Real-time SVG visualization of foot movements.
-- **Rhythm Engine**: Syncopated metronome and audio playback synchronized with Polish wedding hits.
-- **Baby Steps Mode**: Reduces movement scale to improve learner's balance.
-- **Bilingual Support**: Full Polish and English translations.
-- **Authentic Style**: Based on actual "Szuraniec" technique (minimal lifting, soft knees).
+## Key Features & Architecture
+- **Interactive Dance Floor**: Dynamic SVG foot tracking with trail effects and weight distribution indicators.
+- **Rhythm & Syncopation Engine**: Supports the classic "1, 2, 3 &" syncopated step pattern using Web Audio API and synchronized MP3 playback.
+- **Role Mode (Mirror)**: Supports separate perspectives for Lead (He) and Follow (She).
+- **Haptic Pocket Metronome**: Web Vibration API pulses matching the syncopation for hands-free training.
+- **Baby Steps Mode**: Forces compact movement (0.4 scale) to improve balance and posture.
+- **Privacy & Accessibility**: GDPR/ROMO compliant, WCAG accessible, full bilingual support (PL / EN).
 
-## Technical Stack
-- Next.js 14+ (App Router)
-- TypeScript
-- Framer Motion (Fluid animations)
-- Web Audio API (Synthesized metronome)
-- Tailwind CSS
+## Dance Steps Breakdown
+1. **One (Raz)**: Leading foot slides outward. Weight stays on trailing foot.
+2. **Two (Dwa)**: Trailing foot closes in. Weight transfers to leading foot.
+3. **Three (Trzy)**: Quick slide on the leading foot (half-beat).
+4. **And (& / I)**: Closing syncopation. Next bar mirrors movement in reverse.
 
-## Playlist
-Includes popular Polish wedding songs by artists like Boys, Akcent, Masters, and Weekend, ranging from 120 to 138 BPM.
+## Technology Stack
+- **Framework**: Next.js 14+ (App Router)
+- **Language**: TypeScript (Strict)
+- **Styling**: Tailwind CSS
+- **Motion**: Framer Motion
+- **Audio**: Web Audio API & HTML5 Audio
+- **Localization**: JSON dictionaries (`lib/locales/pl.json`, `en.json`)
+
+## Links
+- Homepage: https://dwanajeden.netlify.app
+- Privacy Policy: https://dwanajeden.netlify.app/polityka-prywatnosci
+- Terms of Service: https://dwanajeden.netlify.app/regulamin
