@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/_next/"],
     },
-    sitemap: "https://dwanajeden.pl/sitemap.xml",
+    sitemap: "https://dwanajeden.netlify.app/sitemap.xml",
   };
 }

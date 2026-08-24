@@ -18,7 +18,7 @@ const SEO = {
   title: "Dwa na Jeden: Naucz się Szurańca na Polskie Wesele",
   description:
     "Szuraniec to weselny hit! Poznaj kroki taneczne krok po kroku. Interaktywny kurs disco polo z muzyką. Zaskocz gości i zostań królem każdego parkietu!!!",
-  url: "https://dwanajeden.pl",
+  url: "https://dwanajeden.netlify.app",
   ogImage: "/images/4.png",
 };
 
