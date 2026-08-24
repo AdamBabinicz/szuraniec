@@ -15,6 +15,7 @@ import {
   Vibrate,
 } from "lucide-react";
 import Link from "next/link";
+import { CookieBanner } from "@/components/ui/CookieBanner";
 import { DanceControls } from "@/components/dance-controls";
 import { DanceFloor } from "@/components/dance-floor";
 import { SiteHeader } from "@/components/site-header";
@@ -45,6 +46,7 @@ export function DanceTrainer() {
   const [role, setRole] = useState<"leader" | "follower">("leader");
   const [vibrate, setVibrate] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
 
   const audioElRef = useRef<HTMLAudioElement | null>(null);
 
@@ -73,9 +75,19 @@ export function DanceTrainer() {
       | "follower"
       | null;
     if (savedRole) setRole(savedRole);
+
+    // Sprawdzenie czy baner cookies był już zaakceptowany
+    const savedConsent = localStorage.getItem("dwa_na_jeden_cookie_consent");
+    if (!savedConsent) {
+      setCookieBannerOpen(true);
+    }
   }, []);
 
   const t = translations[lang];
+
+  // Dynamiczna data praw autorskich: 2026 lub 2026 - 2027 w przyszłości
+  const currentYear = new Date().getFullYear();
+  const copyrightYear = currentYear > 2026 ? `2026 - ${currentYear}` : "2026";
 
   const song = useMemo(
     () => SONGS.find((item) => item.id === songId) ?? SONGS[0],
@@ -229,7 +241,6 @@ export function DanceTrainer() {
 
         {/* BELKA TRYBÓW I NARZĘDZI (Rola, Wibracje, Pełny Ekran) */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-border/80 bg-card/85 p-3 shadow-sm backdrop-blur-md">
-          {/* Przełącznik Roli: On / Ona */}
           <button
             type="button"
             onClick={handleRoleToggle}
@@ -243,7 +254,6 @@ export function DanceTrainer() {
           </button>
 
           <div className="flex items-center gap-2">
-            {/* Przełącznik Wibracji w kieszeni */}
             <button
               type="button"
               onClick={() => setVibrate(!vibrate)}
@@ -259,7 +269,6 @@ export function DanceTrainer() {
               <span>{vibrate ? t.VIBRATION_ON : t.VIBRATION_OFF}</span>
             </button>
 
-            {/* Przełącznik Pełnego Ekranu */}
             <button
               type="button"
               onClick={handleFullscreenToggle}
@@ -470,7 +479,7 @@ export function DanceTrainer() {
           <span>{t.KEYBOARD_HINT}</span>
         </div>
 
-        {/* STOPKA Z DYNAMICZNYMI LINKAMI I18N */}
+        {/* STOPKA Z DYNAMICZNYMI LINKAMI I18N, USTAWIENIAMI COOKIES I DYNAMICZNYM COPYRIGHT */}
         <footer className="mt-8 pt-8 border-t border-border/60 flex flex-col items-center gap-6">
           <nav className="flex flex-wrap justify-center gap-x-8 gap-y-2">
             <Link
@@ -485,12 +494,35 @@ export function DanceTrainer() {
             >
               {t.FOOTER_TERMS as string}
             </Link>
+            <button
+              type="button"
+              onClick={() => setCookieBannerOpen(true)}
+              className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+            >
+              {t.COOKIE_SETTINGS_BTN as string}
+            </button>
           </nav>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
-            {t.FOOTER_TEXT}
-          </p>
+
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
+              {t.FOOTER_TEXT}
+            </p>
+            <p className="text-[10px] font-medium tracking-wider text-muted-foreground/30">
+              © {copyrightYear} {t.APP_LEGAL_NAME}. {t.COPYRIGHT_RESERVED}
+            </p>
+          </div>
         </footer>
       </main>
+
+      {/* BANER COOKIE POWIĄZANY Z GTM / GA */}
+      <CookieBanner
+        title={t.COOKIE_BANNER_TITLE}
+        desc={t.COOKIE_BANNER_DESC}
+        acceptLabel={t.COOKIE_ACCEPT}
+        declineLabel={t.COOKIE_DECLINE}
+        isOpen={cookieBannerOpen}
+        onClose={() => setCookieBannerOpen(false)}
+      />
     </div>
   );
 }

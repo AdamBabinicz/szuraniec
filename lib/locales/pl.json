@@ -37,6 +37,12 @@
   "FULLSCREEN_ENTER": "Tryb pełnoekranowy",
   "FULLSCREEN_EXIT": "Zamknij pełny ekran",
   "KEYBOARD_HINT": "Skróty: Spacja = Start/Stop · R = Reset · B = Baby Steps · ←/→ = Tempo",
+  "COOKIE_BANNER_TITLE": "Szanujemy Twoją prywatność",
+  "COOKIE_BANNER_DESC": "Używamy plików cookies i narzędzi analitycznych (Google Analytics / GTM), aby badać płynność treningu i ulepszać samouczek. Możesz w każdej chwili zmienić swoje preferencje.",
+  "COOKIE_ACCEPT": "Zaakceptuj wszystkie",
+  "COOKIE_DECLINE": "Tylko niezbędne",
+  "COOKIE_SETTINGS_BTN": "Ustawienia cookies",
+  "COPYRIGHT_RESERVED": "Wszelkie prawa zastrzeżone.",
   "MISTAKES_TITLE": "3 Grzechy Główne Szurańca",
   "MISTAKES": [
     {

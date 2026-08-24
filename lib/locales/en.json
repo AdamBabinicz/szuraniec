@@ -37,6 +37,12 @@
   "FULLSCREEN_ENTER": "Full-Screen Mode",
   "FULLSCREEN_EXIT": "Exit Full-Screen",
   "KEYBOARD_HINT": "Hotkeys: Space = Play/Stop · R = Reset · B = Baby Steps · ←/→ = Tempo",
+  "COOKIE_BANNER_TITLE": "We respect your privacy",
+  "COOKIE_BANNER_DESC": "We use cookies and analytics tools (Google Analytics / GTM) to evaluate training smoothness and enhance the dance guide. You can change your preferences at any time.",
+  "COOKIE_ACCEPT": "Accept all",
+  "COOKIE_DECLINE": "Essential only",
+  "COOKIE_SETTINGS_BTN": "Cookie Settings",
+  "COPYRIGHT_RESERVED": "All rights reserved.",
   "MISTAKES_TITLE": "3 Deadly Sins of the Wedding Step",
   "MISTAKES": [
     {
