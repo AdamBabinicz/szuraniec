@@ -67,6 +67,7 @@ export const metadata: Metadata = {
   },
 };
 
+// Pełna zgodność z ułatwieniami dostępu (WCAG) - brak blokady zoomu dla użytkowników
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f7f6fb" },
@@ -74,8 +75,6 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export default function RootLayout({
@@ -89,6 +88,7 @@ export default function RootLayout({
     "@type": "WebApplication",
     name: "Dwa na Jeden",
     description: SEO.description,
+    url: SEO.url,
     applicationCategory: "EducationalApplication",
     genre: "Dance",
     operatingSystem: "Android, iOS, Windows, macOS",
