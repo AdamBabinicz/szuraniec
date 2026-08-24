@@ -1,0 +1,142 @@
+{
+  "APP_NAME": "Dwa na Jeden",
+  "APP_TAGLINE": "Szkoła disco polo dla weselnych nóg",
+  "APP_LEGAL_NAME": "Dwa na Jeden — Szkoła Weselnego Kroku",
+  "STEP_NAME": "Szuraniec",
+  "STYLE_SUBTITLE": "Rytmiczny krok weselny 2 na 1",
+  "FLOOR_TITLE": "Cyfrowy Parkiet",
+  "FLOOR_HINT": "Szuraj, nie podnoś nóg. Rusza się tylko jedna stopa — druga trzyma ciężar.",
+  "PLAY": "Start",
+  "PAUSE": "Stop",
+  "RESTART": "Od nowa",
+  "AUDIO_LABEL": "Dźwięk",
+  "SOURCE_CLICK": "Metronom",
+  "SOURCE_TRACK": "Utwór mp3",
+  "TRACK_MISSING": "Brak pliku audio — upewnij się, że plik znajduje się w public/songs/",
+  "MUTED": "Wyciszone",
+  "UNMUTED": "Dźwięk włączony",
+  "SONG_LABEL": "Piosenka",
+  "TEMPO_LABEL": "Tempo",
+  "BPM_LABEL": "BPM",
+  "EFFECTIVE_BPM": "tempo ćwiczenia",
+  "CYCLE_LABEL": "Takt",
+  "COUNTER_1": "1",
+  "COUNTER_2": "2",
+  "COUNTER_3": "3",
+  "COUNTER_AND": "I",
+  "BABY_STEPS_LABEL": "Tryb: Małe Kroczki",
+  "BABY_STEPS_ON": "Małe kroczki włączone",
+  "BABY_STEPS_OFF": "Pełne kroki",
+  "BABY_STEPS_HINT": "Trzymaj kroki pod biodrami — mniejszy krok, lepsza równowaga.",
+  "ROLE_LABEL": "Rola w tańcu",
+  "ROLE_LEADER": "On (Prowadzący)",
+  "ROLE_FOLLOWER": "Ona (Partnerka)",
+  "VIBRATION_LABEL": "Wibracje w kieszeni",
+  "VIBRATION_ON": "Wibracje wł.",
+  "VIBRATION_OFF": "Wibracje wył.",
+  "FULLSCREEN_ENTER": "Tryb pełnoekranowy",
+  "FULLSCREEN_EXIT": "Zamknij pełny ekran",
+  "KEYBOARD_HINT": "Skróty: Spacja = Start/Stop · R = Reset · B = Baby Steps · ←/→ = Tempo",
+  "MISTAKES_TITLE": "3 Grzechy Główne Szurańca",
+  "MISTAKES": [
+    {
+      "badge": "Grzech 1",
+      "title": "Bocian na łące",
+      "desc": "Podnoszenie stóp wysoko nad parkiet. Pamiętaj: szuramy podeszwą po ziemi, stopy nie tracą kontaktu z podłogą!"
+    },
+    {
+      "badge": "Grzech 2",
+      "title": "Siedmiomilowe buty",
+      "desc": "Zbyt duże kroki. Szeroki rozkrok niszczy równowagę i szybko męczy. Małe kroczki pod biodrami to klucz do sukcesu."
+    },
+    {
+      "badge": "Grzech 3",
+      "title": "Kij od szczotki",
+      "desc": "Zablokowane, proste kolana. Cały luz i sprężystość Szurańca bierze się z miękko ugiętych nóg!"
+    }
+  ],
+  "INSTRUCTION_LABEL": "Co robisz teraz",
+  "WEIGHT_LABEL": "Ciężar ciała",
+  "MOVING_LABEL": "Szura",
+  "LEFT_FOOT": "Lewa stopa",
+  "RIGHT_FOOT": "Prawa stopa",
+  "BREAKDOWN_TITLE": "Rozbiór kroku",
+  "FOOTER_TEXT": "Ćwicz przed weselem, nie na weselu.",
+  "FOOTER_PRIVACY": "Polityka prywatności",
+  "FOOTER_TERMS": "Regulamin",
+  "BACK_TO_APP": "Wróć do nauki",
+  "LAST_UPDATED": "Ostatnia aktualizacja: Maj 2024",
+  "PRIVACY_SLUG": "polityka-prywatnosci",
+  "TERMS_SLUG": "regulamin",
+  "INSTRUCTIONS": {
+    "LEFT": {
+      "one": "Lewa stopa szura w lewo. Ciężar zostaje na prawej.",
+      "two": "Prawa dosuwa się do lewej. Ciężar przechodzi na lewą.",
+      "three": "Lewa szura jeszcze raz — szybko, pół miary.",
+      "and": "Prawa dosuwa się na 'i'. Ciężar na lewej nodze."
+    },
+    "RIGHT": {
+      "one": "Prawa stopa szura w prawo. Ciężar zostaje na lewej.",
+      "two": "Lewa dosuwa się do prawej. Ciężar przechodzi na prawą.",
+      "three": "Prawa szura jeszcze raz — szybko, pół miary.",
+      "and": "Lewa dosuwa się na 'i'. Ciężar na prawej nodze."
+    }
+  },
+  "SONG_NAMES": {
+    "chwile": "Akcent — Życie to są chwile",
+    "dziewczyno": "Boys — Najpiękniejsza dziewczyno",
+    "cudowna": "Akcent — Cudowna jest",
+    "zakopane": "Sławomir — Miłość w Zakopanem",
+    "zono": "Masters — Żono Moja",
+    "miod": "MIG — Miód Malina",
+    "lobuz": "Boys — Łobuz",
+    "szalona": "Boys — Jesteś Szalona",
+    "kochana": "Boys — Moja kochana",
+    "mama": "Daj to głośniej — Mama ostrzegała",
+    "wolnosc": "Boys — Wolność",
+    "ona_tanczy": "Weekend — Ona tańczy dla mnie",
+    "ruda": "Czereśnie — Ruda tańczy jak szalona",
+    "zielone": "Akcent — Przez Twe Oczy Zielone",
+    "chciala": "Ronnie Ferrari — Ona by tak chciała"
+  },
+  "BREAKDOWN": [
+    {
+      "title": "Raz",
+      "body": "Stopa wykroczna szura w bok. Druga stoi i trzyma ciężar."
+    },
+    {
+      "title": "Dwa",
+      "body": "Druga stopa dosuwa się. Ciężar przechodzi na stopę wykroczną."
+    },
+    {
+      "title": "Trzy",
+      "body": "Szybkie szuranie stopą wykroczną — pół miary."
+    },
+    {
+      "title": "I",
+      "body": "Dosuw na synkopie. Następny takt idzie w drugą stronę."
+    }
+  ],
+  "PRIVACY": {
+    "TITLE": "Polityka Prywatności i Cookies",
+    "SEC_1_TITLE": "1. Administrator i Dane Osobowe",
+    "SEC_1_TEXT": "Administratorem Twoich danych jest właściciel domeny dwanajeden.pl. Aplikacja nie wymaga zakładania konta, dzięki czemu większość funkcji dostępna jest anonimowo.",
+    "SEC_2_TITLE": "2. Analityka (Google Analytics / GTM)",
+    "SEC_2_TEXT": "W celu poprawy jakości szkolenia, aplikacja korzysta z narzędzi analitycznych Google Tag Manager oraz Google Analytics. Gromadzone dane (np. czas sesji, wybrane utwory) są zanonimizowane i służą wyłącznie statystykom.",
+    "SEC_3_TITLE": "3. Pliki Cookies",
+    "SEC_3_TEXT": "Wykorzystujemy ciasteczka (cookies) do prawidłowego działania silnika audio, zapamiętywania Twoich ustawień (np. wybrane tempo, tryb małych kroków) oraz celów analitycznych. Możesz zarządzać nimi w ustawieniach swojej przeglądarki.",
+    "SEC_4_TITLE": "4. Local Storage",
+    "SEC_4_TEXT": "Wykorzystujemy pamięć podręczną przeglądarki (Local Storage) do przechowywania parametrów technicznych aplikacji, co pozwala na płynne działanie bez konieczności ponownego ładowania danych przy każdym odświeżeniu."
+  },
+  "TERMS": {
+    "TITLE": "Regulamin i Deklaracja AI",
+    "SEC_1_TITLE": "1. Cel aplikacji",
+    "SEC_1_TEXT": "Aplikacja 'Dwa na Jeden' jest interaktywnym systemem edukacyjnym wspomagającym naukę użytkowego tańca weselnego (tzw. Szurańca). Korzystanie z niej jest darmowe.",
+    "SEC_2_TITLE": "2. Bezpieczeństwo i Odpowiedzialność",
+    "SEC_2_TEXT": "Taniec to aktywność fizyczna. Administrator nie ponosi odpowiedzialności za kontuzje, urazy lub szkody (w tym podeptane palce partnerki) wynikłe z nieprawidłowego wykonywania kroków.",
+    "SEC_3_TITLE": "3. Współpraca Człowiek + AI",
+    "SEC_3_TEXT": "Deklarujemy transparentnie: ta aplikacja jest owocem synergii ludzkiej kreatywności oraz zaawansowanych systemów sztucznej inteligencji (v0.dev, ChatGPT). Podczas gdy AI wspierało generowanie kodu i logiki rytmicznej, ostateczny kierunek artystyczny i merytoryczny kursu został nadany przez człowieka.",
+    "SEC_4_TITLE": "4. Prawa Autorskie",
+    "SEC_4_TEXT": "Kod źródłowy oraz koncepcja wizualna są chronione. Nazwy utworów i marek wykonawców disco polo należą do ich prawnych właścicieli i zostały użyte wyłącznie w celach edukacyjnych."
+  }
+}

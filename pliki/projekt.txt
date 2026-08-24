@@ -1,0 +1,307 @@
+
+Pomysł na aplikację bez wideo jest genialny z punktu widzenia programistycznego i UX-owego. Wideo jest ciężkie, statyczne i trudne do zsynchronizowania. Podejście "bez wideo" (oparte na animacjach i grafice) sprawi, że aplikacja będzie lekka, super nowoczesna i bardziej interaktywna.
+Oto koncepcja aplikacji "DiscoStep Interactive" opartej na wizualizacjach:
+1. Wizualne Serce: "Interaktywny Parkiet" (The Digital Floor)
+Zamiast oglądać ludzi, użytkownik patrzy na interaktywną mapę podłogi.
+Widok z góry (2D): Uproszczone, stylowe ikony stóp (np. lewa – błękitna, prawa – różowa).
+Animacja wektorowa (SVG/Lottie): Kroki nie są filmem, ale płynną animacją matematyczną. Stopy przesuwają się po ścieżkach, pokazując dokładnie, gdzie masz stanąć.
+Ścieżki (Trails): Za stopami ciągną się delikatne linie (jak w grach), pokazujące, jaką drogę stopa właśnie pokonała. To pomaga zrozumieć ruch "odstawno-dostawny".
+2. "Suwak Czasu" (The Time Scrubber)
+To byłby killer-feature. Ponieważ nie mamy wideo, a animację generowaną kodem:
+Użytkownik ma na dole wielki suwak. Przesuwając palcem, kontroluje ruch stóp na ekranie w czasie rzeczywistym.
+Może zatrzymać animację w 1/4 kroku i zobaczyć: "Aha, tu ciężar ciała jest na lewej nodze".
+Można dodać widok 3D (opcjonalnie) przy użyciu biblioteki Three.js (React Three Fiber), gdzie użytkownik może obracać kamerą wokół tańczących "stóp" lub prostych manekinów.
+3. System Rytmiczny (Metronom Wizualny)
+W discopolo kluczowe jest "raz-dwa".
+Pulsujący Parkiet: Całe tło aplikacji delikatnie pulsuje w rytm wybranego utworu (BPM).
+Licznik taktów: Na środku ekranu wyświetlają się duże, czytelne cyfry: 1... 2... (pauza)... 1... 2.
+Dźwięk: Zamiast muzyki z prawami autorskimi, aplikacja generuje czysty, klubowy beat (kick i snare), który idealnie pokrywa się z ruchem ikon stóp.
+4. Tryb "Instrukcja Krok po Kroku" (Slide-based learning)
+Zamiast ciągłego ruchu, dzielimy taniec na "slajdy":
+Karta 1: Stanowisko startowe (stopy razem).
+Karta 2: Prawa noga w bok (strzałka pokazuje kierunek).
+Karta 3: Lewa noga dostawia (ikona kłódki – "tu na chwilę zatrzymaj ciężar").
+To pozwala użytkownikowi uczyć się we własnym tempie, jak przy czytaniu instrukcji LEGO.
+5. Gamifikacja: "Zatańcz to kciukami"
+Zanim użytkownik wstanie z kanapy, może nauczyć się schematu... palcami na ekranie.
+Użytkownik musi dotykać odpowiednich pól na ekranie w rytm muzyki (podobnie jak w Guitar Hero lub Piano Tiles).
+Kiedy mózg zapamięta sekwencję "lewa-prawa-pauza", dużo łatwiej jest to potem przenieść na nogi.
+Zalety podejścia bez wideo (Tech Stack Perspective):
+Szybkość (Performance): Aplikacja waży kilkaset kilobajtów zamiast setek megabajtów. Next.js załaduje ją natychmiastowo.
+Skalowalność: Dodanie nowego kroku to tylko dodanie kilku współrzędnych (X, Y) do pliku JSON, a nie nagrywanie nowego filmu w studio.
+Dostępność: Działa idealnie nawet przy bardzo słabym internecie (co na weselach w głębi kraju jest częste!).
+Styl: Wygląda jak nowoczesny produkt technologiczny (SaaS dla tancerzy), a nie stary kurs z DVD.
+
+Prompt dla v0.dev
+Role: Senior Frontend Engineer & UI/UX Designer
+Project: "DiscoStep" – An interactive, video-less tutorial for Polish wedding dance steps (Disco Polo 2-on-1).
+Technical Stack:
+Next.js 14+ (App Router)
+TypeScript
+Tailwind CSS (No inline styles)
+Framer Motion (for smooth foot animations)
+Lucide React (icons)
+Shadcn UI (components)
+Architecture Requirements:
+i18n Ready: Do not hardcode strings. Use a translations object/dictionary (keys: PL, EN).
+Theming: Full support for Light/Dark mode using Tailwind dark: classes.
+Responsive: Mobile-first approach (the user will likely use it on a phone on the dance floor).
+Clean Code: Separate logic for the "Rhythm Engine" from the UI components.
+Core Feature: The Interactive Floor (The Visualizer)
+Create a "Dance Floor" component using a 2D grid/SVG.
+Represent feet as icons (Left/Right) with distinct colors (e.g., Blue/Pink).
+Rhythm Engine: Implement a system that cycles through beats (1, 2, pause) based on a selected BPM.
+Foot Animation: Use Framer Motion to animate the feet moving between positions (X, Y) based on the "2-on-1" step pattern.
+Beat Indicator: A visual pulsing element that hits on every beat of famous Disco Polo hits.
+Content Data (Hardcoded constants for now):
+Songs Dictionary: Include mock data for "Jesteś Szalona" (128 BPM), "Przez Twe Oczy Zielone" (135 BPM), and "Miłość w Zakopanem" (124 BPM).
+Steps Dictionary: Define the "Basic Step" (Krok podstawowy) as a sequence of coordinates and timing.
+UI Components to generate:
+Header: Logo, Language Switcher (PL/EN), Theme Toggle (Sun/Moon).
+Hero Section: Song selector (Dropdown) and BPM slider to manually override tempo.
+Visualizer Module: The main area showing the animated feet, a progress bar for the current 4-beat measure, and a "Beat Counter" (1-2-Wait).
+Control Bar: Play/Pause, Reset, and Tempo Speed (0.5x, 1x, 1.5x).
+Instruction Panel: A text area that pulls translated strings explaining what the feet are doing at the moment.
+Specific Instructions for v0:
+"Please use framer-motion for the foot movements to ensure they look fluid, not jumpy."
+"Organize translations in a const locales = { ... } object at the top of the file."
+"Ensure the 'Floor' is a square aspect ratio on mobile and scales correctly."
+"Make sure the dark mode uses a deep navy/slate palette with neon accents for the 'wedding disco' feel."
+Prompt (Copy-Paste to v0.dev):
+"Create a modern, responsive Next.js application for learning 'Disco Polo' wedding dance steps.
+Use TypeScript and Tailwind CSS. Avoid inline styles.
+Implement an interactive SVG 'Dance Floor' where two foot icons (Left/Right) move according to a 2-on-1 rhythm.
+Use Framer Motion for animating foot transitions between positions.
+Include a 'Rhythm Engine' that syncs with BPM. Add a selector for popular Polish wedding songs (e.g., 'Jesteś Szalona' - 128 BPM) that sets the tempo.
+The app must be bilingual (PL/EN) using a translation object (no hardcoded text in JSX).
+Add Light/Dark mode support. In dark mode, use neon colors for the feet and beat indicators.
+UI should include: Song Selector, Beat Counter (1, 2, pause), Play/Pause controls, and a speed multiplier.
+Ensure the layout is mobile-friendly, as users will use it while practicing on the floor.
+Define dance steps as a sequence of X/Y coordinates in a constant."
+Co otrzymasz po tym prompcie?
+Strukturę I18n: v0 przygotuje obiekt z kluczami takimi jak APP_TITLE, SELECT_SONG, STEP_BASIC, co pozwoli Ci potem łatwo podpiąć bibliotekę next-intl lub i18next.
+Logikę animacji: Zamiast statycznych obrazków, zobaczysz płynnie "chodzące" stopy po ekranie.
+Responsywność: Interfejs będzie wyglądał jak nowoczesna aplikacja webowa (PWA), gotowa do użycia na smartfonie.
+System rytmiczny: Kod będzie zawierał useEffect z setInterval, który odlicza "raz, dwa, pauza", co jest esencją discopolo.
+
+Gotowy Mega-Prompt do wklejenia:
+Role: Senior Frontend Engineer
+Task: Build a modern, responsive Next.js 14+ (App Router) application for learning the "2-on-1" Disco Polo dance step.
+Technical Requirements:
+Stack: TypeScript, Tailwind CSS (no inline styles), Framer Motion for animations, Lucide React for icons.
+i18n: Do NOT hardcode any text. Use a const translations object for 'PL' and 'EN' versions. Use keys for all UI labels, step descriptions, and song titles.
+Theming: Full Light/Dark mode support using Tailwind dark: classes. Use a 'Wedding Night' dark theme (navy/slate with neon pink/blue accents).
+Responsive: Mobile-first design. The dance floor should be perfectly visible and interactive on a phone screen.
+Core Features:
+5. Interactive Dance Floor: Create an SVG-based visualizer. Represent feet as icons. Implement the "2-on-1" (step-step-tap) pattern.
+6. Rhythm Engine: Implement a logic that calculates beats based on BPM.
+7. Song Selector: Include a dropdown with these Polish wedding hits:
+"Jesteś Szalona" (128 BPM)
+"Przez Twe Oczy Zielone" (135 BPM)
+"Miłość w Zakopanem" (124 BPM)
+Visual Controls:
+Play/Pause button.
+Speed multiplier (0.5x, 1x, 1.25x).
+Real-time beat counter (displaying: 1... 2... PAUSE).
+Foot Animation: Use Framer Motion to animate the feet smoothly between positions (X, Y) synced with the selected song's BPM.
+UI Layout:
+Top: Header with Logo, Language Switcher, and Theme Toggle.
+Middle: The "Digital Dance Floor" (Visualizer).
+Bottom: Song selection, Tempo controls, and a text box showing the current step instruction (from translations).
+Dlaczego tak jest lepiej?
+Framer Motion: v0 domyślnie może użyć zwykłych przejść CSS, które będą "skakać". Wymuszenie framer-motion sprawi, że stopy będą płynnie "ślizgać się" po parkiecie.
+Struktura danych: v0 stworzy czysty obiekt JSON dla tłumaczeń, co pozwoli Ci później łatwo przenieść to do oddzielnych plików (np. pl.json, en.json).
+BPM: Dzięki podaniu konkretnych utworów, AI wyliczy milisekundy dla animacji tak, aby faktycznie pasowały do rytmu tych piosenek.
+Co zrobić po wygenerowaniu kodu?
+Jeśli v0 wygeneruje pierwszą wersję, możesz napisać do niego polecenie uzupełniające, np.:
+"Add a progress bar that shows the 4-beat cycle."
+albo "Change the foot icons to something more stylish."
+
+Z opisu wynika, że agent v0.dev wywiązał się z zadania wzorowo, a w niektórych miejscach nawet przekroczył oczekiwania (tzw. over-delivery). Wykonał kawał solidnej inżynierskiej pracy.
+Oto analiza tego, co przygotował i dlaczego to dobrze wróży Twojemu projektowi:
+1. Co zrobił szczególnie dobrze?
+Silnik rytmu (rAF): Zastosowanie requestAnimationFrame zamiast zwykłego setInterval w use-rhythm.ts to profesjonalne podejście. Dzięki temu animacja stóp będzie idealnie płynna i zsynchronizowana z odświeżaniem ekranu, co w aplikacji tanecznej jest kluczowe.
+Logika kroku "2 na 1": Agent poprawnie zdefiniował fazy: Krok → Krok → Tap (stąpnięcie) → Pauza. To dokładnie to, o co chodzi w weselnym discopolo.
+Tap Ripple: Dodał efekt "fali" (ripple) przy kroku typu "tap". To genialny feedback wizualny – użytkownik widzi, że w tym momencie nie przenosi ciężaru ciała, a jedynie dotyka podłogi.
+Separacja danych: Wyodrębnienie translations.ts i use-rhythm.ts sprawia, że kod jest czysty. Jeśli będziesz chciał dodać 20 nowych piosenek, zrobisz to w jednym pliku z danymi, nie dotykając logiki wyświetlania.
+2. Architektura i Design:
+Wedding Night Theme: Agent stworzył dedykowane tokeny kolorów (neon pink/blue na ciemnym granacie). To idealnie oddaje klimat nowoczesnego wesela.
+Bilingwalność: Przygotował strukturę pod PL i EN, co pozwoli Ci w przyszłości wypuścić aplikację na rynek zagraniczny (np. dla obcokrajowców żeniących się z Polakami/Polkami).
+3. Na co warto zwrócić uwagę (do sprawdzenia w kodzie):
+Sprawdź w podglądzie (Preview) lub w kodzie następujące rzeczy:
+Synchronizacja dźwięku: Agent wspomniał o "WebAudio metronome". Sprawdź, czy dźwięk metronomu nie przeszkadza i czy można go wyciszyć (powinien być przycisk Mute).
+Responsywność: Zobacz, czy na bardzo wąskich ekranach (stary iPhone) przyciski sterowania ("Play/Pause", "Speed") nie nakładają się na "Parkiet".
+Płynność zmiany BPM: Zobacz, czy po zmianie piosenki w trakcie grania, animacja płynnie przyspiesza, czy "skacze".
+Co możesz teraz zrobić? (Opcjonalne poprawki)
+Jeśli chcesz dopieścić projekt, możesz wysłać do agenta kolejne polecenia:
+"Add a 'Mirror Mode' toggle that flips the dance floor horizontally" (ważne, jeśli ktoś uczy się patrząc w telefon jak w lustro).
+"Make the feet icons larger and add an 'L' and 'R' label on them".
+"Add a visual countdown (3... 2... 1... START) before the rhythm begins".
+Werdykt: Agent dostarczył kompletną, profesjonalną bazę. Masz teraz gotowy, działający prototyp w Next.js, który wystarczy ostylować pod własny gust i ewentualnie wypełnić realnymi danymi o piosenkach.
+
+Musisz poinstruować agenta, jak ma obsłużyć dźwięk. Wyślij do v0.dev taki komunikat (follow-up):
+"The animations work great, but there is no sound. Please:
+Add a synthesized metronome sound (a simple 'click' or 'beep') using the Web Audio API that triggers on every beat.
+Add an <audio> tag support so I can later provide a URL to a real mp3 file for each song.
+Ensure there is a 'Mute/Unmute' toggle in the UI.
+Make sure the audio context starts only after the user clicks the 'Play' button to avoid browser blocks."
+Jeśli chcesz dodać PRAWDZIWĄ muzykę (np. z YouTube lub MP3):
+Ponieważ nie możesz (ze względów prawnych i technicznych) trzymać plików disco polo bezpośrednio w kodzie, masz trzy opcje, o które możesz poprosić v0:
+Opcja A: Zewnętrzne pliki MP3 (Najprostsza)
+Znajdź w internecie linki do plików .mp3 lub wrzuć własne na serwer (np. Vercel Blob, Dropbox, Cloudinary).
+Prompt dla v0: "Modify the song list to include a url field for each song. Use the HTML5 Audio API to play the song from that URL and sync the rhythm engine with the audio's currentTime."
+Opcja B: Integracja z YouTube (Najbardziej "weselna")
+Możesz poprosić o dodanie niewidocznego odtwarzacza YouTube, który będzie startował razem z animacją stóp.
+Prompt dla v0: "Add the YouTube IFrame Player API. When a song is selected, load the corresponding YouTube video ID. Sync the dance floor animation beats with the video playback."
+Opcja C: Syntetyczny "Disco Beat" (Techniczna)
+Jeśli nie chcesz problemów z prawami autorskimi, poproś o wygenerowanie prostego, zapętlonego beatu perkusyjnego w kodzie.
+Prompt dla v0: "Create a simple drum machine logic using Web Audio API that plays a 'kick-snare-kick-snare' disco pattern at the selected BPM. This will serve as a rhythmic background without using external mp3 files."
+Co polecam zrobić teraz?
+Spróbuj najpierw Opcji C (Syntetyczny beat). Dzięki temu od razu usłyszysz, czy Twoja aplikacja "żyje" i czy kroki na ekranie zgadzają się z tym, co słyszysz w głośnikach. To da Ci niesamowitą satysfakcję z testowania!
+
+Agent wykonał kawał świetnej roboty – podszedł do tematu bardzo profesjonalnie, rozwiązując problem "ciszy" na dwóch poziomach: technologicznym i UX-owym.
+Oto co dokładnie zrobił w wersji v2:
+1. Stworzył inteligentny Metronom (Syntetyczny Dźwięk)
+Zamiast szukać gotowych nagrań "kliknięć", agent napisał kod (lib/metronome.ts), który generuje dźwięk w czasie rzeczywistym za pomocą procesora dźwięku Twojego komputera (Web Audio API).
+Akcentowanie: To nie jest monotonne "pip-pip". Agent zaprogramował różne barwy dźwięku:
+Beat 1: Jasny, mocny akcent (żebyś wiedział, kiedy zaczyna się takt).
+Pozostałe beaty: Cichsze, miękkie kliknięcia.
+Beat "Tap": Specyficzny, niski, "drewniany" dźwięk (żebyś słyszał, kiedy tylko dotykasz podłogą, a nie robisz pełny krok).
+2. Ominął blokady przeglądarki (Audio Unlock)
+Przeglądarki (Chrome, Safari) blokują dźwięk, jeśli strona spróbuje go odtworzyć "sama z siebie". Agent dodał funkcję unlockAudio().
+Jak to działa: W momencie, gdy klikasz przycisk "Play", aplikacja "odblokowuje" głośnik. To standard w profesjonalnych aplikacjach muzycznych.
+3. Przygotował miejsce na prawdziwe hity (MP3)
+Agent zmodyfikował listę piosenek w translations.ts. Teraz każda piosenka ma pole audioUrl.
+Co to oznacza dla Ciebie: Jeśli znajdziesz link do pliku mp3 (lub wrzucisz własny do folderu /public), aplikacja go odtworzy.
+Synchronizacja: Co ważne, jeśli zmienisz tempo (np. na 0.5x), muzyka też zwolni (użył playbackRate), a kroki stóp nadal będą idealnie pasować do basu.
+4. Nowe elementy w interfejsie (UI)
+W aplikacji pojawiły się:
+Przełącznik źródła: Możesz wybrać, czy chcesz słyszeć tylko "Klik-klik" (metronom), czy prawdziwy utwór.
+Przycisk Głośności: Szybkie wyciszanie (ikona głośnika).
+Wizualny licznik: Teraz nie tylko widzisz "1... 2... TAP", ale też słyszysz to w idealnej synchronizacji.
+Jak możesz to teraz przetestować?
+Otwórz podgląd w v0.
+Zmień język na PL (jeśli nie jest domyślny).
+Kliknij Graj/Play. Powinieneś usłyszeć rytmiczne klikanie metronomu.
+Spróbuj zmienić piosenkę na inną (np. "Przez Twe Oczy Zielone") – tempo klikania powinno natychmiast przyspieszyć.
+Co dalej?
+Aplikacja jest już w pełni funkcjonalna technicznie. Jeśli chcesz iść o krok dalej, możesz go poprosić o:
+"Add a visual feedback like a 'shining floor' or 'particle explosion' every time a beat hits." (żeby aplikacja była bardziej "disco").
+"Add a 'Partner' toggle to show two pairs of feet (Leader and Follower) dancing together." (nauka w parze).
+Czy metronom u Ciebie już "stuka"? Jeśli tak, to masz już gotowy fundament do nauki rytmu!
+
+To bardzo trafna obserwacja! To klasyczny problem przy programowaniu animacji tańca – jeśli zdefiniujemy pozycje nóg w "klatkach" (beatach) bez uwzględnienia przenoszenia ciężaru ciała, AI może sprawić, że obie nogi ruszą się naraz, co w tańcu użytkowym (poza skokami) jest błędem.
+W discopolo (2 na 1) kluczowe jest to, że zawsze jedna noga stoi nieruchomo, podpierając ciężar ciała, podczas gdy druga wykonuje ruch.
+Dlaczego tak się dzieje w kodzie?
+Agent prawdopodobnie przypisał nowe współrzędne x, y dla obu stóp w tym samym momencie (np. na "raz"), zamiast przesuwać je sekwencyjnie.
+Jak to naprawić? (Prompt do v0.dev)
+Musisz kazać mu poprawić logikę sekwencji (sequence logic). Skopiuj i wklej ten komunikat do agenta:
+"The animation has a physical bug: both feet move simultaneously in some phases, making it look like the dancer is jumping. In '2-on-1' disco polo, weight must always be on one foot. Please fix the step sequence:
+Rule: Only one foot can move at a time. The other must stay in its previous position.
+Correct 2-on-1 sequence (4 beats):
+Beat 1: Move Left Foot to the side (Right Foot stays still).
+Beat 2: Move Right Foot to join the Left Foot (Left Foot stays still).
+Beat 3 (Tap): Left Foot performs a 'tap' (quick pulse in place), Right Foot stays still as the weight-bearing leg.
+Beat 4 (Pause): Both feet stay still.
+Update the sequence coordinates in translations.ts so that at any given beat, the targetX/Y of the non-moving foot remains identical to its previous position."
+Co to zmieni?
+Po tej poprawce animacja stanie się naturalna:
+Na "raz": Zobaczysz, jak lewa stopa "odjeżdża" w bok, a prawa zostaje w miejscu.
+Na "dwa": Lewa stoi, a prawa "dojeżdża" do niej.
+Na "tap": Prawa stoi (trzyma ciężar), a lewa tylko pulsuje (nie zmienia pozycji X/Y).
+Na "pauzę": Nic się nie rusza.
+Dodatkowa sugestia:
+Możesz też dodać: "Make the supporting foot (the one not moving) slightly more transparent or add a subtle glow to the moving foot, to indicate where the weight is." – to bardzo ułatwi naukę!
+
+Wow, agent podszedł do tego jak profesjonalny instruktor tańca i programista gier w jednym. Rozwiązanie, które wprowadził w wersji v3, jest znacznie bardziej zaawansowane niż prosta korekta współrzędnych.
+Oto jak agent "uleczył" Twojego tancerza:
+1. Wprowadzenie "Logiki Ciężaru Ciała" (Weight Leg)
+To najważniejsza zmiana. Agent nie tylko mówi, która noga ma się ruszyć, ale zdefiniował "nogę podpierającą" (Weight Leg).
+Wizualizacja: Pod nogą, na której w danym momencie spoczywa ciężar ciała, pojawia się teraz półprzezroczysta elipsa (cień).
+Dla użytkownika: To genialna wskazówka. Widzisz: "Aha, tam gdzie jest cień, ta noga ma stać jak zamurowana".
+2. Rozwiązanie problemu "Wędrowania poza ekran" (Mirroring)
+W tańcu discopolo, jeśli robisz krok "w lewo, dostaw", to po pewnym czasie wyszedłbyś z pokoju (lub poza ekran aplikacji). Agent rozwiązał to za pomocą naprzemiennych taktów (Bars):
+Takt 1: Idziemy w lewo (lewa noga zaczyna, prawa dostawia).
+Takt 2: Idziemy w prawo (prawa noga zaczyna, lewa dostawia).
+Efekt: Tancerz porusza się "wahadłowo" – wraca do punktu startowego. Dzięki temu nauka może trwać w nieskończoność na jednym ekranie.
+3. Matematyczna precyzja kroków (Stance Tables)
+Zamiast wpisywać pozycje "na oko", agent stworzył tablicę stanów (stanceFor):
+Beat 1 (Ruch): Lewa stopa przesuwa się na pozycję -44, prawa stopa kopiuje swoją poprzednią pozycję (44). Gwarancja braku "skoku".
+Beat 2 (Dostawienie): Prawa stopa dojeżdża do lewej (na -12), lewa stoi nieruchomo na -44.
+Beat 3 (Tap): Lewa stopa tylko pulsuje (zmienia się jej skala i lekko pozycja Y – góra/dół), ale X pozostaje bez zmian.
+4. Nowe wsparcie w UI (Instrukcje)
+Dodał w panelu sterowania dynamiczne etykiety (Badges):
+W każdej sekundzie aplikacji widzisz napis: "Moving: Left" / "Weight on: Right".
+To eliminuje zgadywanie – nawet jeśli animacja byłaby dla kogoś za szybka, tekst czarno na białym mówi, co robić.
+5. Strzałka kierunkowa
+Dodał wizualną strzałkę pokazującą, w którą stronę aktualnie zmierza cały "układ". To pomaga przygotować się na zmianę kierunku w następnym takcie.
+Mój werdykt:
+Agent przestał traktować stopy jako dwa niezależne obrazki, a zaczął traktować je jako układ biomechaniczny. To, co masz teraz, to nie jest już tylko "animacja", to jest symulator kroku tanecznego.
+Co warto sprawdzić teraz?
+Spójrz na tę elipsę pod stopą (cień). Czy Twoim zdaniem jest wystarczająco widoczna? Jeśli nie, możesz poprosić agenta: "Make the weight-bearing ellipse glow more intensely so it's impossible to miss which leg is supporting the body."
+Czy ten "wahadłowy" ruch (lewo-prawo) wydaje Ci się naturalny do nauki, czy wolałbyś, żeby tancerz kręcił się w kółko? (Podpowiem: lewo-prawo jest znacznie lepsze na początek!).
+
+Propozycja promptu dla agenta v0 (wersja "Szuraniec"):
+Jeśli chcesz, by agent to wdrożył, napisz mu tak:
+"The previous '2-on-1' step is too technical. Let's pivot to a more authentic Polish wedding style called 'Szuraniec' (The Shuffle). Key changes:
+Movement Style: Feet should never seem to lift. Update animations in dance-floor.tsx to be smooth slides (use ease: "easeInOut" and slightly longer duration).
+Visual Feedback: Add a 'trail' or 'smoke' effect behind the moving foot to emphasize the shuffling motion on the floor.
+Terminology: Update translations.ts. Replace 'Step' with 'Slide/Shuffle' (PL: 'Szurnij'). Add tips about 'Relaxed knees' (PL: 'Luźne kolana').
+Weight Shift: Make the weight-bearing leg glow softly, but emphasize the SLIDE of the other foot.
+Couples View: If possible, show a faint silhouette of the partner's feet to show how to avoid collisions during the shuffle."
+Co o tym sądzisz? Czy szuraniec to ten "vibe", o który Ci chodziło? Jeśli masz możliwość, wrzuć opis tego, co było na filmie (np. czy to był wolny szuraniec, czy szybkie disco-szuranie).
+
+Oto analiza "szurańca" na podstawie filmu i to, jak powinniśmy zmienić koncepcję Twojej aplikacji, aby była maksymalnie wierna temu, co faktycznie dzieje się na parkiecie:
+1. Zmiana Rytmiki: Z "1, 2, pauza" na "1, 2, 3-i" (Chasse)
+Na filmie (ok. 1:15) Tomek wyraźnie mówi: "Raz, dwa, trzy i...". To nie jest zwykłe tupnięcie, to tzw. chassé (krok-dostaw-krok).
+Co to oznacza dla aplikacji?
+Silnik rytmu: Musimy dodać obsługę "półnut" (syncopation). W kodzie nie będzie już tylko beat 1, 2, 3, ale pojawi się 1, 2, 3 &.
+Wizualizacja: Stopa nie robi jednego długiego kroku, ale wykonuje trzy szybkie, małe "szurnięcia".
+2. Fizyka ruchu: "Baby Steps" (Małe kroki)
+Instruktorzy kładą ogromny nacisk na "małe kroki" (06:54). Mówią, że to klucz do równowagi.
+Nowa funkcja w aplikacji: "Tryb Baby Steps"
+W UI dodajemy przełącznik: [Tryb: Duże kroki / Małe kroki].
+W trybie "Małe kroki" animacja stóp na SVG drastycznie się zmniejsza – ikony stóp niemalże nie wychodzą poza obrys środka ciężkości. To uczy użytkownika, żeby nie "rozjeżdżał się" na boki.
+3. "Szuranie" zamiast "Stąpania"
+Na filmie widać, że stopy nie odrywają się od parkietu (01:21).
+Zmiana UI/UX (Prompt dla v0):
+Motion Blur / Trails: Poproś agenta o dodanie efektu "smugi" za ikoną stopy. Gdy stopa się przesuwa, zostawia za sobą na 200ms zanikający cień. To wizualnie sugeruje "szuranie", a nie podnoszenie nogi.
+Dźwięk: Zamiast czystego "klik" metronomu, w opcjach audio można dodać dźwięk "shhh-shhh" (odgłos szurania butem o parkiet), co pomoże użytkownikowi złapać odpowiednią dynamikę ruchu.
+4. Nowy Moduł: "Zamiana miejsc" i "Skrzydełko"
+Film pokazuje dwie genialne figury. Twoja aplikacja powinna mieć je jako kolejne lekcje:
+Zamiana miejsc (02:00): W wizualizatorze musimy pokazać dwie pary stóp (Lidera i Partnerki), które mijają się, tworząc kształt litery "S".
+Skrzydełko (03:45): Tu kluczowa jest praca rąk, ale stopy wykonują specyficzny obrót. Możemy dodać ikonę "kłódki" lub "pinezki" w miejscu, wokół którego tancerze mają się obracać.
+
+Ten prompt jest precyzyjnie skonstruowany pod model v0.dev, aby przekształcił obecny techniczny prototyp w autentyczny symulator „Szurańca” na podstawie lekcji od PrimaDance.
+Wklej poniższy tekst jako polecenie (follow-up) do swojej obecnej sesji w v0:
+Prompt dla v0.dev: "Szuraniec" Evolution
+Refactor the application to support the authentic "Szuraniec" (The Shuffle) style based on the PrimaDance tutorial.
+1. Rhythm & Logic Update:
+Change the 4-beat cycle to a syncopated "1, 2, 3 &" rhythm (Chassé).
+Update lib/translations.ts and the rhythm engine to support half-beats. Beat 3 should now be a quick "step-close-step" (3 and 3.5).
+Ensure the metronome sound in lib/metronome.ts reflects this: 3 clicks and one quick "tick" on the "&" beat.
+2. "Baby Steps" Mode (The Core Philosophy):
+Add a toggle in the UI: "Tryb: Małe Kroczki (Baby Steps)".
+When enabled, multiply all foot movement coordinates (X, Y) by 0.4. The feet should stay very close to the center of gravity, as emphasized in the video.
+3. Animation Overhaul (The Slide):
+Feet must NOT look like they are lifting. Change Framer Motion transitions to ease: "easeInOut" with a slightly longer duration to simulate sliding.
+Visual Trail Effect: Add a "ghosting" or "smoke trail" effect behind the moving foot icon using a vanishing SVG shadow or a series of trailing divs that fade out. This should visually represent "shuffling" on the floor.
+4. Enhanced Visuals:
+Add a "Body Sway" indicator: A subtle horizontal pulsing background gradient that guides the user to move their hips/torso in sync with the feet.
+Update foot icons to include a "Direction Arrow" showing exactly where the slide is heading.
+The "Weight bearing" ellipse should now have a soft glow to show where the balance is kept during the shuffle.
+5. Instructional Content (i18n):
+Update translations for "Szuraniec" (PL/EN):
+"Slide, don't lift your feet" (PL: "Szuraj, nie podnoś nóg").
+"Soft knees, relaxed body" (PL: "Miękkie kolana, luźne ciało").
+"Keep steps under your hips" (PL: "Trzymaj kroki pod biodrami").
+6. UI Tweaks:
+Add a small "Pro-Tip" card that rotates through advice from the video (e.g., "Weight on the ball of the foot", "Small steps = better balance").
+Ensure the Playback speed affects the syncopated rhythm correctly.
+Co ta zmiana wniesie do Twojej aplikacji?
+Zniknie "skakanie": Dzięki ease: "easeInOut" i "smugom", stopy zaczną się płynnie ślizgać po ekranie – dokładnie tak, jak na filmie.
+Prawdziwy rytm: Dodanie tego małego kroku na "i" (3.5) sprawi, że użytkownik nagle poczuje ten charakterystyczny "flow" discopolo, którego nie da się uzyskać samym rytmem 1-2.
+Edukacyjna wartość: Funkcja "Baby Steps" to "killer-feature". Większość ludzi na weselu robi za duże kroki i się wywraca – Twoja aplikacja jako pierwsza będzie ich aktywnie przed tym powstrzymywać.
+Daj znać, jak v0 poradziło sobie z animacją "smugi" (trails) – to technicznie najtrudniejszy element, ale daje niesamowity efekt wizualny!
+
+

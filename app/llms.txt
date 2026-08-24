@@ -1,0 +1,23 @@
+# Dwa na Jeden — Szuraniec Trainer
+
+Interactive web application for learning the "Szuraniec" (Disco Polo Shuffle) dance step, a staple of Polish weddings.
+
+## Description
+A modern, mobile-first dance tutorial focusing on authentic Polish wedding dance moves. It features a syncopated "1, 2, 3 &" chassé rhythm engine, visual shuffling trails, and a "Baby Steps" mode for better balance training.
+
+## Core Features
+- **Interactive Dance Floor**: Real-time SVG visualization of foot movements.
+- **Rhythm Engine**: Syncopated metronome and audio playback synchronized with Polish wedding hits.
+- **Baby Steps Mode**: Reduces movement scale to improve learner's balance.
+- **Bilingual Support**: Full Polish and English translations.
+- **Authentic Style**: Based on actual "Szuraniec" technique (minimal lifting, soft knees).
+
+## Technical Stack
+- Next.js 14+ (App Router)
+- TypeScript
+- Framer Motion (Fluid animations)
+- Web Audio API (Synthesized metronome)
+- Tailwind CSS
+
+## Playlist
+Includes popular Polish wedding songs by artists like Boys, Akcent, Masters, and Weekend, ranging from 120 to 138 BPM.

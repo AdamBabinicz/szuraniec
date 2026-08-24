@@ -1,0 +1,142 @@
+{
+  "APP_NAME": "Two on One",
+  "APP_TAGLINE": "Disco polo school for wedding feet",
+  "APP_LEGAL_NAME": "Two on One — Wedding Step School",
+  "STEP_NAME": "The Shuffle",
+  "STYLE_SUBTITLE": "Rhythmic 2-on-1 wedding step",
+  "FLOOR_TITLE": "Digital Dance Floor",
+  "FLOOR_HINT": "Slide, don't lift your feet. Only one foot moves — the other carries your weight.",
+  "PLAY": "Play",
+  "PAUSE": "Pause",
+  "RESTART": "Restart",
+  "AUDIO_LABEL": "Audio",
+  "SOURCE_CLICK": "Metronome",
+  "SOURCE_TRACK": "MP3 Track",
+  "TRACK_MISSING": "Audio file missing — make sure the file is in public/songs/",
+  "MUTED": "Muted",
+  "UNMUTED": "Sound on",
+  "SONG_LABEL": "Song",
+  "TEMPO_LABEL": "Tempo",
+  "BPM_LABEL": "BPM",
+  "EFFECTIVE_BPM": "practice tempo",
+  "CYCLE_LABEL": "Bar",
+  "COUNTER_1": "1",
+  "COUNTER_2": "2",
+  "COUNTER_3": "3",
+  "COUNTER_AND": "&",
+  "BABY_STEPS_LABEL": "Baby Steps Mode",
+  "BABY_STEPS_ON": "Baby steps on",
+  "BABY_STEPS_OFF": "Full steps",
+  "BABY_STEPS_HINT": "Keep steps under your hips — smaller step, better balance.",
+  "ROLE_LABEL": "Dance Role",
+  "ROLE_LEADER": "Lead (He)",
+  "ROLE_FOLLOWER": "Follow (She)",
+  "VIBRATION_LABEL": "Pocket Vibration",
+  "VIBRATION_ON": "Vibration on",
+  "VIBRATION_OFF": "Vibration off",
+  "FULLSCREEN_ENTER": "Full-Screen Mode",
+  "FULLSCREEN_EXIT": "Exit Full-Screen",
+  "KEYBOARD_HINT": "Hotkeys: Space = Play/Stop · R = Reset · B = Baby Steps · ←/→ = Tempo",
+  "MISTAKES_TITLE": "3 Deadly Sins of the Wedding Step",
+  "MISTAKES": [
+    {
+      "badge": "Sin 1",
+      "title": "Stork in the Grass",
+      "desc": "Lifting your feet high off the floor. Remember: slide the soles along the floor, never lose floor contact!"
+    },
+    {
+      "badge": "Sin 2",
+      "title": "Seven-League Boots",
+      "desc": "Taking overly wide steps. Giant steps ruin balance and drain your stamina. Keep small steps under your hips."
+    },
+    {
+      "badge": "Sin 3",
+      "title": "Broomstick Legs",
+      "desc": "Locked, stiff knees. All the bounce, groove, and glide in Szuraniec comes from soft, flexing knees!"
+    }
+  ],
+  "INSTRUCTION_LABEL": "Current move",
+  "WEIGHT_LABEL": "Weight on",
+  "MOVING_LABEL": "Sliding",
+  "LEFT_FOOT": "Left foot",
+  "RIGHT_FOOT": "Right foot",
+  "BREAKDOWN_TITLE": "Step Breakdown",
+  "FOOTER_TEXT": "Practice before the wedding, not at the wedding.",
+  "FOOTER_PRIVACY": "Privacy Policy",
+  "FOOTER_TERMS": "Terms of Service",
+  "BACK_TO_APP": "Back to training",
+  "LAST_UPDATED": "Last updated: May 2024",
+  "PRIVACY_SLUG": "privacy-policy",
+  "TERMS_SLUG": "terms-of-service",
+  "INSTRUCTIONS": {
+    "LEFT": {
+      "one": "Left foot slides to the left. Weight stays on the right.",
+      "two": "Right foot closes in. Weight transfers to the left.",
+      "three": "Left foot slides again — quick, half a beat.",
+      "and": "Right foot closes on the '&'. Weight stays on the left leg."
+    },
+    "RIGHT": {
+      "one": "Right foot slides to the right. Weight stays on the left.",
+      "two": "Left foot closes in. Weight transfers to the right.",
+      "three": "Right foot slides again — quick, half a beat.",
+      "and": "Left foot closes on the '&'. Weight stays on the right leg."
+    }
+  },
+  "SONG_NAMES": {
+    "chwile": "Akcent — Life are Moments",
+    "dziewczyno": "Boys — Most Beautiful Girl",
+    "cudowna": "Akcent — You are Wonderful",
+    "zakopane": "Slawomir — Love in Zakopane",
+    "zono": "Masters — My Wife",
+    "miod": "MIG — Honey Raspberry",
+    "lobuz": "Boys — The Rogue",
+    "szalona": "Boys — You are Crazy",
+    "kochana": "Boys — My Beloved",
+    "mama": "Daj to glosniej — Mama Warned Me",
+    "wolnosc": "Boys — Freedom",
+    "ona_tanczy": "Weekend — She Dances for Me",
+    "ruda": "Czeresnie — Redhead Dances Like Crazy",
+    "zielone": "Akcent — Through Your Green Eyes",
+    "chciala": "Ronnie Ferrari — She Wanted it That Way"
+  },
+  "BREAKDOWN": [
+    {
+      "title": "One",
+      "body": "Leading foot slides sideways. The other one holds your weight."
+    },
+    {
+      "title": "Two",
+      "body": "Trailing foot closes in. Weight transfers to the leading foot."
+    },
+    {
+      "title": "Three",
+      "body": "Quick slide of the leading foot — half a beat."
+    },
+    {
+      "title": "&",
+      "body": "Closing slide on the syncopation. The next bar mirrors it all."
+    }
+  ],
+  "PRIVACY": {
+    "TITLE": "Privacy Policy & Cookies",
+    "SEC_1_TITLE": "1. Administrator & Personal Data",
+    "SEC_1_TEXT": "The administrator of your data is the owner of the dwanajeden.pl domain. The app requires no account creation, allowing fully anonymous training.",
+    "SEC_2_TITLE": "2. Analytics (Google Analytics / GTM)",
+    "SEC_2_TEXT": "To improve training quality, we utilize Google Tag Manager and Google Analytics. Collected data is fully anonymized and used strictly for statistics.",
+    "SEC_3_TITLE": "3. Cookies",
+    "SEC_3_TEXT": "We use cookies for audio engine operation, saving user preferences (e.g. tempo, baby steps mode), and anonymous analytics. You can manage cookies in your browser settings.",
+    "SEC_4_TITLE": "4. Local Storage",
+    "SEC_4_TEXT": "We utilize browser Local Storage to maintain technical parameters and app state for a smooth experience without reloading on every refresh."
+  },
+  "TERMS": {
+    "TITLE": "Terms of Service & AI Statement",
+    "SEC_1_TITLE": "1. Purpose of the Application",
+    "SEC_1_TEXT": "The 'Two on One' application is an interactive educational tool designed to teach the wedding step (Szuraniec / Disco Fox). It is completely free to use.",
+    "SEC_2_TITLE": "2. Safety & Liability",
+    "SEC_2_TEXT": "Dancing is physical exercise. The author is not liable for any injuries, strains, or partner's stepped-on toes resulting from improper technique.",
+    "SEC_3_TITLE": "3. Human + AI Synergy",
+    "SEC_3_TEXT": "We declare transparently: this application was created through the synergy of human creativity and advanced artificial intelligence (v0.dev, ChatGPT). While AI assisted with code and rhythm logic, the artistic and methodological vision was directed by a human.",
+    "SEC_4_TITLE": "4. Copyrights",
+    "SEC_4_TEXT": "The source code and visual concepts are protected. Song titles and artist trademarks belong to their respective copyright holders and are used solely for educational purposes."
+  }
+}

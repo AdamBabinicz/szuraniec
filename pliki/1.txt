@@ -1,0 +1,481 @@
+export type Lang = "pl" | "en";
+
+/** The four slots of the syncopated "1, 2, 3 &" chassé. */
+export type PhaseId = "one" | "two" | "three" | "and";
+
+/** Which way the current bar travels. Bars alternate so the dancer stays centred. */
+export type Direction = "left" | "right";
+
+/** Metronome voices: strong downbeat, plain beat, quick off-beat tick. */
+export type ClickVoice = "accent" | "beat" | "tick";
+
+export type Phase = {
+  id: PhaseId;
+  counterKey: "counterOne" | "counterTwo" | "counterThree" | "counterAnd";
+  beats: number;
+  moving: "left" | "right";
+  weight: "left" | "right";
+  voice: ClickVoice;
+  tap?: boolean;
+};
+
+export const PHASES: Phase[] = [
+  {
+    id: "one",
+    counterKey: "counterOne",
+    beats: 1,
+    moving: "left",
+    weight: "right",
+    voice: "accent",
+  },
+  {
+    id: "two",
+    counterKey: "counterTwo",
+    beats: 1,
+    moving: "right",
+    weight: "left",
+    voice: "beat",
+  },
+  {
+    id: "three",
+    counterKey: "counterThree",
+    beats: 0.5,
+    moving: "left",
+    weight: "right",
+    voice: "beat",
+  },
+  {
+    id: "and",
+    counterKey: "counterAnd",
+    beats: 0.5,
+    moving: "right",
+    weight: "left",
+    voice: "tick",
+    tap: true,
+  },
+];
+
+export const BEATS_PER_BAR = PHASES.reduce(
+  (sum, phase) => sum + phase.beats,
+  0,
+);
+export const PHASE_DURATIONS = PHASES.map((phase) => phase.beats);
+export const PHASE_VOICES = PHASES.map((phase) => phase.voice);
+
+export type FootState = { x: number; y: number; rotate: number };
+export type Stance = { left: FootState; right: FootState };
+
+const ROTATE_LEFT = -7;
+const ROTATE_RIGHT = 7;
+
+function stance(leftX: number, rightX: number): Stance {
+  return {
+    left: { x: leftX, y: 0, rotate: ROTATE_LEFT },
+    right: { x: rightX, y: 0, rotate: ROTATE_RIGHT },
+  };
+}
+
+const LEFTWARD: Stance[] = [
+  stance(-11, 33),
+  stance(-11, 11),
+  stance(-33, 11),
+  stance(-33, -11),
+];
+const LEFTWARD_START = stance(11, 33);
+const RIGHTWARD: Stance[] = [
+  stance(-33, 11),
+  stance(-11, 11),
+  stance(-11, 33),
+  stance(11, 33),
+];
+const RIGHTWARD_START = stance(-33, -11);
+
+export const BABY_SCALE = 0.4;
+
+function scaleStance(value: Stance, baby: boolean): Stance {
+  if (!baby) return value;
+  return {
+    left: {
+      ...value.left,
+      x: value.left.x * BABY_SCALE,
+      y: value.left.y * BABY_SCALE,
+    },
+    right: {
+      ...value.right,
+      x: value.right.x * BABY_SCALE,
+      y: value.right.y * BABY_SCALE,
+    },
+  };
+}
+
+export function directionFor(bar: number): Direction {
+  return bar % 2 === 1 ? "left" : "right";
+}
+
+export function stanceFor(beat: number, bar: number, baby = false): Stance {
+  const table = directionFor(bar) === "left" ? LEFTWARD : RIGHTWARD;
+  return scaleStance(table[beat] ?? table[table.length - 1], baby);
+}
+
+export function previousStanceFor(
+  beat: number,
+  bar: number,
+  baby = false,
+): Stance {
+  if (beat > 0) return stanceFor(beat - 1, bar, baby);
+  const start = directionFor(bar) === "left" ? LEFTWARD_START : RIGHTWARD_START;
+  return scaleStance(start, baby);
+}
+
+export function barTargets(bar: number, baby = false): [number, number] {
+  const end = stanceFor(PHASES.length - 1, bar, baby);
+  return [end.left.x, end.right.x];
+}
+
+export function rolesFor(
+  phase: Phase,
+  bar: number,
+): { moving: "left" | "right"; weight: "left" | "right" } {
+  const mirror = directionFor(bar) === "right";
+  const flip = (side: "left" | "right") => (side === "left" ? "right" : "left");
+  return {
+    moving: mirror ? flip(phase.moving) : phase.moving,
+    weight: mirror ? flip(phase.weight) : phase.weight,
+  };
+}
+
+export type Song = {
+  id:
+    | "szalona"
+    | "zono"
+    | "chwile"
+    | "zielone"
+    | "wolnosc"
+    | "lobuz"
+    | "dziewczyno"
+    | "kochana"
+    | "miod"
+    | "mama"
+    | "cudowna"
+    | "ruda"
+    | "chciala"
+    | "ona_tanczy"
+    | "zakopane";
+  bpm: number;
+  audioUrl?: string;
+};
+
+/** Mega Wedding Playlist - ordered by BPM */
+export const SONGS: Song[] = [
+  { id: "chwile", bpm: 120, audioUrl: "/songs/chwile.mp3" },
+  { id: "dziewczyno", bpm: 124, audioUrl: "/songs/dziewczyno.mp3" },
+  { id: "cudowna", bpm: 124, audioUrl: "/songs/cudowna.mp3" },
+  { id: "zakopane", bpm: 124, audioUrl: "/songs/zakopane.mp3" },
+  { id: "zono", bpm: 125, audioUrl: "/songs/zono.mp3" },
+  { id: "miod", bpm: 126, audioUrl: "/songs/miod.mp3" },
+  { id: "lobuz", bpm: 127, audioUrl: "/songs/lobuz.mp3" },
+  { id: "szalona", bpm: 128, audioUrl: "/songs/szalona.mp3" },
+  { id: "kochana", bpm: 128, audioUrl: "/songs/kochana.mp3" },
+  { id: "mama", bpm: 128, audioUrl: "/songs/mama.mp3" },
+  { id: "wolnosc", bpm: 130, audioUrl: "/songs/wolnosc.mp3" },
+  { id: "ona_tanczy", bpm: 130, audioUrl: "/songs/ona_tanczy.mp3" },
+  { id: "ruda", bpm: 132, audioUrl: "/songs/ruda.mp3" },
+  { id: "zielone", bpm: 135, audioUrl: "/songs/zielone.mp3" },
+  { id: "chciala", bpm: 138, audioUrl: "/songs/chciala.mp3" },
+];
+
+export type AudioSource = "click" | "track";
+export const SPEEDS = [0.5, 1, 1.25] as const;
+export type Speed = (typeof SPEEDS)[number];
+
+type Instructions = Record<Direction, Record<PhaseId, string>>;
+
+type Dictionary = {
+  appName: string;
+  appTagline: string;
+  stepName: string;
+  styleName: string;
+  styleSubtitle: string;
+  floorTitle: string;
+  floorHint: string;
+  language: string;
+  theme: string;
+  themeToLight: string;
+  themeToDark: string;
+  play: string;
+  pause: string;
+  restart: string;
+  sound: string;
+  soundOn: string;
+  soundOff: string;
+  audioLabel: string;
+  sourceClick: string;
+  sourceTrack: string;
+  trackMissing: string;
+  muted: string;
+  unmuted: string;
+  songLabel: string;
+  tempoLabel: string;
+  bpmLabel: string;
+  effectiveBpm: string;
+  cycleLabel: string;
+  counterLabel: string;
+  counterOne: string;
+  counterTwo: string;
+  counterThree: string;
+  counterAnd: string;
+  offBeatLabel: string;
+  babyStepsLabel: string;
+  babyStepsOn: string;
+  babyStepsOff: string;
+  babyStepsHint: string;
+  swayLabel: string;
+  instructionLabel: string;
+  instructions: Instructions;
+  directionLeft: string;
+  directionRight: string;
+  weightLabel: string;
+  movingLabel: string;
+  leftFoot: string;
+  rightFoot: string;
+  cuesTitle: string;
+  cues: string[];
+  proTipTitle: string;
+  proTips: string[];
+  breakdownTitle: string;
+  breakdown: { title: string; body: string }[];
+  songs: Record<Song["id"], string>;
+  footer: string;
+};
+
+export const translations: Record<Lang, Dictionary> = {
+  pl: {
+    appName: "Dwa na Jeden",
+    appTagline: "Szkoła disco polo dla weselnych nóg",
+    stepName: "Szuraniec",
+    styleName: "Szuraniec",
+    styleSubtitle: 'Synkopowany chassé na "1, 2, 3 i"',
+    floorTitle: "Cyfrowy Parkiet",
+    floorHint:
+      "Szuraj, nie podnoś nóg. Rusza się tylko jedna stopa — druga trzyma ciężar.",
+    language: "Język",
+    theme: "Motyw",
+    themeToLight: "Włącz tryb jasny",
+    themeToDark: "Włącz tryb nocny",
+    play: "Start",
+    pause: "Stop",
+    restart: "Od nowa",
+    sound: "Metronom",
+    soundOn: "Wyłącz dźwięk",
+    soundOff: "Włącz dźwięk",
+    audioLabel: "Dźwięk",
+    sourceClick: "Metronom",
+    sourceTrack: "Utwór mp3",
+    trackMissing:
+      "Brak pliku audio — upewnij się, że plik znajduje się w public/songs/",
+    muted: "Wyciszone",
+    unmuted: "Dźwięk włączony",
+    songLabel: "Piosenka",
+    tempoLabel: "Tempo",
+    bpmLabel: "BPM",
+    effectiveBpm: "tempo ćwiczenia",
+    cycleLabel: "Takt",
+    counterLabel: "Licznik",
+    counterOne: "1",
+    counterTwo: "2",
+    counterThree: "3",
+    counterAnd: "I",
+    offBeatLabel: "pół miary",
+    babyStepsLabel: "Tryb: Małe Kroczki",
+    babyStepsOn: "Małe kroczki włączone",
+    babyStepsOff: "Pełne kroki",
+    babyStepsHint:
+      "Trzymaj kroki pod biodrami — mniejszy krok, lepsza równowaga.",
+    swayLabel: "Kołysanie biodrami",
+    instructionLabel: "Co robisz teraz",
+    instructions: {
+      left: {
+        one: "Lewa stopa szura w lewo. Ciężar zostaje na prawej.",
+        two: "Prawa dosuwa się do lewej. Ciężar przechodzi na lewą.",
+        three: "Lewa szura jeszcze raz — szybko, pół miary.",
+        and: 'Prawa dosuwa się na "i". Ciężar na lewej nodze.',
+      },
+      right: {
+        one: "Prawa stopa szura w prawo. Ciężar zostaje na lewej.",
+        two: "Lewa dosuwa się do prawej. Ciężar przechodzi na prawą.",
+        three: "Prawa szura jeszcze raz — szybko, pół miary.",
+        and: 'Lewa dosuwa się na "i". Ciężar na prawej nodze.',
+      },
+    },
+    directionLeft: "w lewo",
+    directionRight: "w prawo",
+    weightLabel: "Ciężar ciała",
+    movingLabel: "Szura",
+    leftFoot: "Lewa stopa",
+    rightFoot: "Prawa stopa",
+    cuesTitle: "Trzy zasady szuraniec",
+    cues: [
+      "Szuraj, nie podnoś nóg",
+      "Miękkie kolana, luźne ciało",
+      "Trzymaj kroki pod biodrami",
+    ],
+    proTipTitle: "Wskazówka",
+    proTips: [
+      "Ciężar na przodostopiu — pięta tylko dotyka parkietu.",
+      "Małe kroki = lepsza równowaga.",
+      "Kolana miękkie przez cały czas, nigdy nie blokuj nóg.",
+      'Licz na głos: "raz, dwa, trzy i" — synkopa siedzi na "i".',
+      "Biodra idą za stopą, nie odwrotnie.",
+      "Ramiona luźno w dół. Nie pomagaj sobie rękami.",
+    ],
+    breakdownTitle: "Rozbiór kroku",
+    breakdown: [
+      {
+        title: "Raz",
+        body: "Stopa wykroczna szura w bok. Druga stoi i trzyma ciężar.",
+      },
+      {
+        title: "Dwa",
+        body: "Druga stopa dosuwa się. Ciężar przechodzi na stopę wykroczną.",
+      },
+      { title: "Trzy", body: "Szybkie szuranie stopą wykroczną — pół miary." },
+      {
+        title: "I",
+        body: "Dosuw na synkopie. Następny takt idzie w drugą stronę.",
+      },
+    ],
+    songs: {
+      chwile: "Akcent — Życie to są chwile",
+      dziewczyno: "Boys — Najpiękniejsza dziewczyno",
+      cudowna: "Akcent — Cudowna jest",
+      zakopane: "Sławomir — Miłość w Zakopanem",
+      zono: "Masters — Żono Moja",
+      miod: "MIG — Miód Malina",
+      lobuz: "Boys — Łobuz",
+      szalona: "Boys — Jesteś Szalona",
+      kochana: "Boys — Moja kochana",
+      mama: "Daj to głośniej — Mama ostrzegała",
+      wolnosc: "Boys — Wolność",
+      ona_tanczy: "Weekend — Ona tańczy dla mnie",
+      ruda: "Czereśnie — Ruda tańczy jak szalona",
+      zielone: "Akcent — Przez Twe Oczy Zielone",
+      chciala: "Ronnie Ferrari — Ona by tak chciała",
+    },
+    footer: "Ćwicz przed weselem, nie na weselu.",
+  },
+  en: {
+    appName: "Two on One",
+    appTagline: "Disco polo school for wedding feet",
+    stepName: "The Shuffle",
+    styleName: "The Shuffle",
+    styleSubtitle: 'Syncopated chassé counted "1, 2, 3 &"',
+    floorTitle: "Digital Dance Floor",
+    floorHint:
+      "Slide, don't lift your feet. Only one foot moves — the other carries your weight.",
+    language: "Language",
+    theme: "Theme",
+    themeToLight: "Switch to light mode",
+    themeToDark: "Switch to night mode",
+    play: "Play",
+    pause: "Pause",
+    restart: "Restart",
+    sound: "Metronome",
+    soundOn: "Mute clicks",
+    soundOff: "Unmute clicks",
+    audioLabel: "Audio",
+    sourceClick: "Metronome",
+    sourceTrack: "MP3 track",
+    trackMissing: "Audio file missing — check public/songs/ directory.",
+    muted: "Muted",
+    unmuted: "Sound on",
+    songLabel: "Song",
+    tempoLabel: "Tempo",
+    bpmLabel: "BPM",
+    effectiveBpm: "practice tempo",
+    cycleLabel: "Bar",
+    counterLabel: "Counter",
+    counterOne: "1",
+    counterTwo: "2",
+    counterThree: "3",
+    counterAnd: "&",
+    offBeatLabel: "half beat",
+    babyStepsLabel: "Baby Steps mode",
+    babyStepsOn: "Baby steps on",
+    babyStepsOff: "Full steps",
+    babyStepsHint: "Keep steps under your hips — smaller step, better balance.",
+    swayLabel: "Body sway",
+    instructionLabel: "What you do now",
+    instructions: {
+      left: {
+        one: "Left foot slides to the left. Weight stays on the right.",
+        two: "Right foot closes in. Weight transfers to the left.",
+        three: "Left foot slides again — quick, half a beat.",
+        and: 'Right foot closes on the "&". Weight on the left leg.',
+      },
+      right: {
+        one: "Right foot slides to the right. Weight stays on the left.",
+        two: "Left foot closes in. Weight transfers to the right.",
+        three: "Right foot slides again — quick, half a beat.",
+        and: 'Left foot closes on the "&". Weight on the right leg.',
+      },
+    },
+    directionLeft: "to the left",
+    directionRight: "to the right",
+    weightLabel: "Weight on",
+    movingLabel: "Sliding",
+    leftFoot: "Left foot",
+    rightFoot: "Right foot",
+    cuesTitle: "Three shuffle rules",
+    cues: [
+      "Slide, don't lift your feet",
+      "Soft knees, relaxed body",
+      "Keep steps under your hips",
+    ],
+    proTipTitle: "Pro tip",
+    proTips: [
+      "Weight on the ball of the foot — the heel only grazes the floor.",
+      "Small steps = better balance.",
+      "Keep the knees soft the whole time, never lock them.",
+      'Count out loud: "one, two, three &" — the syncopation sits on the "&".',
+      "Let the hips follow the foot, never the other way round.",
+      "Arms loose at your sides. Don't steer with them.",
+    ],
+    breakdownTitle: "Step breakdown",
+    breakdown: [
+      {
+        title: "One",
+        body: "Leading foot slides sideways. The other one holds your weight.",
+      },
+      {
+        title: "Two",
+        body: "Trailing foot closes in. Weight transfers to the leading foot.",
+      },
+      {
+        title: "Three",
+        body: "Quick slide of the leading foot — half a beat.",
+      },
+      {
+        title: "&",
+        body: "Closing slide on the syncopation. The next bar mirrors it all.",
+      },
+    ],
+    songs: {
+      chwile: "Akcent — Life are moments",
+      dziewczyno: "Boys — Beautiful Girl",
+      cudowna: "Akcent — Wonderful is",
+      zakopane: "Slawomir — Love in Zakopane",
+      zono: "Masters — My Wife",
+      miod: "MIG — Honey Raspberry",
+      lobuz: "Boys — The Rogue",
+      szalona: "Boys — You are crazy",
+      kochana: "Boys — My Beloved",
+      mama: "Daj to glosniej — Mama warned",
+      wolnosc: "Boys — Freedom",
+      ona_tanczy: "Weekend — She dances for me",
+      ruda: "Czeresnie — Redhead dances like crazy",
+      zielone: "Akcent — Through your green eyes",
+      chciala: "Ronnie Ferrari — She wanted it that way",
+    },
+    footer: "Practice before the wedding, not at the wedding.",
+  },
+};
