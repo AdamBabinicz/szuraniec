@@ -19,7 +19,7 @@ const SEO = {
   description:
     "Szuraniec to weselny hit! Poznaj kroki taneczne krok po kroku. Interaktywny kurs disco polo z muzyką. Zaskocz gości i zostań królem każdego parkietu!!!",
   url: "https://dwanajeden.netlify.app",
-  ogImage: "/images/4.png",
+  ogImage: "/images/1_.png",
 };
 
 export const metadata: Metadata = {
