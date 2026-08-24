@@ -101,6 +101,7 @@ export function DanceControls({
               type="button"
               onClick={() => onSpeedChange(value)}
               aria-pressed={speed === value}
+              aria-label={`${value}x ${t.TEMPO_LABEL}`}
               className={cn(
                 "rounded-xl border py-3 font-mono text-sm font-black transition-all",
                 speed === value
@@ -119,6 +120,7 @@ export function DanceControls({
         <button
           type="button"
           onClick={onTogglePlay}
+          aria-label={playing ? (t.PAUSE as string) : (t.PLAY as string)}
           className={cn(
             "flex flex-1 items-center justify-center gap-3 rounded-xl py-4 font-black uppercase tracking-widest transition-all active:scale-[0.98]",
             playing
@@ -131,21 +133,24 @@ export function DanceControls({
           ) : (
             <Play className="size-5 fill-current" />
           )}
-          {playing ? t.PAUSE : t.PLAY}
+          <span>{playing ? t.PAUSE : t.PLAY}</span>
         </button>
 
         <button
           type="button"
           onClick={onRestart}
           title={t.RESTART as string}
+          aria-label={t.RESTART as string}
           className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all hover:border-primary hover:text-primary active:rotate-[-45deg]"
         >
           <RotateCcw className="size-5" />
+          <span className="sr-only">{t.RESTART as string}</span>
         </button>
 
         <button
           type="button"
           onClick={onToggleMuted}
+          aria-label={muted ? (t.UNMUTED as string) : (t.MUTED as string)}
           className={cn(
             "flex h-14 shrink-0 items-center gap-2 rounded-xl border px-4 text-xs font-black uppercase tracking-tighter transition-all",
             muted
@@ -161,6 +166,9 @@ export function DanceControls({
           <span className="hidden md:inline">
             {muted ? t.MUTED : t.UNMUTED}
           </span>
+          <span className="sr-only md:hidden">
+            {muted ? t.MUTED : t.UNMUTED}
+          </span>
         </button>
       </div>
 
@@ -173,6 +181,7 @@ export function DanceControls({
           <button
             type="button"
             onClick={() => onSourceChange("click")}
+            aria-label={t.SOURCE_CLICK as string}
             className={cn(
               "flex items-center justify-center gap-2.5 rounded-xl border py-3 text-xs font-black uppercase tracking-widest transition-all",
               source === "click"
@@ -181,12 +190,13 @@ export function DanceControls({
             )}
           >
             <AudioLines className="size-4" />
-            {t.SOURCE_CLICK}
+            <span>{t.SOURCE_CLICK}</span>
           </button>
           <button
             type="button"
             onClick={() => onSourceChange("track")}
             disabled={!hasTrack}
+            aria-label={t.SOURCE_TRACK as string}
             className={cn(
               "flex items-center justify-center gap-2.5 rounded-xl border py-3 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed",
               source === "track"
@@ -195,7 +205,7 @@ export function DanceControls({
             )}
           >
             <FileMusic className="size-4" />
-            {t.SOURCE_TRACK}
+            <span>{t.SOURCE_TRACK}</span>
           </button>
         </div>
         {!hasTrack && (
