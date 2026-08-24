@@ -19,6 +19,7 @@ const SEO = {
   description:
     "Szuraniec to weselny hit! Poznaj kroki taneczne krok po kroku. Interaktywny kurs disco polo z muzyką. Zaskocz gości i zostań królem każdego parkietu!!!",
   url: "https://dwanajeden.pl",
+  ogImage: "/images/4.png",
 };
 
 export const metadata: Metadata = {
@@ -41,11 +42,20 @@ export const metadata: Metadata = {
     siteName: "Dwa na Jeden — Trener Tańca",
     locale: "pl_PL",
     type: "website",
+    images: [
+      {
+        url: SEO.ogImage,
+        width: 1200,
+        height: 630,
+        alt: SEO.title,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: SEO.title,
     description: SEO.description,
+    images: [SEO.ogImage],
   },
   icons: {
     icon: [
