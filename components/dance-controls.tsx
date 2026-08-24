@@ -56,11 +56,11 @@ export function DanceControls({
 
   return (
     <div className="grid gap-6 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 text-card-foreground">
-      {/* Wybór piosenki */}
+      {/* Wybór piosenki - Pełny kontrast etykiety */}
       <div className="grid gap-2.5">
         <label
           htmlFor="song"
-          className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70"
+          className="text-xs font-black uppercase tracking-[0.2em] text-foreground"
         >
           {t.SONG_LABEL}
         </label>
@@ -70,7 +70,7 @@ export function DanceControls({
             id="song"
             value={song.id}
             onChange={(event) => onSongChange(event.target.value as Song["id"])}
-            className="w-full appearance-none rounded-xl border border-border bg-muted/50 py-3.5 pl-11 pr-16 text-sm font-bold text-foreground outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+            className="w-full appearance-none rounded-xl border border-border bg-muted/60 py-3.5 pl-11 pr-20 text-sm font-bold text-foreground outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
           >
             {SONGS.map((item) => (
               <option key={item.id} value={item.id}>
@@ -78,19 +78,20 @@ export function DanceControls({
               </option>
             ))}
           </select>
-          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 font-mono text-[10px] font-black text-muted-foreground">
-            {song.bpm} <span className="opacity-50">{t.BPM_LABEL}</span>
+          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 font-mono text-xs font-bold text-muted-foreground">
+            <span>{song.bpm}</span>
+            <span>{t.BPM_LABEL}</span>
           </div>
         </div>
       </div>
 
-      {/* Wybór tempa */}
+      {/* Wybór tempa - Pełny kontrast */}
       <div className="grid gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+          <span className="text-xs font-black uppercase tracking-[0.2em] text-foreground">
             {t.TEMPO_LABEL}
           </span>
-          <span className="font-mono text-[10px] font-black text-primary uppercase">
+          <span className="font-mono text-xs font-black text-primary uppercase">
             {Math.round(song.bpm * speed)} {t.BPM_LABEL} · {t.EFFECTIVE_BPM}
           </span>
         </div>
@@ -106,7 +107,7 @@ export function DanceControls({
                 "rounded-xl border py-3 font-mono text-sm font-black transition-all",
                 speed === value
                   ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                  : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
               )}
             >
               {value}x
@@ -124,7 +125,7 @@ export function DanceControls({
           className={cn(
             "flex flex-1 items-center justify-center gap-3 rounded-xl py-4 font-black uppercase tracking-widest transition-all active:scale-[0.98]",
             playing
-              ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
               : "bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:opacity-90",
           )}
         >
@@ -141,7 +142,7 @@ export function DanceControls({
           onClick={onRestart}
           title={t.RESTART as string}
           aria-label={t.RESTART as string}
-          className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all hover:border-primary hover:text-primary active:rotate-[-45deg]"
+          className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-all hover:border-primary hover:text-primary active:rotate-[-45deg]"
         >
           <RotateCcw className="size-5" />
           <span className="sr-only">{t.RESTART as string}</span>
@@ -154,8 +155,8 @@ export function DanceControls({
           className={cn(
             "flex h-14 shrink-0 items-center gap-2 rounded-xl border px-4 text-xs font-black uppercase tracking-tighter transition-all",
             muted
-              ? "border-border bg-muted/50 text-muted-foreground"
-              : "border-primary/20 bg-primary/5 text-primary",
+              ? "border-border bg-muted/60 text-muted-foreground"
+              : "border-primary bg-primary/10 text-primary",
           )}
         >
           {muted ? (
@@ -172,9 +173,9 @@ export function DanceControls({
         </button>
       </div>
 
-      {/* Wybór źródła dźwięku */}
+      {/* Wybór źródła dźwięku - Pełny kontrast */}
       <div className="grid gap-3 border-t border-border pt-5">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+        <span className="text-xs font-black uppercase tracking-[0.2em] text-foreground">
           {t.AUDIO_LABEL}
         </span>
         <div className="grid grid-cols-2 gap-3">
@@ -186,7 +187,7 @@ export function DanceControls({
               "flex items-center justify-center gap-2.5 rounded-xl border py-3 text-xs font-black uppercase tracking-widest transition-all",
               source === "click"
                 ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/10"
-                : "border-border bg-background text-muted-foreground hover:border-primary/40",
+                : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
             )}
           >
             <AudioLines className="size-4" />
@@ -198,10 +199,10 @@ export function DanceControls({
             disabled={!hasTrack}
             aria-label={t.SOURCE_TRACK as string}
             className={cn(
-              "flex items-center justify-center gap-2.5 rounded-xl border py-3 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed",
+              "flex items-center justify-center gap-2.5 rounded-xl border py-3 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed",
               source === "track"
                 ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/10"
-                : "border-border bg-background text-muted-foreground hover:border-primary/40",
+                : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
             )}
           >
             <FileMusic className="size-4" />
@@ -209,8 +210,8 @@ export function DanceControls({
           </button>
         </div>
         {!hasTrack && (
-          <div className="rounded-lg bg-primary/5 border border-primary/10 p-3">
-            <p className="text-[10px] font-medium leading-relaxed text-primary/80 italic tracking-tight">
+          <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
+            <p className="text-xs font-semibold leading-relaxed text-primary italic tracking-tight">
               {t.TRACK_MISSING}
             </p>
           </div>
