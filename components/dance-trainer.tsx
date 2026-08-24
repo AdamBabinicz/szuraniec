@@ -212,7 +212,7 @@ export function DanceTrainer() {
       />
 
       <main className="mx-auto grid max-w-3xl gap-6 px-4 py-8 pb-20">
-        {/* BANER HERO ADAPTACYJNY */}
+        {/* BANER HERO (ZOPTYMALIZOWANY NEXT/IMAGE POD KĄTEM LCP) */}
         <section className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-xl transition-all">
           <div className="relative h-80 w-full sm:h-[420px]">
             <Image
@@ -220,6 +220,8 @@ export function DanceTrainer() {
               alt={t.STEP_NAME}
               fill
               priority
+              sizes="(max-width: 768px) 100vw, 768px"
+              quality={80}
               className="object-cover object-[center_18%] brightness-100 contrast-100 transition-transform duration-700 group-hover:scale-105 dark:brightness-[0.92] dark:contrast-[1.04]"
             />
 
@@ -238,7 +240,7 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* BELKA TRYBÓW I NARZĘDZI (Wysoki kontrast) */}
+        {/* BELKA TRYBÓW I NARZĘDZI */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-sm backdrop-blur-md">
           <button
             type="button"
@@ -321,7 +323,7 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* LICZNIK I BIEŻĄCA INSTRUKCJA (Wysoki kontrast) */}
+        {/* LICZNIK I BIEŻĄCA INSTRUKCJA */}
         <section className="grid grid-cols-[auto_1fr] items-center gap-6 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
           <div className="relative flex size-24 items-center justify-center rounded-2xl bg-muted border border-border shadow-inner">
             <svg
@@ -446,7 +448,7 @@ export function DanceTrainer() {
           </ol>
         </section>
 
-        {/* 3 GRZECHY GŁÓWNE SZURAŃCA (100% WCAG AAA Kontrast) */}
+        {/* 3 GRZECHY GŁÓWNE SZURAŃCA */}
         <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
           <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-foreground">
             <AlertTriangle className="size-4 text-amber-500" />
@@ -478,7 +480,7 @@ export function DanceTrainer() {
           <span>{t.KEYBOARD_HINT}</span>
         </div>
 
-        {/* STOPKA Z DYNAMICZNYMI LINKAMI I18N, USTAWIENIAMI COOKIES I CZYTELNYM COPYRIGHT (WCAG AA) */}
+        {/* STOPKA */}
         <footer className="mt-8 pt-8 border-t border-border flex flex-col items-center gap-6">
           <nav className="flex flex-wrap justify-center gap-x-8 gap-y-2">
             <Link
