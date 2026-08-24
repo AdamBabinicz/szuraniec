@@ -212,7 +212,7 @@ export function DanceTrainer() {
       />
 
       <main className="mx-auto grid max-w-3xl gap-6 px-4 py-8 pb-20">
-        {/* BANER HERO (MAKSYMALNA OPTYMALIZACJA LCP / FETCHPRIORITY HIGH) */}
+        {/* BANER HERO */}
         <section className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-xl transition-all">
           <div className="relative h-80 w-full sm:h-[420px]">
             <Image
@@ -325,9 +325,9 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* LICZNIK I BIEŻĄCA INSTRUKCJA (STABILNA WYSOKOŚĆ - ZERO SKAKANIA LAYOUTU) */}
-        <section className="grid grid-cols-[auto_1fr] items-center gap-6 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
-          <div className="relative flex size-24 items-center justify-center rounded-2xl bg-muted border border-border shadow-inner">
+        {/* LICZNIK I BIEŻĄCA INSTRUKCJA (STABILNA WYSOKOŚĆ DLA KAŻDEGO SMARTFONA) */}
+        <section className="grid grid-cols-[auto_1fr] items-center gap-4 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 transition-all min-h-[144px] sm:min-h-[136px]">
+          <div className="relative flex size-20 sm:size-24 shrink-0 items-center justify-center rounded-2xl bg-muted border border-border shadow-inner">
             <svg
               viewBox="0 0 100 100"
               className="absolute inset-0 size-full -rotate-90"
@@ -363,20 +363,20 @@ export function DanceTrainer() {
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 1.5, opacity: 0 }}
-                className="relative font-mono text-3xl font-black text-primary drop-shadow-[0_0_12px_rgba(236,72,153,0.4)]"
+                className="relative font-mono text-2xl sm:text-3xl font-black text-primary drop-shadow-[0_0_12px_rgba(236,72,153,0.4)]"
               >
                 {t[phase.counterKey] as string}
               </motion.span>
             </AnimatePresence>
           </div>
 
-          <div className="grid gap-2">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
+          <div className="grid gap-1 sm:gap-2 min-w-0">
+            <p className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-primary truncate">
               {t.INSTRUCTION_LABEL} · {t.CYCLE_LABEL} {cycle}
             </p>
-            {/* Blokada min-h eliminuje skakanie strony w rytm tekstu */}
-            <div className="min-h-[3.25rem] sm:min-h-[2.75rem] flex items-center">
-              <p className="text-base font-bold leading-tight sm:text-lg text-foreground">
+            {/* Stabilny bufor mieszczący do 4 linijek tekstu bez zmiany wysokości */}
+            <div className="min-h-[5rem] sm:min-h-[3.25rem] flex items-center">
+              <p className="text-sm sm:text-base font-bold leading-snug sm:leading-tight text-foreground">
                 {
                   t.INSTRUCTIONS[direction.toUpperCase() as "LEFT" | "RIGHT"][
                     phase.id
@@ -384,7 +384,7 @@ export function DanceTrainer() {
                 }
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">
               <span>
                 {t.WEIGHT_LABEL}:{" "}
                 <span className="text-foreground font-black underline underline-offset-2">
