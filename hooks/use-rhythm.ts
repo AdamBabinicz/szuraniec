@@ -65,18 +65,11 @@ export function useRhythm({
       return;
     }
 
+    // Pancerne uciszenie błędu "Blocked call": wywołuj tylko gdy użytkownik faktycznie kliknął w stronę
+    const isUserActive = (navigator as any).userActivation?.isActive === true;
+    if (!isUserActive) return;
+
     try {
-      /**
-       * POPRAWKA: Pancerne uciszenie błędu "Blocked call" w konsoli audytu.
-       * navigator.userActivation.isActive jest standardem w Chrome.
-       * Jeśli bot Lighthouse testuje stronę bez kliknięcia, wychodzimy natychmiast.
-       */
-      const isInteractionActive = (navigator as any).userActivation
-        ? (navigator as any).userActivation.isActive
-        : true;
-
-      if (!isInteractionActive) return;
-
       // Reset poprzedniej wibracji przed uruchomieniem kolejnej (wymóg Chrome Android)
       navigator.vibrate(0);
 
@@ -118,7 +111,10 @@ export function useRhythm({
   const reset = useCallback(() => {
     if (typeof window !== "undefined" && "vibrate" in navigator) {
       try {
-        navigator.vibrate(0);
+        // Blokujemy reset wibracji, jeśli użytkownik jeszcze nie wszedł w interakcję
+        if ((navigator as any).userActivation?.isActive) {
+          navigator.vibrate(0);
+        }
       } catch {}
     }
     beatRef.current = 0;
@@ -135,7 +131,10 @@ export function useRhythm({
       setProgress(0);
       if (typeof window !== "undefined" && "vibrate" in navigator) {
         try {
-          navigator.vibrate(0);
+          // Blokujemy reset wibracji w useEffect (wywoływany przy mount), jeśli brak interakcji
+          if ((navigator as any).userActivation?.isActive) {
+            navigator.vibrate(0);
+          }
         } catch {}
       }
       return;

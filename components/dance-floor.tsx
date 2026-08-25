@@ -90,7 +90,6 @@ export function DanceFloor({
   };
 
   const footAnimation = (side: "left" | "right") => {
-    // Pancerne zabezpieczenie przed brakiem danych w tablicy stance
     const self = stance?.[side] ?? { x: 0, y: 0, rotate: 0 };
     const isMoving = moving === side;
     const isTapping = isMoving && phase.tap === true;
@@ -105,10 +104,7 @@ export function DanceFloor({
     };
   };
 
-  /**
-   * FIX: Całkowite wyeliminowanie błędu "Expected length, undefined".
-   * Obliczamy wartości cx i cy przed renderowaniem i sprawdzamy ich poprawność.
-   */
+  // Gwarantowane wartości liczbowe dla SVG (usuwa błędy cx/cy: undefined)
   const weightStance = stance?.[weight] ?? { x: 0, y: 0 };
   const safeWeightX = CENTER.x + (weightStance.x ?? 0);
   const safeWeightY = CENTER.y + 28;
@@ -148,10 +144,7 @@ export function DanceFloor({
           className="opacity-40"
         />
 
-        {/*
-          FIX: Elipsa otrzymuje wyłącznie pewne wartości liczbowe.
-          Brak AnimatePresence eliminuje Forced Reflow (32ms).
-        */}
+        {/* FIX: Usunięto AnimatePresence i key, aby wyeliminować Forced Reflow (32ms) */}
         <motion.ellipse
           animate={{
             cx: safeWeightX,
