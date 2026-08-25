@@ -245,7 +245,7 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* BELKA TRYBÓW I NARZĘDZI Z NAPRAWIONYM KONTRASTEM HOVERÓW */}
+        {/* BELKA TRYBÓW I NARZĘDZI */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-sm backdrop-blur-md">
           <button
             type="button"
@@ -303,27 +303,30 @@ export function DanceTrainer() {
           role={role}
         />
 
-        {/* TRYB MAŁE KROCZKI */}
-        <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
-          <div className="flex items-center justify-between">
-            <div className="grid gap-0.5">
+        {/* TRYB MAŁE KROCZKI - ZABLOKOWANA WYSOKOŚĆ I STAŁA RAMKA (ZERO PRZESUWANIA / 0 CLS) */}
+        <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4">
+            <div className="grid gap-0.5 min-w-0">
               <h2 className="text-sm font-bold uppercase tracking-tight text-foreground">
                 {t.BABY_STEPS_LABEL}
               </h2>
-              <p className="text-xs text-muted-foreground font-semibold">
+              <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
                 {t.BABY_STEPS_HINT}
               </p>
             </div>
             <button
+              type="button"
               onClick={() => setBaby(!baby)}
-              className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              className={`flex h-10 sm:h-9 w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-xl sm:rounded-full px-4 text-xs font-bold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border ${
                 baby
-                  ? "bg-primary text-primary-foreground shadow-lg ring-2 ring-primary/50"
-                  : "bg-secondary text-secondary-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary border border-border"
+                  ? "border-primary bg-primary text-primary-foreground shadow-md"
+                  : "border-border bg-secondary text-secondary-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary"
               }`}
             >
-              <MousePointerClick className="size-3.5" />
-              {baby ? t.BABY_STEPS_ON : t.BABY_STEPS_OFF}
+              <MousePointerClick className="size-3.5 shrink-0" />
+              <span className="truncate">
+                {baby ? t.BABY_STEPS_ON : t.BABY_STEPS_OFF}
+              </span>
             </button>
           </div>
         </section>
