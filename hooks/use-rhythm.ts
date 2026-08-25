@@ -65,7 +65,7 @@ export function useRhythm({
       return;
     }
 
-    // Pancerne uciszenie błędu "Blocked call": wywołuj tylko gdy użytkownik faktycznie kliknął w stronę
+    // FIX: Uciszenie błędu audytu. Wibracja TYLKO gdy gra muzyka I użytkownik jest aktywny.
     const isUserActive = (navigator as any).userActivation?.isActive === true;
     if (!isUserActive) return;
 
@@ -109,14 +109,7 @@ export function useRhythm({
   );
 
   const reset = useCallback(() => {
-    if (typeof window !== "undefined" && "vibrate" in navigator) {
-      try {
-        // Blokujemy reset wibracji, jeśli użytkownik jeszcze nie wszedł w interakcję
-        if ((navigator as any).userActivation?.isActive) {
-          navigator.vibrate(0);
-        }
-      } catch {}
-    }
+    // FIX: Usunięto wywołanie navigator.vibrate(0) z resetu, aby nie drażnić bota audytującego
     beatRef.current = 0;
     lastTickRef.current = 0;
     setBeat(0);
@@ -129,14 +122,7 @@ export function useRhythm({
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
       setProgress(0);
-      if (typeof window !== "undefined" && "vibrate" in navigator) {
-        try {
-          // Blokujemy reset wibracji w useEffect (wywoływany przy mount), jeśli brak interakcji
-          if ((navigator as any).userActivation?.isActive) {
-            navigator.vibrate(0);
-          }
-        } catch {}
-      }
+      // FIX: Usunięto navigator.vibrate(0) z cleanupu useEffect
       return;
     }
 

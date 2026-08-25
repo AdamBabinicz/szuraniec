@@ -77,12 +77,17 @@ export function DanceFloor({
 }: Props) {
   const t = translations[lang];
 
-  const effectiveBar = role === "follower" ? bar + 1 : bar;
-  const direction = directionFor(effectiveBar);
-  const stance = stanceFor(phaseIndex, effectiveBar, baby);
-  const { moving, weight } = rolesFor(phase, effectiveBar);
+  // FIX: Pancerne sprawdzanie parametrów wejściowych
+  const safePhaseIndex = Number.isFinite(phaseIndex) ? phaseIndex : 0;
+  const safeBar = Number.isFinite(bar) ? bar : 1;
 
-  const stepDuration = beatMs / 1000;
+  const effectiveBar = role === "follower" ? safeBar + 1 : safeBar;
+  const direction = directionFor(effectiveBar);
+  const stance = stanceFor(safePhaseIndex, effectiveBar, baby);
+
+  const { moving, weight } = rolesFor(phase || PHASES[0], effectiveBar);
+
+  const stepDuration = (beatMs || 500) / 1000;
 
   const slideTransition = {
     duration: stepDuration * 0.8,
@@ -92,7 +97,7 @@ export function DanceFloor({
   const footAnimation = (side: "left" | "right") => {
     const self = stance?.[side] ?? { x: 0, y: 0, rotate: 0 };
     const isMoving = moving === side;
-    const isTapping = isMoving && phase.tap === true;
+    const isTapping = isMoving && phase?.tap === true;
 
     return {
       x: CENTER.x + (self.x ?? 0),
@@ -104,9 +109,13 @@ export function DanceFloor({
     };
   };
 
-  // Gwarantowane wartości liczbowe dla SVG (usuwa błędy cx/cy: undefined)
-  const weightStance = stance?.[weight] ?? { x: 0, y: 0 };
-  const safeWeightX = CENTER.x + (weightStance.x ?? 0);
+  /**
+   * FIX: Całkowite wyeliminowanie błędu "Expected length, undefined".
+   * Wartości cx i cy są obliczane z potrójnym zabezpieczeniem.
+   */
+  const weightStance = stance?.[weight] || { x: 0, y: 0 };
+  const safeWeightX =
+    CENTER.x + (Number.isFinite(weightStance.x) ? weightStance.x : 0);
   const safeWeightY = CENTER.y + 28;
 
   return (
@@ -144,7 +153,10 @@ export function DanceFloor({
           className="opacity-40"
         />
 
-        {/* FIX: Usunięto AnimatePresence i key, aby wyeliminować Forced Reflow (32ms) */}
+        {/*
+          FIX: Elipsa z gwarancją parametrów liczbowych.
+          Usunięcie AnimatePresence eliminuje Forced Reflow (32ms).
+        */}
         <motion.ellipse
           animate={{
             cx: safeWeightX,
@@ -158,8 +170,8 @@ export function DanceFloor({
             opacity: { repeat: Infinity, duration: 2 },
             scale: { repeat: Infinity, duration: 2 },
           }}
-          rx="24"
-          ry="8"
+          rx={24}
+          ry={8}
           className="fill-primary"
         />
 
@@ -234,7 +246,7 @@ export function DanceFloor({
         </motion.g>
 
         {PHASES.map((p, i) => {
-          const active = i === phaseIndex;
+          const active = i === safePhaseIndex;
           return (
             <circle
               key={p.id}
@@ -251,7 +263,7 @@ export function DanceFloor({
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
           {
             t.INSTRUCTIONS[direction.toUpperCase() as "LEFT" | "RIGHT"][
-              phase.id
+              (phase || PHASES[0]).id
             ]
           }
         </p>
