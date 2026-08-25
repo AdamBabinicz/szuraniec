@@ -50,7 +50,6 @@ export function DanceTrainer() {
 
   const audioElRef = useRef<HTMLAudioElement | null>(null);
 
-  // Bezpieczny odczyt po zamontowaniu
   useEffect(() => {
     setMounted(true);
 
@@ -84,7 +83,6 @@ export function DanceTrainer() {
 
   const t = translations[lang];
 
-  // Dynamiczna data praw autorskich: 2026 lub 2026 - 2027
   const currentYear = new Date().getFullYear();
   const copyrightYear = currentYear > 2026 ? `2026 - ${currentYear}` : "2026";
 
@@ -165,7 +163,6 @@ export function DanceTrainer() {
     }
   };
 
-  // Obsługa skrótów klawiszowych
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -212,9 +209,9 @@ export function DanceTrainer() {
       />
 
       <main className="mx-auto grid max-w-3xl gap-6 px-4 py-8 pb-20">
-        {/* BANER HERO */}
+        {/* BANER HERO - POPRAWIONY ASPEKT I RESPONSIVE IMAGE */}
         <section className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-xl transition-all">
-          <div className="relative h-80 w-full sm:h-[420px]">
+          <div className="relative w-full aspect-[4/3] sm:aspect-[2/1] overflow-hidden">
             <Image
               src="/images/4.avif"
               alt={t.STEP_NAME}
@@ -222,8 +219,8 @@ export function DanceTrainer() {
               priority
               loading="eager"
               fetchPriority="high"
-              sizes="(max-width: 768px) 100vw, 768px"
-              quality={80}
+              sizes="(max-width: 480px) 384px, (max-width: 768px) 768px, 800px"
+              quality={85}
               className="object-cover object-[center_18%] brightness-100 contrast-100 transition-transform duration-700 group-hover:scale-105 dark:brightness-[0.92] dark:contrast-[1.04]"
             />
 
@@ -325,7 +322,7 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* LICZNIK I BIEŻĄCA INSTRUKCJA (STABILNA WYSOKOŚĆ DLA KAŻDEGO SMARTFONA) */}
+        {/* LICZNIK I BIEŻĄCA INSTRUKCJA */}
         <section className="grid grid-cols-[auto_1fr] items-center gap-4 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 transition-all min-h-[144px] sm:min-h-[136px]">
           <div className="relative flex size-20 sm:size-24 shrink-0 items-center justify-center rounded-2xl bg-muted border border-border shadow-inner">
             <svg
@@ -374,7 +371,6 @@ export function DanceTrainer() {
             <p className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-primary truncate">
               {t.INSTRUCTION_LABEL} · {t.CYCLE_LABEL} {cycle}
             </p>
-            {/* Stabilny bufor mieszczący do 4 linijek tekstu bez zmiany wysokości */}
             <div className="min-h-[5rem] sm:min-h-[3.25rem] flex items-center">
               <p className="text-sm sm:text-base font-bold leading-snug sm:leading-tight text-foreground">
                 {
@@ -520,7 +516,6 @@ export function DanceTrainer() {
         </footer>
       </main>
 
-      {/* BANER COOKIE */}
       <CookieBanner
         title={t.COOKIE_BANNER_TITLE}
         desc={t.COOKIE_BANNER_DESC}
