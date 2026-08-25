@@ -49,8 +49,7 @@ export function DanceTrainer() {
 
   const audioElRef = useRef<HTMLAudioElement | null>(null);
 
-  // FIX: Ref podchwytujący aktualny stan playing dla stabilnych callbacków
-  // (eliminuje nieaktualne domknięcia / stale closure w listenrze klawiatury).
+  // Ref podchwytujący aktualny stan playing dla stabilnych callbacków
   const playingRef = useRef(playing);
   playingRef.current = playing;
 
@@ -83,7 +82,7 @@ export function DanceTrainer() {
     }
   }, []);
 
-  // FIX: Stan fullscreen synchronizowany ze zdarzeniem przeglądarki.
+  // Stan fullscreen synchronizowany ze zdarzeniem przeglądarki
   useEffect(() => {
     const handleFullscreenChange = () =>
       setFullscreen(Boolean(document.fullscreenElement));
@@ -246,14 +245,14 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* BELKA TRYBÓW I NARZĘDZI */}
+        {/* BELKA TRYBÓW I NARZĘDZI Z NAPRAWIONYM KONTRASTEM HOVERÓW */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-sm backdrop-blur-md">
           <button
             type="button"
             onClick={handleRoleToggle}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3.5 py-2 text-xs font-bold text-foreground transition-all hover:bg-accent hover:text-accent-foreground"
+            className="group inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3.5 py-2 text-xs font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Users className="size-3.5 text-primary" />
+            <Users className="size-3.5 text-primary transition-transform duration-200 group-hover:scale-110" />
             <span>{t.ROLE_LABEL}:</span>
             <span className="text-primary font-black underline underline-offset-2">
               {role === "leader" ? t.ROLE_LEADER : t.ROLE_FOLLOWER}
@@ -266,10 +265,10 @@ export function DanceTrainer() {
               onClick={() => setVibrate(!vibrate)}
               title={t.VIBRATION_LABEL}
               aria-label={t.VIBRATION_LABEL}
-              className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all ${
+              className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 vibrate
                   ? "border-primary bg-primary text-primary-foreground shadow-md"
-                  : "border-border bg-secondary text-foreground hover:bg-accent"
+                  : "border-border bg-secondary text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary"
               }`}
             >
               <Vibrate className="size-3.5" />
@@ -281,7 +280,7 @@ export function DanceTrainer() {
               onClick={handleFullscreenToggle}
               title={fullscreen ? t.FULLSCREEN_EXIT : t.FULLSCREEN_ENTER}
               aria-label={fullscreen ? t.FULLSCREEN_EXIT : t.FULLSCREEN_ENTER}
-              className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary p-2 text-foreground transition-all hover:bg-accent"
+              className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary p-2 text-foreground transition-all hover:bg-primary/10 hover:border-primary/40 hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {fullscreen ? (
                 <Minimize2 className="size-4" />
@@ -317,10 +316,10 @@ export function DanceTrainer() {
             </div>
             <button
               onClick={() => setBaby(!baby)}
-              className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 baby
                   ? "bg-primary text-primary-foreground shadow-lg ring-2 ring-primary/50"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
+                  : "bg-secondary text-secondary-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary border border-border"
               }`}
             >
               <MousePointerClick className="size-3.5" />
@@ -329,7 +328,7 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* LICZNIK I BIEŻĄCA INSTRUKCJA - FIX: ZMIENIONO NA DIV (NAPRAWA WARNINGU: Section lacks heading) */}
+        {/* LICZNIK I BIEŻĄCA INSTRUKCJA */}
         <div className="grid grid-cols-[auto_1fr] items-center gap-4 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 transition-all min-h-[144px] sm:min-h-[136px]">
           <div className="relative flex size-20 sm:size-24 shrink-0 items-center justify-center rounded-2xl bg-muted border border-border shadow-inner">
             <svg
@@ -421,7 +420,6 @@ export function DanceTrainer() {
           hasTrack={hasTrack}
         />
 
-        {/* FIX: USUNIĘTO playsInline (NIEDOZWOLONY DLA AUDIO) */}
         <audio
           ref={audioElRef}
           src={song.audioUrl || undefined}

@@ -24,6 +24,17 @@ export function SiteHeader({
 }: Props) {
   const t = translations[lang];
 
+  const themeLabel =
+    theme === "dark"
+      ? lang === "pl"
+        ? "Włącz tryb jasny"
+        : "Switch to light mode"
+      : lang === "pl"
+        ? "Włącz tryb nocny"
+        : "Switch to dark mode";
+
+  const langGroupLabel = lang === "pl" ? "Wybór języka" : "Language selection";
+
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
@@ -58,7 +69,7 @@ export function SiteHeader({
           {/* Przełącznik języków PL / EN */}
           <div
             role="group"
-            aria-label={lang.toUpperCase()}
+            aria-label={langGroupLabel}
             className="flex items-center rounded-full border border-border bg-secondary p-0.5"
           >
             {LANGS.map((code) => (
@@ -79,17 +90,18 @@ export function SiteHeader({
             ))}
           </div>
 
-          {/* Przełącznik motywu Light / Dark */}
+          {/* Przełącznik motywu Light / Dark z idealnym kontrastem */}
           <button
             type="button"
             onClick={onThemeToggle}
-            aria-label={theme === "dark" ? "Tryb jasny" : "Tryb ciemny"}
-            className="flex size-9 items-center justify-center rounded-full border border-border bg-secondary text-secondary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            aria-label={themeLabel}
+            title={themeLabel}
+            className="group flex size-9 items-center justify-center rounded-full border border-border bg-secondary text-secondary-foreground transition-all hover:bg-primary/10 hover:border-primary/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {theme === "dark" ? (
-              <Sun className="size-4 text-amber-400" />
+              <Sun className="size-4 text-amber-400 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" />
             ) : (
-              <Moon className="size-4 text-primary" />
+              <Moon className="size-4 text-primary transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-12" />
             )}
           </button>
         </div>
