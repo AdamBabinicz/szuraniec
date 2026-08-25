@@ -94,19 +94,26 @@ export function DanceFloor({
     const isMoving = moving === side;
     const isTapping = isMoving && phase.tap === true;
 
+    // Bezpieczne wartości liczbowe dla Framer Motion
+    const targetX = CENTER.x + (self?.x ?? 0);
+    const targetY = CENTER.y + (self?.y ?? 0);
+    const targetRotate = self?.rotate ?? 0;
+
     return {
-      x: CENTER.x + (self?.x ?? 0),
-      y: isTapping
-        ? [CENTER.y, CENTER.y - 8, CENTER.y]
-        : CENTER.y + (self?.y ?? 0),
-      rotate: self?.rotate ?? 0,
+      x: targetX,
+      y: isTapping ? [CENTER.y, CENTER.y - 8, CENTER.y] : targetY,
+      rotate: targetRotate,
       opacity: 1,
     };
   };
 
-  // Zabezpieczenie przed wartościami undefined dla SVG
-  const weightX = CENTER.x + (stance[weight]?.x ?? 0);
-  const weightY = CENTER.y + 28;
+  // Pancerne zabezpieczenie przed wartością "undefined" w atrybutach cx/cy
+  const weightSide = stance[weight] || { x: 0, y: 0 };
+  const rawWeightX = CENTER.x + (weightSide.x ?? 0);
+  const rawWeightY = CENTER.y + 28;
+
+  const safeWeightX = Number.isFinite(rawWeightX) ? rawWeightX : CENTER.x;
+  const safeWeightY = Number.isFinite(rawWeightY) ? rawWeightY : CENTER.y + 28;
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-floor shadow-inner">
@@ -144,13 +151,13 @@ export function DanceFloor({
         />
 
         {/*
-          FIX: Usunięto AnimatePresence i key, aby wyeliminować Forced Reflow.
-          Dodano bezpieczne wartości domyślne cx/cy, aby uniknąć błędów w konsoli.
+          FIX: Elipsa z gwarantowanymi wartościami liczbowymi.
+          Brak AnimatePresence eliminuje Forced Reflow (32ms).
         */}
         <motion.ellipse
           animate={{
-            cx: weightX,
-            cy: weightY,
+            cx: safeWeightX,
+            cy: safeWeightY,
             opacity: [0.15, 0.3, 0.15],
             scale: [1, 1.05, 1],
           }}

@@ -65,12 +65,11 @@ export function useRhythm({
       return;
     }
 
-    // Zabezpieczenie przed błędem "Intervention" w konsoli (Lighthouse/Chrome)
-    // Wywołujemy wibrację tylko, jeśli użytkownik wszedł w interakcję ze stroną.
-    const canVibrate = (navigator as any).userActivation
-      ? (navigator as any).userActivation.hasBeenActive
+    // Zabezpieczenie przed "Intervention" w konsoli: wibruj tylko po interakcji użytkownika
+    const isUserActive = (navigator as any).userActivation
+      ? (navigator as any).userActivation.isActive
       : true;
-    if (!canVibrate) return;
+    if (!isUserActive) return;
 
     try {
       // Reset poprzedniej wibracji przed uruchomieniem kolejnej (wymóg Chrome Android)
