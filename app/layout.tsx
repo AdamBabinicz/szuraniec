@@ -1,5 +1,3 @@
-"use client";
-
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Outfit } from "next/font/google";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
@@ -63,7 +61,7 @@ export const metadata: Metadata = {
     icon: [
       { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
       { url: "/favicon.svg", type: "image/svg+xml" },
-      // FIX: Dodanie ikon dla Android Chrome (usuwa ostrzeżenie audytu)
+      // FIX: Ikony dla Android Chrome (usuwają ostrzeżenie o braku ikon 192/512)
       {
         url: "/web-app-manifest-192x192.png",
         sizes: "192x192",
@@ -80,7 +78,6 @@ export const metadata: Metadata = {
   },
 };
 
-// Pełna zgodność z ułatwieniami dostępu (WCAG) - brak blokady zoomu dla użytkowników
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f7f6fb" },
