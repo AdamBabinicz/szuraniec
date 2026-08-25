@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   PHASES,
   directionFor,
@@ -77,7 +77,6 @@ export function DanceFloor({
 }: Props) {
   const t = translations[lang];
 
-  // W roli partnerki (follower) kierunek kroków jest lustrzanym odbiciem
   const effectiveBar = role === "follower" ? bar + 1 : bar;
   const direction = directionFor(effectiveBar);
   const stance = stanceFor(phaseIndex, effectiveBar, baby);
@@ -141,26 +140,26 @@ export function DanceFloor({
           className="opacity-40"
         />
 
-        <AnimatePresence>
-          <motion.ellipse
-            key={`weight-${weight}-${baby}-${role}`}
-            initial={{ cx: weightX, cy: weightY, opacity: 0, scale: 0.8 }}
-            animate={{
-              cx: weightX,
-              cy: weightY,
-              opacity: [0.15, 0.3, 0.15],
-              scale: [1, 1.05, 1],
-            }}
-            transition={{
-              cx: slideTransition,
-              opacity: { repeat: Infinity, duration: 2 },
-              scale: { repeat: Infinity, duration: 2 },
-            }}
-            rx="24"
-            ry="8"
-            className="fill-primary"
-          />
-        </AnimatePresence>
+        {/*
+          POPRAWKA: Usunięto AnimatePresence. Elipsa płynnie animuje pozycję cx/cy.
+          To eliminuje "Forced Reflow" (32ms), ponieważ element nie jest usuwany i dodawany przy każdym kroku.
+        */}
+        <motion.ellipse
+          animate={{
+            cx: weightX,
+            cy: weightY,
+            opacity: [0.15, 0.3, 0.15],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            cx: slideTransition,
+            opacity: { repeat: Infinity, duration: 2 },
+            scale: { repeat: Infinity, duration: 2 },
+          }}
+          rx="24"
+          ry="8"
+          className="fill-primary"
+        />
 
         {moving === "left" && (
           <>
