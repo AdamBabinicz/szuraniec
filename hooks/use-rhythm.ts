@@ -65,13 +65,18 @@ export function useRhythm({
       return;
     }
 
-    // Zabezpieczenie przed "Intervention" w konsoli: wibruj tylko po interakcji użytkownika
-    const isUserActive = (navigator as any).userActivation
-      ? (navigator as any).userActivation.isActive
-      : true;
-    if (!isUserActive) return;
-
     try {
+      /**
+       * POPRAWKA: Pancerne uciszenie błędu "Blocked call" w konsoli audytu.
+       * navigator.userActivation.isActive jest standardem w Chrome.
+       * Jeśli bot Lighthouse testuje stronę bez kliknięcia, wychodzimy natychmiast.
+       */
+      const isInteractionActive = (navigator as any).userActivation
+        ? (navigator as any).userActivation.isActive
+        : true;
+
+      if (!isInteractionActive) return;
+
       // Reset poprzedniej wibracji przed uruchomieniem kolejnej (wymóg Chrome Android)
       navigator.vibrate(0);
 

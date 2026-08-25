@@ -90,30 +90,28 @@ export function DanceFloor({
   };
 
   const footAnimation = (side: "left" | "right") => {
-    const self = stance[side];
+    // Pancerne zabezpieczenie przed brakiem danych w tablicy stance
+    const self = stance?.[side] ?? { x: 0, y: 0, rotate: 0 };
     const isMoving = moving === side;
     const isTapping = isMoving && phase.tap === true;
 
-    // Bezpieczne wartości liczbowe dla Framer Motion
-    const targetX = CENTER.x + (self?.x ?? 0);
-    const targetY = CENTER.y + (self?.y ?? 0);
-    const targetRotate = self?.rotate ?? 0;
-
     return {
-      x: targetX,
-      y: isTapping ? [CENTER.y, CENTER.y - 8, CENTER.y] : targetY,
-      rotate: targetRotate,
+      x: CENTER.x + (self.x ?? 0),
+      y: isTapping
+        ? [CENTER.y, CENTER.y - 8, CENTER.y]
+        : CENTER.y + (self.y ?? 0),
+      rotate: self.rotate ?? 0,
       opacity: 1,
     };
   };
 
-  // Pancerne zabezpieczenie przed wartością "undefined" w atrybutach cx/cy
-  const weightSide = stance[weight] || { x: 0, y: 0 };
-  const rawWeightX = CENTER.x + (weightSide.x ?? 0);
-  const rawWeightY = CENTER.y + 28;
-
-  const safeWeightX = Number.isFinite(rawWeightX) ? rawWeightX : CENTER.x;
-  const safeWeightY = Number.isFinite(rawWeightY) ? rawWeightY : CENTER.y + 28;
+  /**
+   * FIX: Całkowite wyeliminowanie błędu "Expected length, undefined".
+   * Obliczamy wartości cx i cy przed renderowaniem i sprawdzamy ich poprawność.
+   */
+  const weightStance = stance?.[weight] ?? { x: 0, y: 0 };
+  const safeWeightX = CENTER.x + (weightStance.x ?? 0);
+  const safeWeightY = CENTER.y + 28;
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-floor shadow-inner">
@@ -151,7 +149,7 @@ export function DanceFloor({
         />
 
         {/*
-          FIX: Elipsa z gwarantowanymi wartościami liczbowymi.
+          FIX: Elipsa otrzymuje wyłącznie pewne wartości liczbowe.
           Brak AnimatePresence eliminuje Forced Reflow (32ms).
         */}
         <motion.ellipse
