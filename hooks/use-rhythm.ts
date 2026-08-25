@@ -102,7 +102,11 @@ export function useRhythm({
     (index: number) => {
       triggerHaptic(index);
       if (!clicksRef.current) return;
-      const voice = voicesRef.current[index] as ClickKind;
+
+      // FIX: Guard na brakujący głos (np. gdy tablica phaseVoices zmieni długość w trakcie gry)
+      const voice = voicesRef.current[index] as ClickKind | undefined;
+      if (!voice) return;
+
       playClick(voice);
     },
     [triggerHaptic],
@@ -130,8 +134,16 @@ export function useRhythm({
     tick(beatRef.current);
 
     const loop = (now: number) => {
+      const durations = durationsRef.current;
+
+      // FIX: Zabezpieczenie przed pustą tablicą (zapobiega NaN z modulo)
+      if (durations.length === 0) {
+        frameRef.current = null;
+        return;
+      }
+
       const currentBeatIdx = beatRef.current;
-      const currentDurationFactor = durationsRef.current[currentBeatIdx] || 1;
+      const currentDurationFactor = durations[currentBeatIdx] || 1;
       const phaseDurationMs = baseBeatMsRef.current * currentDurationFactor;
 
       const elapsed = now - lastTickRef.current;
@@ -139,7 +151,7 @@ export function useRhythm({
       if (elapsed >= phaseDurationMs) {
         lastTickRef.current = now - (elapsed - phaseDurationMs);
 
-        const next = (currentBeatIdx + 1) % durationsRef.current.length;
+        const next = (currentBeatIdx + 1) % durations.length;
         beatRef.current = next;
         setBeat(next);
 
@@ -163,11 +175,15 @@ export function useRhythm({
     };
   }, [playing, tick]);
 
+  // FIX: beatMs liczony wprost z propsów zamiast czytania refa podczas renderu —
+  // render nie jest reaktywny na zmiany refa, to był anty-wzorzec.
+  const beatMs = baseBeatMs * (phaseDurations[beat] || 1);
+
   return {
     beat,
     cycle,
     progress,
-    beatMs: baseBeatMs * (durationsRef.current[beat] || 1),
+    beatMs,
     reset,
   };
 }

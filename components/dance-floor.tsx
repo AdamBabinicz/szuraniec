@@ -24,6 +24,10 @@ type Props = {
 
 const CENTER = { x: 160, y: 126 };
 
+// FIX: Neutralna pozycja stopy — fallback zamiast undefined/TypeError,
+// gdy faza lub dana stopa nie istnieje.
+const NEUTRAL_FOOT = { x: 0, y: 0, rotate: 0 };
+
 function FootShape({ side }: { side: "left" | "right" }) {
   return (
     <g transform={side === "right" ? "scale(-1,1)" : undefined}>
@@ -77,7 +81,7 @@ export function DanceFloor({
 }: Props) {
   const t = translations[lang];
 
-  // FIX: Pancerne sprawdzanie parametrów wejściowych
+  // Pancerne sprawdzanie parametrów wejściowych
   const safePhaseIndex = Number.isFinite(phaseIndex) ? phaseIndex : 0;
   const safeBar = Number.isFinite(bar) ? bar : 1;
 
@@ -94,29 +98,32 @@ export function DanceFloor({
     ease: [0.45, 0, 0.55, 1] as const,
   };
 
+  // FIX: Jedno bezpieczne źródło pozycji stopy — nigdy undefined.
+  const footAt = (side: "left" | "right") => stance?.[side] ?? NEUTRAL_FOOT;
+
+  const leftFoot = footAt("left");
+  const rightFoot = footAt("right");
+
   const footAnimation = (side: "left" | "right") => {
-    const self = stance?.[side] ?? { x: 0, y: 0, rotate: 0 };
+    const self = footAt(side);
     const isMoving = moving === side;
     const isTapping = isMoving && phase?.tap === true;
 
     return {
-      x: CENTER.x + (self.x ?? 0),
-      y: isTapping
-        ? [CENTER.y, CENTER.y - 8, CENTER.y]
-        : CENTER.y + (self.y ?? 0),
-      rotate: self.rotate ?? 0,
+      x: CENTER.x + self.x,
+      y: isTapping ? [CENTER.y, CENTER.y - 8, CENTER.y] : CENTER.y + self.y,
+      rotate: self.rotate,
       opacity: 1,
     };
   };
 
-  /**
-   * FIX: Całkowite wyeliminowanie błędu "Expected length, undefined".
-   * Wartości cx i cy są obliczane z potrójnym zabezpieczeniem.
-   */
-  const weightStance = stance?.[weight] || { x: 0, y: 0 };
-  const safeWeightX =
-    CENTER.x + (Number.isFinite(weightStance.x) ? weightStance.x : 0);
-  const safeWeightY = CENTER.y + 28;
+  // FIX (sedno błędu "Expected length, undefined"):
+  // Nie animujemy atrybutów SVG cx/cy — framer-motion potrafi je ustawić
+  // jako "undefined" przy pierwszym renderze (hydratacja w Next.js).
+  // Elipsa ma teraz STATYCZNE, zawsze liczbowe cx/cy, a przesunięcie
+  // realizujemy transformacją x/y, która nigdy nie trafia do geometrii SVG.
+  const weightStance = footAt(weight as "left" | "right");
+  const weightOffsetX = Number.isFinite(weightStance.x) ? weightStance.x : 0;
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-floor shadow-inner">
@@ -153,20 +160,19 @@ export function DanceFloor({
           className="opacity-40"
         />
 
-        {/*
-          FIX: Elipsa z gwarancją parametrów liczbowych.
-          Usunięcie AnimatePresence eliminuje Forced Reflow (32ms).
-        */}
+        {/* FIX: Statyczne cx/cy + transformacja x/y zamiast animacji cx/cy */}
         <motion.ellipse
+          cx={CENTER.x}
+          cy={CENTER.y + 28}
+          style={{ transformBox: "fill-box", transformOrigin: "center" }}
           animate={{
-            cx: safeWeightX,
-            cy: safeWeightY,
+            x: weightOffsetX,
+            y: 0,
             opacity: [0.15, 0.3, 0.15],
             scale: [1, 1.05, 1],
           }}
           transition={{
-            cx: slideTransition,
-            cy: slideTransition,
+            x: slideTransition,
             opacity: { repeat: Infinity, duration: 2 },
             scale: { repeat: Infinity, duration: 2 },
           }}
@@ -178,16 +184,16 @@ export function DanceFloor({
         {moving === "left" && (
           <>
             <GhostFoot
-              x={stance.left.x}
-              y={stance.left.y}
-              rotate={stance.left.rotate}
+              x={leftFoot.x}
+              y={leftFoot.y}
+              rotate={leftFoot.rotate}
               side="left"
               delay={0.04}
             />
             <GhostFoot
-              x={stance.left.x}
-              y={stance.left.y}
-              rotate={stance.left.rotate}
+              x={leftFoot.x}
+              y={leftFoot.y}
+              rotate={leftFoot.rotate}
               side="left"
               delay={0.08}
             />
@@ -197,16 +203,16 @@ export function DanceFloor({
         {moving === "right" && (
           <>
             <GhostFoot
-              x={stance.right.x}
-              y={stance.right.y}
-              rotate={stance.right.rotate}
+              x={rightFoot.x}
+              y={rightFoot.y}
+              rotate={rightFoot.rotate}
               side="right"
               delay={0.04}
             />
             <GhostFoot
-              x={stance.right.x}
-              y={stance.right.y}
-              rotate={stance.right.rotate}
+              x={rightFoot.x}
+              y={rightFoot.y}
+              rotate={rightFoot.rotate}
               side="right"
               delay={0.08}
             />
@@ -215,7 +221,7 @@ export function DanceFloor({
 
         <motion.g
           className="text-accent"
-          initial={{ x: CENTER.x + stance.left.x, y: CENTER.y }}
+          initial={{ x: CENTER.x + leftFoot.x, y: CENTER.y }}
           animate={footAnimation("left")}
           transition={slideTransition}
         >
@@ -231,7 +237,7 @@ export function DanceFloor({
 
         <motion.g
           className="text-primary"
-          initial={{ x: CENTER.x + stance.right.x, y: CENTER.y }}
+          initial={{ x: CENTER.x + rightFoot.x, y: CENTER.y }}
           animate={footAnimation("right")}
           transition={slideTransition}
         >
