@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -34,7 +34,6 @@ import {
 } from "@/lib/translations";
 
 export function DanceTrainer() {
-  const [mounted, setMounted] = useState(false);
   const [lang, setLang] = useState<Lang>("pl");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [songId, setSongId] = useState<Song["id"]>("szalona");
@@ -50,9 +49,12 @@ export function DanceTrainer() {
 
   const audioElRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    setMounted(true);
+  // FIX: Ref podchwytujący aktualny stan playing dla stabilnych callbacków
+  // (eliminuje nieaktualne domknięcia / stale closure w listenrze klawiatury).
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
 
+  useEffect(() => {
     const savedTheme = localStorage.getItem("dwa_na_jeden_theme") as
       | "light"
       | "dark"
@@ -79,6 +81,17 @@ export function DanceTrainer() {
     if (!savedConsent) {
       setCookieBannerOpen(true);
     }
+  }, []);
+
+  // FIX: Stan fullscreen synchronizowany ze zdarzeniem przeglądarki.
+  // Wcześniej stan rozjeżdżał się z rzeczywistością po wyjściu z pełnego
+  // ekranu klawiszem Esc / przyciskiem przeglądarki.
+  useEffect(() => {
+    const handleFullscreenChange = () =>
+      setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   const t = translations[lang];
@@ -138,22 +151,22 @@ export function DanceTrainer() {
     localStorage.setItem("dwa_na_jeden_role", nextRole);
   };
 
+  // FIX: Bez ręcznego ustawiania stanu — zdarzenie fullscreenchange robi to samo.
   const handleFullscreenToggle = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => undefined);
-      setFullscreen(true);
     } else {
       document.exitFullscreen().catch(() => undefined);
-      setFullscreen(false);
     }
   };
 
-  const togglePlay = () => {
-    if (!playing) unlockAudio();
+  // FIX: Stabilne callbacki (useCallback) — bez nieaktualnych domknięć.
+  const togglePlay = useCallback(() => {
+    if (!playingRef.current) unlockAudio();
     setPlaying((value) => !value);
-  };
+  }, []);
 
-  const restart = () => {
+  const restart = useCallback(() => {
     setPlaying(false);
     reset();
     const el = audioElRef.current;
@@ -161,7 +174,7 @@ export function DanceTrainer() {
       el.pause();
       el.currentTime = 0;
     }
-  };
+  }, [reset]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -179,15 +192,17 @@ export function DanceTrainer() {
       } else if (e.key === "b" || e.key === "B") {
         setBaby((prev) => !prev);
       } else if (e.key === "ArrowLeft") {
-        setSpeed((prev) => (prev === 1.25 ? 1 : prev === 1 ? 0.5 : 0.5));
+        // FIX: Uproszczona logika — lewa strzałka tylko obniża tempo
+        setSpeed((prev) => (prev === 1.25 ? 1 : 0.5));
       } else if (e.key === "ArrowRight") {
-        setSpeed((prev) => (prev === 0.5 ? 1 : prev === 1 ? 1.25 : 1.25));
+        // FIX: Prawa strzałka tylko podnosi tempo
+        setSpeed((prev) => (prev === 0.5 ? 1 : 1.25));
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [playing]);
+  }, [togglePlay, restart]);
 
   useEffect(() => {
     const el = audioElRef.current;
@@ -209,7 +224,7 @@ export function DanceTrainer() {
       />
 
       <main className="mx-auto grid max-w-3xl gap-6 px-4 py-8 pb-20">
-        {/* BANER HERO - POPRAWIONY ASPEKT I RESPONSIVE IMAGE */}
+        {/* BANER HERO - LCP: priority wystarcza (preload + eager + fetchpriority=high) */}
         <section className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-xl transition-all">
           <div className="relative w-full aspect-[4/3] sm:aspect-[2/1] overflow-hidden">
             <Image
@@ -217,9 +232,7 @@ export function DanceTrainer() {
               alt={t.STEP_NAME}
               fill
               priority
-              loading="eager"
-              fetchPriority="high"
-              sizes="(max-width: 480px) 384px, (max-width: 768px) 768px, 800px"
+              sizes="(min-width: 768px) 736px, calc(100vw - 2rem)"
               quality={85}
               className="object-cover object-[center_18%] brightness-100 contrast-100 transition-transform duration-700 group-hover:scale-105 dark:brightness-[0.92] dark:contrast-[1.04]"
             />
