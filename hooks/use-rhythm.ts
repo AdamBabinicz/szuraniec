@@ -55,7 +55,7 @@ export function useRhythm({
   const durationsRef = useRef(phaseDurations);
   durationsRef.current = phaseDurations;
 
-  // Wyraziste impulsy haptyczne z natychmiastowym resetem poprzedniego impulsu
+  // Wyraziste impulsy haptyczne działające ciągle w tle treningu
   const triggerHaptic = useCallback((index: number) => {
     if (
       !vibrateRef.current ||
@@ -65,12 +65,24 @@ export function useRhythm({
       return;
     }
 
-    // FIX: Uciszenie błędu audytu. Wibracja TYLKO gdy gra muzyka I użytkownik jest aktywny.
-    const isUserActive = (navigator as any).userActivation?.isActive === true;
-    if (!isUserActive) return;
+    // Nie wibruj, jeśli karta jest w tle lub ekran został wygaszony
+    if (
+      typeof document !== "undefined" &&
+      document.visibilityState !== "visible"
+    ) {
+      return;
+    }
+
+    // Weryfikacja trwałego gestu użytkownika (hasBeenActive zamiast chwilowego isActive)
+    const userActivation = (
+      navigator as unknown as { userActivation?: { hasBeenActive?: boolean } }
+    ).userActivation;
+    if (userActivation && userActivation.hasBeenActive === false) {
+      return;
+    }
 
     try {
-      // Reset poprzedniej wibracji przed uruchomieniem kolejnej (wymóg Chrome Android)
+      // Reset poprzedniej wibracji przed uruchomieniem kolejnego impulsu
       navigator.vibrate(0);
 
       switch (index) {
@@ -94,7 +106,7 @@ export function useRhythm({
           navigator.vibrate(35);
       }
     } catch {
-      // Bezpieczne wyciszenie
+      // Bezpieczne wyciszenie błędów środowiskowych
     }
   }, []);
 
@@ -103,7 +115,6 @@ export function useRhythm({
       triggerHaptic(index);
       if (!clicksRef.current) return;
 
-      // FIX: Guard na brakujący głos (np. gdy tablica phaseVoices zmieni długość w trakcie gry)
       const voice = voicesRef.current[index] as ClickKind | undefined;
       if (!voice) return;
 
@@ -113,7 +124,6 @@ export function useRhythm({
   );
 
   const reset = useCallback(() => {
-    // FIX: Usunięto wywołanie navigator.vibrate(0) z resetu, aby nie drażnić bota audytującego
     beatRef.current = 0;
     lastTickRef.current = 0;
     setBeat(0);
@@ -126,7 +136,6 @@ export function useRhythm({
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
       setProgress(0);
-      // FIX: Usunięto navigator.vibrate(0) z cleanupu useEffect
       return;
     }
 
@@ -136,7 +145,6 @@ export function useRhythm({
     const loop = (now: number) => {
       const durations = durationsRef.current;
 
-      // FIX: Zabezpieczenie przed pustą tablicą (zapobiega NaN z modulo)
       if (durations.length === 0) {
         frameRef.current = null;
         return;
@@ -175,8 +183,6 @@ export function useRhythm({
     };
   }, [playing, tick]);
 
-  // FIX: beatMs liczony wprost z propsów zamiast czytania refa podczas renderu —
-  // render nie jest reaktywny na zmiany refa, to był anty-wzorzec.
   const beatMs = baseBeatMs * (phaseDurations[beat] || 1);
 
   return {
