@@ -84,8 +84,6 @@ export function DanceTrainer() {
   }, []);
 
   // FIX: Stan fullscreen synchronizowany ze zdarzeniem przeglądarki.
-  // Wcześniej stan rozjeżdżał się z rzeczywistością po wyjściu z pełnego
-  // ekranu klawiszem Esc / przyciskiem przeglądarki.
   useEffect(() => {
     const handleFullscreenChange = () =>
       setFullscreen(Boolean(document.fullscreenElement));
@@ -151,7 +149,6 @@ export function DanceTrainer() {
     localStorage.setItem("dwa_na_jeden_role", nextRole);
   };
 
-  // FIX: Bez ręcznego ustawiania stanu — zdarzenie fullscreenchange robi to samo.
   const handleFullscreenToggle = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => undefined);
@@ -160,7 +157,6 @@ export function DanceTrainer() {
     }
   };
 
-  // FIX: Stabilne callbacki (useCallback) — bez nieaktualnych domknięć.
   const togglePlay = useCallback(() => {
     if (!playingRef.current) unlockAudio();
     setPlaying((value) => !value);
@@ -192,10 +188,8 @@ export function DanceTrainer() {
       } else if (e.key === "b" || e.key === "B") {
         setBaby((prev) => !prev);
       } else if (e.key === "ArrowLeft") {
-        // FIX: Uproszczona logika — lewa strzałka tylko obniża tempo
         setSpeed((prev) => (prev === 1.25 ? 1 : 0.5));
       } else if (e.key === "ArrowRight") {
-        // FIX: Prawa strzałka tylko podnosi tempo
         setSpeed((prev) => (prev === 0.5 ? 1 : 1.25));
       }
     };
@@ -224,7 +218,7 @@ export function DanceTrainer() {
       />
 
       <main className="mx-auto grid max-w-3xl gap-6 px-4 py-8 pb-20">
-        {/* BANER HERO - LCP: priority wystarcza (preload + eager + fetchpriority=high) */}
+        {/* BANER HERO */}
         <section className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-xl transition-all">
           <div className="relative w-full aspect-[4/3] sm:aspect-[2/1] overflow-hidden">
             <Image
@@ -335,8 +329,8 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* LICZNIK I BIEŻĄCA INSTRUKCJA */}
-        <section className="grid grid-cols-[auto_1fr] items-center gap-4 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 transition-all min-h-[144px] sm:min-h-[136px]">
+        {/* LICZNIK I BIEŻĄCA INSTRUKCJA - FIX: ZMIENIONO NA DIV (NAPRAWA WARNINGU: Section lacks heading) */}
+        <div className="grid grid-cols-[auto_1fr] items-center gap-4 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 transition-all min-h-[144px] sm:min-h-[136px]">
           <div className="relative flex size-20 sm:size-24 shrink-0 items-center justify-center rounded-2xl bg-muted border border-border shadow-inner">
             <svg
               viewBox="0 0 100 100"
@@ -408,7 +402,7 @@ export function DanceTrainer() {
               </span>
             </div>
           </div>
-        </section>
+        </div>
 
         {/* KONTROLKI ODTWARZACZA I PIOSENEK */}
         <DanceControls
@@ -427,11 +421,11 @@ export function DanceTrainer() {
           hasTrack={hasTrack}
         />
 
+        {/* FIX: USUNIĘTO playsInline (NIEDOZWOLONY DLA AUDIO) */}
         <audio
           ref={audioElRef}
           src={song.audioUrl || undefined}
           loop
-          playsInline
           className="hidden"
         />
 
