@@ -95,13 +95,16 @@ export function DanceFloor({
     const isTapping = isMoving && phase.tap === true;
 
     return {
-      x: CENTER.x + self.x,
-      y: isTapping ? [CENTER.y, CENTER.y - 8, CENTER.y] : CENTER.y + self.y,
-      rotate: self.rotate,
+      x: CENTER.x + (self?.x ?? 0),
+      y: isTapping
+        ? [CENTER.y, CENTER.y - 8, CENTER.y]
+        : CENTER.y + (self?.y ?? 0),
+      rotate: self?.rotate ?? 0,
       opacity: 1,
     };
   };
 
+  // Zabezpieczenie przed wartościami undefined dla SVG
   const weightX = CENTER.x + (stance[weight]?.x ?? 0);
   const weightY = CENTER.y + 28;
 
@@ -141,8 +144,8 @@ export function DanceFloor({
         />
 
         {/*
-          POPRAWKA: Usunięto AnimatePresence. Elipsa płynnie animuje pozycję cx/cy.
-          To eliminuje "Forced Reflow" (32ms), ponieważ element nie jest usuwany i dodawany przy każdym kroku.
+          FIX: Usunięto AnimatePresence i key, aby wyeliminować Forced Reflow.
+          Dodano bezpieczne wartości domyślne cx/cy, aby uniknąć błędów w konsoli.
         */}
         <motion.ellipse
           animate={{
@@ -153,6 +156,7 @@ export function DanceFloor({
           }}
           transition={{
             cx: slideTransition,
+            cy: slideTransition,
             opacity: { repeat: Infinity, duration: 2 },
             scale: { repeat: Infinity, duration: 2 },
           }}
