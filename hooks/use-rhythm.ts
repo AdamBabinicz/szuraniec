@@ -65,14 +65,12 @@ export function useRhythm({
       return;
     }
 
-    // POPRAWKA: Sprawdzamy czy użytkownik aktywował stronę (User Gesture)
-    // To eliminuje błąd "Blocked call to navigator.vibrate" w konsoli audytu.
-    if (
-      "userActivation" in navigator &&
-      !(navigator as any).userActivation.isActive
-    ) {
-      return;
-    }
+    // Zabezpieczenie przed błędem "Intervention" w konsoli (Lighthouse/Chrome)
+    // Wywołujemy wibrację tylko, jeśli użytkownik wszedł w interakcję ze stroną.
+    const canVibrate = (navigator as any).userActivation
+      ? (navigator as any).userActivation.hasBeenActive
+      : true;
+    if (!canVibrate) return;
 
     try {
       // Reset poprzedniej wibracji przed uruchomieniem kolejnej (wymóg Chrome Android)
