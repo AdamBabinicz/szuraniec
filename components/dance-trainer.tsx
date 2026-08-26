@@ -40,7 +40,6 @@ declare global {
         element: string | HTMLElement,
         config: {
           videoId?: string;
-          host?: string;
           playerVars?: {
             autoplay?: 0 | 1;
             controls?: 0 | 1;
@@ -250,9 +249,14 @@ export function DanceTrainer() {
       setYtLoading(true);
       isPlayerReadyRef.current = false;
 
+      // FIX: usunięty `host: "https://www.youtube-nocookie.com"` —
+      // domyślny host YT (youtube.com) jest zgodny ze skryptem
+      // iframe_api ładowanym z tego samego originu i nie wymaga
+      // dodatkowej zgodności origin/CSP w produkcji.
+      // FIX: `origin` ustawiamy tylko dla HTTPS (na HTTP i tak nie
+      // zadziała komunikacja postMessage z iframe YT).
       ytPlayerRef.current = new window.YT.Player(ytPlayerMountRef.current, {
         videoId: song.youtubeId,
-        host: "https://www.youtube-nocookie.com",
         playerVars: {
           autoplay: 0,
           controls: 1,
@@ -261,7 +265,10 @@ export function DanceTrainer() {
           modestbranding: 1,
           enablejsapi: 1,
           origin:
-            typeof window !== "undefined" ? window.location.origin : undefined,
+            typeof window !== "undefined" &&
+            window.location.protocol === "https:"
+              ? window.location.origin
+              : undefined,
         },
         events: {
           onReady: (event) => {
@@ -307,11 +314,21 @@ export function DanceTrainer() {
             }
           },
           onError: (event) => {
+            // FIX: po błędzie zerujemy referencję playera, żeby
+            // następna zmiana `songId` / `source` mogła poprawnie utworzyć
+            // nowego YT.Player zamiast ponownie karmić martwą instancję.
             isPlayerReadyRef.current = false;
             ytAutoplayRef.current = false;
             setPlaying(false);
             setYtLoading(false);
             setYtErrorCode(event.data);
+            try {
+              ytPlayerRef.current?.destroy();
+            } catch {
+              // noop
+            } finally {
+              ytPlayerRef.current = null;
+            }
           },
         },
       });

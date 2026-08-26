@@ -239,12 +239,21 @@ export function DanceControls({
           </button>
         </div>
 
-        {/* Kontener podpięty pod React Ref dla silnika YouTube w DanceTrainer */}
+        {/* Kontener YouTube — STABILNY WĘZEŁ REFA.
+            • <div ref={ytPlayerMountRef}> renderowany ZAWSZE (również przy
+              ukrytym źródle i przy błędzie) — dzięki czemu YT.Player ma stałą
+              referencję DOM, nie zostaje sierotą po podmianie węzła.
+            • Sam węzeł jest absolutnie pozycjonowany do kontenera nadrzędnego
+              (absolute inset-0 size-full), więc YT iframe dostaje prawidłowe
+              wymiary nawet jeśli kontener nadrzędny miał chwilowo display:none.
+            • Komunikat błędu to overlay (z-index 10), a NIE zamiennik węzła
+              z refem. Po wyczyszczeniu błędu iframe YT zostaje na miejscu. */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
             source !== "youtube" && "hidden",
           )}
+          data-yt-container
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
@@ -258,8 +267,13 @@ export function DanceControls({
           </div>
 
           <div className="relative w-full aspect-video max-h-48 sm:max-h-60 rounded-xl overflow-hidden border border-border bg-black shadow-inner">
-            {ytErrorMessage ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center text-white">
+            <div
+              ref={ytPlayerMountRef}
+              id="yt-player-iframe"
+              className="absolute inset-0 size-full"
+            />
+            {ytErrorMessage && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 p-4 text-center text-white bg-black/85 backdrop-blur-sm">
                 <p className="text-[11px] font-black uppercase tracking-widest text-rose-300">
                   {ytErrorMessage.title}
                 </p>
@@ -278,12 +292,6 @@ export function DanceControls({
                   </a>
                 )}
               </div>
-            ) : (
-              <div
-                ref={ytPlayerMountRef}
-                id="yt-player-iframe"
-                className="size-full"
-              />
             )}
           </div>
         </div>
