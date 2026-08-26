@@ -11,7 +11,6 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import type { HTMLAttributes, RefObject } from "react";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -40,15 +39,7 @@ type Props = {
   ytLoading?: boolean;
   ytReady?: boolean;
   ytErrorCode?: number | null;
-  ytPlayerMountRef?: RefObject<HTMLDivElement | null>;
 };
-
-type YtMountProps = HTMLAttributes<HTMLDivElement> & {
-  allow?: string;
-};
-
-const YT_ALLOW_VALUE =
-  "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen";
 
 export function DanceControls({
   lang,
@@ -65,9 +56,13 @@ export function DanceControls({
   onSourceChange,
   ytLoading = false,
   ytErrorCode = null,
-  ytPlayerMountRef,
 }: Props) {
   const t = translations[lang];
+
+  const ytEmbedUrl = useMemo(() => {
+    if (!song.youtubeId) return null;
+    return `https://www.youtube.com/embed/${song.youtubeId}?enablejsapi=1&autoplay=0&controls=1&rel=0&playsinline=1&modestbranding=1`;
+  }, [song.youtubeId]);
 
   const ytWatchUrl = song.youtubeId
     ? `https://www.youtube.com/watch?v=${song.youtubeId}`
@@ -86,8 +81,6 @@ export function DanceControls({
       return { title: t.YT_ERR_NO_ID_TITLE, desc: t.YT_ERR_NO_ID_DESC };
     return null;
   }, [ytErrorCode, song.youtubeId, t]);
-
-  const ytMountProps: YtMountProps = { allow: YT_ALLOW_VALUE };
 
   return (
     <div className="grid gap-5 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 text-card-foreground">
@@ -248,7 +241,7 @@ export function DanceControls({
           </button>
         </div>
 
-        {/* Kontener z unikalnym ID yt-player-container */}
+        {/* Natywna ramka iframe z poprawnym, niezmiennym adresem URL */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
@@ -267,14 +260,8 @@ export function DanceControls({
             )}
           </div>
 
-          <div className="relative w-full aspect-video max-h-48 sm:max-h-60 rounded-xl overflow-hidden border border-border bg-black shadow-inner [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:size-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0">
-            <div
-              ref={ytPlayerMountRef}
-              id="yt-player-container"
-              className="absolute inset-0 size-full"
-              {...ytMountProps}
-            />
-            {ytErrorMessage && (
+          <div className="relative w-full aspect-video max-h-48 sm:max-h-60 rounded-xl overflow-hidden border border-border bg-black shadow-inner">
+            {ytErrorMessage ? (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 p-4 text-center text-white bg-black/85 backdrop-blur-sm">
                 <p className="text-[11px] font-black uppercase tracking-widest text-rose-300">
                   {ytErrorMessage.title}
@@ -294,7 +281,18 @@ export function DanceControls({
                   </a>
                 )}
               </div>
-            )}
+            ) : ytEmbedUrl ? (
+              <iframe
+                id="yt-player-iframe"
+                key={song.youtubeId}
+                src={ytEmbedUrl}
+                title={t.YOUTUBE_PLAYER_LABEL as string}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+                className="absolute inset-0 size-full border-0"
+              />
+            ) : null}
           </div>
         </div>
       </div>
