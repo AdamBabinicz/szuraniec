@@ -49,7 +49,6 @@ declare global {
             playsinline?: 0 | 1;
             modestbranding?: 0 | 1;
             enablejsapi?: 0 | 1;
-            origin?: string;
           };
           events?: {
             onReady?: (event: { target: YTPlayerInstance }) => void;
@@ -251,7 +250,7 @@ export function DanceTrainer() {
       setYtLoading(true);
       isPlayerReadyRef.current = false;
 
-      // FIX: Dodano width: "100%" i height: "100%" zapobiegające zwijaniu się wideo
+      // Usunięto wadliwy parametr origin powodujący obcinanie adresu URL
       ytPlayerRef.current = new window.YT.Player(ytPlayerMountRef.current, {
         videoId: song.youtubeId,
         width: "100%",
@@ -263,11 +262,6 @@ export function DanceTrainer() {
           playsinline: 1,
           modestbranding: 1,
           enablejsapi: 1,
-          origin:
-            typeof window !== "undefined" &&
-            window.location.protocol === "https:"
-              ? window.location.origin
-              : undefined,
         },
         events: {
           onReady: (event) => {
