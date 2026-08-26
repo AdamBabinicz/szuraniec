@@ -15,7 +15,8 @@ interface CookieBannerProps {
 
 declare global {
   interface Window {
-    dataLayer?: any[];
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
@@ -31,22 +32,48 @@ export function CookieBanner({
 
   useEffect(() => {
     setMounted(true);
+
+    // Sprawdzenie, czy użytkownik wcześniej podjął decyzję
+    try {
+      const savedConsent = localStorage.getItem("dwa_na_jeden_cookie_consent");
+      if (savedConsent === "granted" || savedConsent === "denied") {
+        updateGoogleConsent(savedConsent);
+      }
+    } catch {
+      // Bezpieczna obsługa blokad pamięci podręcznej przeglądarki
+    }
   }, []);
+
+  const updateGoogleConsent = (status: "granted" | "denied") => {
+    if (typeof window === "undefined") return;
+
+    window.dataLayer = window.dataLayer || [];
+
+    // Oficjalna aktualizacja Google Consent Mode v2
+    if (typeof window.gtag === "function") {
+      window.gtag("consent", "update", {
+        analytics_storage: status,
+        ad_storage: status,
+        ad_user_data: status,
+        ad_personalization: status,
+      });
+    }
+
+    // Push zdarzenia do kontenera GTM
+    window.dataLayer.push({
+      event: "cookie_consent_update",
+      consent_status: status,
+      analytics_storage: status,
+      ad_storage: status,
+      ad_user_data: status,
+      ad_personalization: status,
+    });
+  };
 
   const handleConsent = (status: "granted" | "denied") => {
     try {
       localStorage.setItem("dwa_na_jeden_cookie_consent", status);
-
-      // Aktualizacja Google Consent Mode dla GTM / GA
-      if (typeof window !== "undefined") {
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({
-          event: "cookie_consent_update",
-          analytics_storage: status,
-          ad_storage: status,
-          functional_storage: "granted",
-        });
-      }
+      updateGoogleConsent(status);
     } catch {
       // Bezpieczna obsługa blokad pamięci
     }
