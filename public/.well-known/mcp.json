@@ -1,0 +1,51 @@
+{
+  "name": "dwa-na-jeden-trainer",
+  "version": "1.0.0",
+  "description": "Interaktywny asystent i trener weselnego kroku tanecznego Dwa na Jeden (Szuraniec / Disco Fox).",
+  "schema_version": "2024-11-05",
+  "capabilities": {
+    "tools": true,
+    "resources": true
+  },
+  "tools": [
+    {
+      "name": "get_wedding_songs",
+      "description": "Zwraca pełną bazę 13 zweryfikowanych polskich hitów weselnych z przypisanym tempem BPM i identyfikatorem YouTube.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "get_step_instructions",
+      "description": "Zwraca metodykę i timing 4 faz kroku Szurańca (Baby Steps, ugięte kolana, synkopa 1, 2, 3 i).",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "recommend_song_by_bpm",
+      "description": "Rekomenduje utwór weselny dopasowany do poziomu zaawansowania (początkujący: 120-124 BPM, średniozaawansowany: 125-130 BPM, weselny ogień: 132-138 BPM).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": ["beginner", "intermediate", "advanced"],
+            "description": "Poziom zaawansowania tancerza."
+          }
+        },
+        "required": ["level"]
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "dance://methodology/szuraniec",
+      "name": "Metodyka Szurańca",
+      "mimeType": "application/json",
+      "text": "Krok podstawowy: 1. Lewa noga w bok (1.0 bita), 2. Prawa noga dostawna (1.0 bita), 3. Lewa noga w bok (0.5 bita), i. Prawa noga dotknięcie parkietu bez obciążenia (0.5 bita). Całość w pętli lustrzanej."
+    }
+  ]
+}
