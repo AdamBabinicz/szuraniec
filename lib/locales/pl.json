@@ -11,8 +11,21 @@
   "RESTART": "Od nowa",
   "AUDIO_LABEL": "Dźwięk",
   "SOURCE_CLICK": "Metronom",
-  "SOURCE_TRACK": "Utwór mp3",
-  "TRACK_MISSING": "Brak pliku audio — upewnij się, że plik znajduje się w public/songs/",
+  "SOURCE_YOUTUBE": "Oryginał YouTube",
+  "YOUTUBE_PLAYER_LABEL": "Oryginalny utwór z wokalem",
+  "YOUTUBE_LOADING": "Ładowanie teledysku...",
+  "YOUTUBE_FALLBACK": "Wideo niedostępne do osadzenia — przełączono na metronom",
+  "YT_ERR_2_TITLE": "Nieprawidłowe ID filmu",
+  "YT_ERR_2_DESC": "Ten film nie istnieje lub został usunięty z YouTube.",
+  "YT_ERR_5_TITLE": "Błąd odtwarzania",
+  "YT_ERR_5_DESC": "YouTube nie zdołał odtworzyć tego wideo w przeglądarce.",
+  "YT_ERR_100_TITLE": "Film prywatny",
+  "YT_ERR_100_DESC": "Właściciel oznaczył film jako prywatny — nie da się go osadzić.",
+  "YT_ERR_EMBED_TITLE": "Osadzanie zablokowane",
+  "YT_ERR_EMBED_DESC": "Właściciel nie pozwolił na odtwarzanie w odtwarzaczu strony trzeciej. Otwórz film bezpośrednio na YouTube.",
+  "YT_ERR_NO_ID_TITLE": "Brak filmu w bazie",
+  "YT_ERR_NO_ID_DESC": "Dla tej piosenki nie dodano jeszcze filmu referencyjnego.",
+  "YT_OPEN_EXTERNAL": "Otwórz w YouTube",
   "MUTED": "Wyciszone",
   "UNMUTED": "Dźwięk włączony",
   "SONG_LABEL": "Piosenka",
@@ -71,7 +84,7 @@
   "FOOTER_PRIVACY": "Polityka prywatności",
   "FOOTER_TERMS": "Regulamin",
   "BACK_TO_APP": "Wróć do nauki",
-  "LAST_UPDATED": "Ostatnia aktualizacja: Maj 2024",
+  "LAST_UPDATED": "Ostatnia aktualizacja: Sierpień 2026",
   "PRIVACY_SLUG": "polityka-prywatnosci",
   "TERMS_SLUG": "regulamin",
   "INSTRUCTIONS": {
@@ -91,19 +104,17 @@
   "SONG_NAMES": {
     "chwile": "Akcent: Życie to są chwile",
     "dziewczyno": "Boys: Najpiękniejsza dziewczyno",
-    "cudowna": "Akcent: Cudowna jest",
-    "zakopane": "Sławomir: Miłość w Zakopanem",
+    "cudowna": "Akcent: Prawdziwa miłość to Ty (Cudowna jest)",
     "zono": "Masters: Żono Moja",
     "miod": "MIG: Miód Malina",
-    "lobuz": "Boys: Łobuz",
     "szalona": "Boys: Jesteś Szalona",
     "kochana": "Boys: Moja kochana",
     "mama": "Daj to głośniej: Mama ostrzegała",
     "wolnosc": "Boys: Wolność",
     "ona_tanczy": "Weekend: Ona tańczy dla mnie",
-    "ruda": "Czereśnie: Ruda tańczy jak szalona",
+    "ruda": "Czadoman: Ruda tańczy jak szalona",
     "zielone": "Akcent: Przez Twe Oczy Zielone",
-    "chciala": "Ronnie Ferrari: Ona by tak chciała"
+    "niewiara": "Piękni i Młodzi: Niewiara"
   },
   "BREAKDOWN": [
     {
@@ -129,20 +140,20 @@
     "SEC_1_TEXT": "Administratorem Twoich danych jest właściciel domeny dwanajeden.pl. Aplikacja nie wymaga zakładania konta, dzięki czemu większość funkcji dostępna jest anonimowo.",
     "SEC_2_TITLE": "2. Analityka (Google Analytics / GTM)",
     "SEC_2_TEXT": "W celu poprawy jakości szkolenia, aplikacja korzysta z narzędzi analitycznych Google Tag Manager oraz Google Analytics. Gromadzone dane (np. czas sesji, wybrane utwory) są zanonimizowane i służą wyłącznie statystykom.",
-    "SEC_3_TITLE": "3. Pliki Cookies",
-    "SEC_3_TEXT": "Wykorzystujemy ciasteczka (cookies) do prawidłowego działania silnika audio, zapamiętywania Twoich ustawień (np. wybrane tempo, tryb małych kroków) oraz celów analitycznych. Możesz zarządzać nimi w ustawieniach swojej przeglądarki.",
-    "SEC_4_TITLE": "4. Local Storage",
+    "SEC_3_TITLE": "3. Pliki Cookies i Usługi Google",
+    "SEC_3_TEXT": "Wykorzystujemy ciasteczka (cookies) do prawidłowego działania silnika audio, zapamiętywania Twoich preferencji (np. wybrane tempo, rola w tańcu) oraz integracji z odtwarzaczem YouTube API. Szczegółowe zasady przetwarzania danych przez usługi Google określa Polityka Prywatności Google.",
+    "SEC_4_TITLE": "4. Pamięć Lokalna (Local Storage)",
     "SEC_4_TEXT": "Wykorzystujemy pamięć podręczną przeglądarki (Local Storage) do przechowywania parametrów technicznych aplikacji, co pozwala na płynne działanie bez konieczności ponownego ładowania danych przy każdym odświeżeniu."
   },
   "TERMS": {
-    "TITLE": "Regulamin i Deklaracja AI",
+    "TITLE": "Regulamin i Deklaracja Prawna",
     "SEC_1_TITLE": "1. Cel aplikacji",
     "SEC_1_TEXT": "Aplikacja 'Dwa na Jeden' jest interaktywnym systemem edukacyjnym wspomagającym naukę użytkowego tańca weselnego (tzw. Szurańca). Korzystanie z niej jest darmowe.",
     "SEC_2_TITLE": "2. Bezpieczeństwo i Odpowiedzialność",
-    "SEC_2_TEXT": "Taniec to aktywność fizyczna. Administrator nie ponosi odpowiedzialności za kontuzje, urazy lub szkody (w tym podeptane palce partnerki) wynikłe z nieprawidłowego wykonywania kroków.",
+    "SEC_2_TEXT": "Taniec to aktywność fizyczna. Administrator nie ponosi odpowiedzialności za kontuzje, urazy lub szkody (w tym podeptane palce partnerki) wynikłe z nieprawidłowego wykonywania ćwiczeń.",
     "SEC_3_TITLE": "3. Współpraca Człowiek + AI",
     "SEC_3_TEXT": "Deklarujemy transparentnie: ta aplikacja jest owocem synergii ludzkiej kreatywności oraz zaawansowanych systemów sztucznej inteligencji (v0.dev, ChatGPT). Podczas gdy AI wspierało generowanie kodu i logiki rytmicznej, ostateczny kierunek artystyczny i merytoryczny kursu został nadany przez człowieka.",
-    "SEC_4_TITLE": "4. Prawa Autorskie",
-    "SEC_4_TEXT": "Kod źródłowy oraz koncepcja wizualna są chronione. Nazwy utworów i marek wykonawców disco polo należą do ich prawnych właścicieli i zostały użyte wyłącznie w celach edukacyjnych."
+    "SEC_4_TITLE": "4. Integracja z YouTube i Prawa Autorskie",
+    "SEC_4_TEXT": "Aplikacja korzysta z oficjalnego interfejsu YouTube API Services. Korzystając z odtwarzacza wideo, użytkownik akceptuje Regulamin Świadczenia Usług YouTube oraz Politykę Prywatności Google. Aplikacja nie przechowuje, nie zwielokrotnia ani nie retransmituje plików audio/wideo – wszystkie materiały są strumieniowane bezpośrednio z serwerów YouTube zgodnie z orzecznictwem Trybunału Sprawiedliwości UE (sprawa C-348/13 BestWater). Wszelkie prawa autorskie do utworów i znaków towarowych należą do ich prawnych właścicieli oraz wykonawców."
   }
 }

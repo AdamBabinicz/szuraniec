@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { JetBrains_Mono, Outfit } from "next/font/google";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import "./globals.css";
+
+const GTM_ID = "GTM-N74LH3ML";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -61,7 +64,6 @@ export const metadata: Metadata = {
     icon: [
       { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
       { url: "/favicon.svg", type: "image/svg+xml" },
-      // FIX: Ikony dla Android Chrome (usuwają ostrzeżenie o braku ikon 192/512)
       {
         url: "/web-app-manifest-192x192.png",
         sizes: "192x192",
@@ -112,6 +114,19 @@ export default function RootLayout({
   return (
     <html lang="pl" suppressHydrationWarning className="bg-background">
       <head>
+        {/* Google Tag Manager - nieblokujący skrypt ładowany po interakcji */}
+        <Script
+          id="google-tag-manager"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${GTM_ID}');`,
+          }}
+        />
+
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -120,6 +135,15 @@ export default function RootLayout({
       <body
         className={`${outfit.className} ${jetBrainsMono.variable} antialiased`}
       >
+        {/* Google Tag Manager (noscript) */}
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+            height="0"
+            width="0"
+          />
+        </noscript>
+
         {children}
         <ScrollToTop />
       </body>

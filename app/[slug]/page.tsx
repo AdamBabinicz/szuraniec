@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MoveLeft } from "lucide-react";
@@ -6,6 +7,49 @@ import en from "@/lib/locales/en.json";
 
 type Dictionary = typeof pl | typeof en;
 type DocumentSection = Record<string, string>;
+
+// Pre-renderowanie wszystkich 4 stron prawnych w czasie budowania (SSG dla Netlify)
+export async function generateStaticParams() {
+  return [
+    { slug: pl.PRIVACY_SLUG },
+    { slug: pl.TERMS_SLUG },
+    { slug: en.PRIVACY_SLUG },
+    { slug: en.TERMS_SLUG },
+  ];
+}
+
+// Dynamiczne metadane SEO dla każdej podstrony prawnej
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  let title = "Dwa na Jeden";
+  let description = "";
+
+  if (slug === pl.PRIVACY_SLUG) {
+    title = `${pl.PRIVACY.TITLE} | ${pl.APP_NAME}`;
+    description = pl.PRIVACY.SEC_1_TEXT;
+  } else if (slug === en.PRIVACY_SLUG) {
+    title = `${en.PRIVACY.TITLE} | ${en.APP_NAME}`;
+    description = en.PRIVACY.SEC_1_TEXT;
+  } else if (slug === pl.TERMS_SLUG) {
+    title = `${pl.TERMS.TITLE} | ${pl.APP_NAME}`;
+    description = pl.TERMS.SEC_1_TEXT;
+  } else if (slug === en.TERMS_SLUG) {
+    title = `${en.TERMS.TITLE} | ${en.APP_NAME}`;
+    description = en.TERMS.SEC_1_TEXT;
+  }
+
+  return {
+    title,
+    description: description.slice(0, 160),
+    alternates: {
+      canonical: `/${slug}`,
+    },
+  };
+}
 
 export default async function DynamicLegalPage({
   params,

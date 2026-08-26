@@ -33,6 +33,61 @@ import {
   translations,
 } from "@/lib/translations";
 
+declare global {
+  interface Window {
+    YT?: {
+      Player: new (
+        element: string | HTMLElement,
+        config: {
+          videoId?: string;
+          host?: string;
+          playerVars?: {
+            autoplay?: 0 | 1;
+            controls?: 0 | 1;
+            rel?: 0 | 1;
+            playsinline?: 0 | 1;
+            modestbranding?: 0 | 1;
+            enablejsapi?: 0 | 1;
+            origin?: string;
+          };
+          events?: {
+            onReady?: (event: { target: YTPlayerInstance }) => void;
+            onStateChange?: (event: {
+              data: number;
+              target: YTPlayerInstance;
+            }) => void;
+            onError?: (event: { data: number }) => void;
+          };
+        },
+      ) => YTPlayerInstance;
+      PlayerState: {
+        UNSTARTED: number;
+        ENDED: number;
+        PLAYING: number;
+        PAUSED: number;
+        BUFFERING: number;
+        CUED: number;
+      };
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+interface YTPlayerInstance {
+  playVideo: () => void;
+  pauseVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  mute: () => void;
+  unMute: () => void;
+  isMuted: () => boolean;
+  setPlaybackRate: (rate: number) => void;
+  loadVideoById: (options: { videoId: string }) => void;
+  cueVideoById: (options: { videoId: string }) => void;
+  getPlayerState: () => number;
+  getIframe: () => HTMLElement | null;
+  destroy: () => void;
+}
+
 export function DanceTrainer() {
   const [lang, setLang] = useState<Lang>("pl");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -47,9 +102,15 @@ export function DanceTrainer() {
   const [fullscreen, setFullscreen] = useState(false);
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
 
-  const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const [ytReady, setYtReady] = useState(false);
+  const [ytLoading, setYtLoading] = useState(false);
+  const [ytErrorCode, setYtErrorCode] = useState<number | null>(null);
 
-  // Ref podchwytujący aktualny stan playing dla stabilnych callbacków
+  const ytPlayerRef = useRef<YTPlayerInstance | null>(null);
+  const ytPlayerMountRef = useRef<HTMLDivElement | null>(null);
+  const isPlayerReadyRef = useRef(false);
+  const ytAutoplayRef = useRef(false);
+
   const playingRef = useRef(playing);
   playingRef.current = playing;
 
@@ -82,7 +143,6 @@ export function DanceTrainer() {
     }
   }, []);
 
-  // Stan fullscreen synchronizowany ze zdarzeniem przeglądarki
   useEffect(() => {
     const handleFullscreenChange = () =>
       setFullscreen(Boolean(document.fullscreenElement));
@@ -91,18 +151,46 @@ export function DanceTrainer() {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (window.YT?.Player) {
+      setYtReady(true);
+      return;
+    }
+
+    const previousReady = window.onYouTubeIframeAPIReady;
+
+    window.onYouTubeIframeAPIReady = () => {
+      previousReady?.();
+      setYtReady(true);
+    };
+
+    const existingScript = document.getElementById("yt-iframe-api");
+    if (!existingScript) {
+      const script = document.createElement("script");
+      script.id = "yt-iframe-api";
+      script.src = "https://www.youtube.com/iframe_api";
+      document.body.appendChild(script);
+    }
+
+    return () => {
+      if (window.onYouTubeIframeAPIReady === previousReady) return;
+    };
+  }, []);
+
   const t = translations[lang];
 
-  const currentYear = new Date().getFullYear();
-  const copyrightYear = currentYear > 2026 ? `2026 - ${currentYear}` : "2026";
+  const [copyrightYear, setCopyrightYear] = useState<string>("2026");
+  useEffect(() => {
+    const currentYear = new Date().getFullYear();
+    setCopyrightYear(currentYear > 2026 ? `2026 - ${currentYear}` : "2026");
+  }, []);
 
   const song = useMemo(
     () => SONGS.find((item) => item.id === songId) ?? SONGS[0],
     [songId],
   );
-
-  const hasTrack = Boolean(song.audioUrl);
-  const usingTrack = source === "track" && hasTrack;
 
   const phaseDurations = useMemo(() => PHASES.map((p) => p.beats), []);
   const phaseVoices = useMemo(() => PHASES.map((p) => p.voice), []);
@@ -113,9 +201,164 @@ export function DanceTrainer() {
     playing,
     phaseDurations,
     phaseVoices,
-    clicks: !muted && !usingTrack,
+    clicks: !muted && source === "click",
     vibrate,
   });
+
+  const safeYtCall = useCallback(
+    (action: (player: YTPlayerInstance) => void) => {
+      if (!isPlayerReadyRef.current || !ytPlayerRef.current) return;
+      try {
+        const iframe = ytPlayerRef.current.getIframe?.();
+        if (iframe && iframe.isConnected) {
+          action(ytPlayerRef.current);
+        }
+      } catch {
+        // noop
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    setYtErrorCode(null);
+  }, [songId, source]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        ytPlayerRef.current?.destroy();
+      } catch {
+        // noop
+      } finally {
+        ytPlayerRef.current = null;
+        isPlayerReadyRef.current = false;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ytReady || source !== "youtube") return;
+    if (!song.youtubeId) {
+      setYtErrorCode(2);
+      return;
+    }
+    if (!ytPlayerMountRef.current) return;
+    if (!window.YT?.Player) return;
+
+    if (!ytPlayerRef.current) {
+      setYtLoading(true);
+      isPlayerReadyRef.current = false;
+
+      ytPlayerRef.current = new window.YT.Player(ytPlayerMountRef.current, {
+        videoId: song.youtubeId,
+        host: "https://www.youtube-nocookie.com",
+        playerVars: {
+          autoplay: 0,
+          controls: 1,
+          rel: 0,
+          playsinline: 1,
+          modestbranding: 1,
+          enablejsapi: 1,
+          origin:
+            typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+        events: {
+          onReady: (event) => {
+            isPlayerReadyRef.current = true;
+            setYtLoading(false);
+            setYtErrorCode(null);
+
+            try {
+              if (muted) event.target.mute();
+              else event.target.unMute();
+
+              event.target.setPlaybackRate(speed);
+
+              if (song.youtubeId) {
+                if (ytAutoplayRef.current || playingRef.current) {
+                  event.target.loadVideoById({ videoId: song.youtubeId });
+                  event.target.playVideo();
+                } else {
+                  event.target.cueVideoById({ videoId: song.youtubeId });
+                }
+              }
+            } catch {
+              // noop
+            }
+          },
+          onStateChange: (event) => {
+            if (event.data === window.YT?.PlayerState.PLAYING) {
+              unlockAudio();
+              setPlaying(true);
+              setYtLoading(false);
+            } else if (event.data === window.YT?.PlayerState.PAUSED) {
+              setPlaying(false);
+              setYtLoading(false);
+            } else if (event.data === window.YT?.PlayerState.ENDED) {
+              ytAutoplayRef.current = false;
+              setPlaying(false);
+              setYtLoading(false);
+              reset();
+            } else if (event.data === window.YT?.PlayerState.BUFFERING) {
+              setYtLoading(true);
+            } else if (event.data === window.YT?.PlayerState.CUED) {
+              setYtLoading(false);
+            }
+          },
+          onError: (event) => {
+            isPlayerReadyRef.current = false;
+            ytAutoplayRef.current = false;
+            setPlaying(false);
+            setYtLoading(false);
+            setYtErrorCode(event.data);
+          },
+        },
+      });
+
+      return;
+    }
+
+    setYtLoading(true);
+    safeYtCall((player) => {
+      if (muted) player.mute();
+      else player.unMute();
+
+      player.setPlaybackRate(speed);
+
+      if (playingRef.current || ytAutoplayRef.current) {
+        player.loadVideoById({ videoId: song.youtubeId });
+        player.playVideo();
+      } else {
+        player.cueVideoById({ videoId: song.youtubeId });
+        setYtLoading(false);
+      }
+    });
+  }, [ytReady, source, song.youtubeId, muted, speed, safeYtCall, reset]);
+
+  useEffect(() => {
+    if (source === "youtube") return;
+    ytAutoplayRef.current = false;
+    setYtLoading(false);
+    safeYtCall((player) => {
+      player.pauseVideo();
+    });
+  }, [source, safeYtCall]);
+
+  useEffect(() => {
+    if (source !== "youtube") return;
+    safeYtCall((player) => {
+      if (muted) player.mute();
+      else player.unMute();
+    });
+  }, [muted, source, safeYtCall]);
+
+  useEffect(() => {
+    if (source !== "youtube") return;
+    safeYtCall((player) => {
+      player.setPlaybackRate(speed);
+    });
+  }, [speed, source, safeYtCall]);
 
   const effectiveBar = role === "follower" ? cycle + 1 : cycle;
   const phase = PHASES[beat];
@@ -157,27 +400,61 @@ export function DanceTrainer() {
   };
 
   const togglePlay = useCallback(() => {
-    if (!playingRef.current) unlockAudio();
+    unlockAudio();
+
+    if (source === "youtube") {
+      if (!song.youtubeId) {
+        setYtErrorCode(2);
+        return;
+      }
+
+      if (!isPlayerReadyRef.current || !ytPlayerRef.current) {
+        ytAutoplayRef.current = true;
+        setYtLoading(true);
+        return;
+      }
+
+      safeYtCall((player) => {
+        const state = player.getPlayerState();
+
+        if (state === 1) {
+          ytAutoplayRef.current = false;
+          player.pauseVideo();
+          setPlaying(false);
+        } else {
+          ytAutoplayRef.current = true;
+          setYtLoading(true);
+          player.playVideo();
+        }
+      });
+
+      return;
+    }
+
     setPlaying((value) => !value);
-  }, []);
+  }, [song.youtubeId, source, safeYtCall]);
 
   const restart = useCallback(() => {
+    ytAutoplayRef.current = false;
     setPlaying(false);
     reset();
-    const el = audioElRef.current;
-    if (el) {
-      el.pause();
-      el.currentTime = 0;
+
+    if (source === "youtube") {
+      safeYtCall((player) => {
+        player.pauseVideo();
+        player.seekTo(0, true);
+      });
     }
-  }, [reset]);
+  }, [reset, source, safeYtCall]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
-      )
+      ) {
         return;
+      }
 
       if (e.code === "Space") {
         e.preventDefault();
@@ -197,15 +474,6 @@ export function DanceTrainer() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [togglePlay, restart]);
 
-  useEffect(() => {
-    const el = audioElRef.current;
-    if (!el) return;
-    el.muted = muted;
-    el.playbackRate = speed;
-    if (playing && usingTrack) void el.play().catch(() => undefined);
-    else el.pause();
-  }, [playing, usingTrack, muted, speed, song.audioUrl]);
-
   return (
     <div className="min-h-dvh bg-background text-foreground transition-colors duration-300">
       <SiteHeader
@@ -217,7 +485,6 @@ export function DanceTrainer() {
       />
 
       <main className="mx-auto grid max-w-3xl gap-6 px-4 py-8 pb-20">
-        {/* BANER HERO */}
         <section className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-xl transition-all">
           <div className="relative w-full aspect-[4/3] sm:aspect-[2/1] overflow-hidden">
             <Image
@@ -226,7 +493,7 @@ export function DanceTrainer() {
               fill
               priority
               sizes="(min-width: 768px) 736px, calc(100vw - 2rem)"
-              quality={85}
+              quality={75}
               className="object-cover object-[center_18%] brightness-100 contrast-100 transition-transform duration-700 group-hover:scale-105 dark:brightness-[0.92] dark:contrast-[1.04]"
             />
 
@@ -245,7 +512,6 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* BELKA TRYBÓW I NARZĘDZI */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-sm backdrop-blur-md">
           <button
             type="button"
@@ -291,7 +557,6 @@ export function DanceTrainer() {
           </div>
         </div>
 
-        {/* CYFROWY PARKIET */}
         <DanceFloor
           phase={phase}
           phaseIndex={beat}
@@ -303,7 +568,6 @@ export function DanceTrainer() {
           role={role}
         />
 
-        {/* TRYB MAŁE KROCZKI - ZABLOKOWANA WYSOKOŚĆ I STAŁA RAMKA (ZERO PRZESUWANIA / 0 CLS) */}
         <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 transition-all">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4">
             <div className="grid gap-0.5 min-w-0">
@@ -331,7 +595,6 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* LICZNIK I BIEŻĄCA INSTRUKCJA */}
         <div className="grid grid-cols-[auto_1fr] items-center gap-4 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 transition-all min-h-[144px] sm:min-h-[136px]">
           <div className="relative flex size-20 sm:size-24 shrink-0 items-center justify-center rounded-2xl bg-muted border border-border shadow-inner">
             <svg
@@ -406,7 +669,6 @@ export function DanceTrainer() {
           </div>
         </div>
 
-        {/* KONTROLKI ODTWARZACZA I PIOSENEK */}
         <DanceControls
           lang={lang}
           song={song}
@@ -420,17 +682,12 @@ export function DanceTrainer() {
           onToggleMuted={() => setMuted((value) => !value)}
           source={source}
           onSourceChange={setSource}
-          hasTrack={hasTrack}
+          ytLoading={ytLoading}
+          ytReady={ytReady}
+          ytErrorCode={ytErrorCode}
+          ytPlayerMountRef={ytPlayerMountRef}
         />
 
-        <audio
-          ref={audioElRef}
-          src={song.audioUrl || undefined}
-          loop
-          className="hidden"
-        />
-
-        {/* ROZBIÓR KROKU */}
         <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
           <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-foreground">
             <Footprints className="size-4 text-primary" />
@@ -457,7 +714,6 @@ export function DanceTrainer() {
           </ol>
         </section>
 
-        {/* 3 GRZECHY GŁÓWNE SZURAŃCA */}
         <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
           <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-foreground">
             <AlertTriangle className="size-4 text-amber-500" />
@@ -483,13 +739,11 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        {/* WSKAZÓWKA SKRÓTÓW KLAWIATUROWYCH */}
         <div className="hidden sm:flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
           <Keyboard className="size-3.5" />
           <span>{t.KEYBOARD_HINT}</span>
         </div>
 
-        {/* STOPKA */}
         <footer className="mt-8 pt-8 border-t border-border flex flex-col items-center gap-6">
           <nav className="flex flex-wrap justify-center gap-x-8 gap-y-2">
             <Link

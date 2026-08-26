@@ -2,14 +2,17 @@
 
 import {
   AudioLines,
-  FileMusic,
+  ExternalLink,
   Music4,
   Pause,
   Play,
   RotateCcw,
+  Video,
   Volume2,
   VolumeX,
 } from "lucide-react";
+import type { RefObject } from "react";
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import {
   SONGS,
@@ -34,7 +37,10 @@ type Props = {
   onToggleMuted: () => void;
   source: AudioSource;
   onSourceChange: (source: AudioSource) => void;
-  hasTrack: boolean;
+  ytLoading?: boolean;
+  ytReady?: boolean;
+  ytErrorCode?: number | null;
+  ytPlayerMountRef: RefObject<HTMLDivElement | null>;
 };
 
 export function DanceControls({
@@ -50,13 +56,33 @@ export function DanceControls({
   onToggleMuted,
   source,
   onSourceChange,
-  hasTrack,
+  ytLoading = false,
+  ytReady = false,
+  ytErrorCode = null,
+  ytPlayerMountRef,
 }: Props) {
   const t = translations[lang];
 
+  const ytWatchUrl = song.youtubeId
+    ? `https://www.youtube.com/watch?v=${song.youtubeId}`
+    : null;
+
+  const ytErrorMessage = useMemo(() => {
+    if (ytErrorCode === 2)
+      return { title: t.YT_ERR_2_TITLE, desc: t.YT_ERR_2_DESC };
+    if (ytErrorCode === 5)
+      return { title: t.YT_ERR_5_TITLE, desc: t.YT_ERR_5_DESC };
+    if (ytErrorCode === 100)
+      return { title: t.YT_ERR_100_TITLE, desc: t.YT_ERR_100_DESC };
+    if (ytErrorCode === 101 || ytErrorCode === 150)
+      return { title: t.YT_ERR_EMBED_TITLE, desc: t.YT_ERR_EMBED_DESC };
+    if (!song.youtubeId)
+      return { title: t.YT_ERR_NO_ID_TITLE, desc: t.YT_ERR_NO_ID_DESC };
+    return null;
+  }, [ytErrorCode, song.youtubeId, t]);
+
   return (
     <div className="grid gap-5 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 text-card-foreground">
-      {/* Wybór piosenki - Zoptymalizowany dla mobilnych list rozwijanych */}
       <div className="grid gap-2">
         <label
           htmlFor="song"
@@ -89,7 +115,6 @@ export function DanceControls({
         </div>
       </div>
 
-      {/* Wybór tempa */}
       <div className="grid gap-2.5 sm:gap-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground">
@@ -120,7 +145,6 @@ export function DanceControls({
         </div>
       </div>
 
-      {/* Główne sterowanie */}
       <div className="flex items-center gap-2.5 sm:gap-3">
         <button
           type="button"
@@ -177,11 +201,11 @@ export function DanceControls({
         </button>
       </div>
 
-      {/* Wybór źródła dźwięku */}
       <div className="grid gap-2.5 sm:gap-3 border-t border-border pt-4 sm:pt-5">
         <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground">
           {t.AUDIO_LABEL}
         </span>
+
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <button
             type="button"
@@ -197,29 +221,79 @@ export function DanceControls({
             <AudioLines className="size-4" />
             <span>{t.SOURCE_CLICK}</span>
           </button>
+
           <button
             type="button"
-            onClick={() => onSourceChange("track")}
-            disabled={!hasTrack}
-            aria-label={t.SOURCE_TRACK as string}
+            onClick={() => onSourceChange("youtube")}
+            aria-label={t.SOURCE_YOUTUBE as string}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-xl border py-2.5 sm:py-3 text-xs font-black uppercase tracking-widest transition-all disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed",
-              source === "track"
+              "flex items-center justify-center gap-2 rounded-xl border py-2.5 sm:py-3 text-xs font-black uppercase tracking-widest transition-all",
+              source === "youtube"
                 ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/10"
                 : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
             )}
           >
-            <FileMusic className="size-4" />
-            <span>{t.SOURCE_TRACK}</span>
+            <Video className="size-4" />
+            <span>{t.SOURCE_YOUTUBE}</span>
           </button>
         </div>
-        {!hasTrack && (
-          <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
-            <p className="text-xs font-semibold leading-relaxed text-primary italic tracking-tight">
-              {t.TRACK_MISSING}
-            </p>
+
+        <div
+          className={cn(
+            "grid gap-2 pt-2 transition-all duration-300",
+            source !== "youtube" && "hidden",
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+              {t.YOUTUBE_PLAYER_LABEL}
+            </span>
+            {!ytErrorMessage && (ytLoading || !ytReady) && (
+              <span className="font-mono text-[10px] font-bold text-primary animate-pulse">
+                {t.YOUTUBE_LOADING}
+              </span>
+            )}
           </div>
-        )}
+
+          <div className="relative w-full aspect-video max-h-48 sm:max-h-60 rounded-xl overflow-hidden border border-border bg-black shadow-inner">
+            {ytErrorMessage ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center text-white">
+                <p className="text-[11px] font-black uppercase tracking-widest text-rose-300">
+                  {ytErrorMessage.title}
+                </p>
+                <p className="text-xs font-semibold leading-snug text-white/80 max-w-xs">
+                  {ytErrorMessage.desc}
+                </p>
+                {ytWatchUrl && (
+                  <a
+                    href={ytWatchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-white transition-colors"
+                  >
+                    <ExternalLink className="size-3.5" />
+                    {t.YT_OPEN_EXTERNAL}
+                  </a>
+                )}
+              </div>
+            ) : song.youtubeId ? (
+              <>
+                <div
+                  ref={ytPlayerMountRef}
+                  id="yt-player-mount"
+                  className="size-full"
+                />
+                {(!ytReady || ytLoading) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white">
+                    <span className="text-xs font-black uppercase tracking-widest animate-pulse">
+                      {t.YOUTUBE_LOADING}
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );
