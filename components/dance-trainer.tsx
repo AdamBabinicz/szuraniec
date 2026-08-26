@@ -40,6 +40,8 @@ declare global {
         element: string | HTMLElement,
         config: {
           videoId?: string;
+          width?: string | number;
+          height?: string | number;
           playerVars?: {
             autoplay?: 0 | 1;
             controls?: 0 | 1;
@@ -249,14 +251,11 @@ export function DanceTrainer() {
       setYtLoading(true);
       isPlayerReadyRef.current = false;
 
-      // FIX: usunięty `host: "https://www.youtube-nocookie.com"` —
-      // domyślny host YT (youtube.com) jest zgodny ze skryptem
-      // iframe_api ładowanym z tego samego originu i nie wymaga
-      // dodatkowej zgodności origin/CSP w produkcji.
-      // FIX: `origin` ustawiamy tylko dla HTTPS (na HTTP i tak nie
-      // zadziała komunikacja postMessage z iframe YT).
+      // FIX: Dodano width: "100%" i height: "100%" zapobiegające zwijaniu się wideo
       ytPlayerRef.current = new window.YT.Player(ytPlayerMountRef.current, {
         videoId: song.youtubeId,
+        width: "100%",
+        height: "100%",
         playerVars: {
           autoplay: 0,
           controls: 1,
@@ -314,9 +313,6 @@ export function DanceTrainer() {
             }
           },
           onError: (event) => {
-            // FIX: po błędzie zerujemy referencję playera, żeby
-            // następna zmiana `songId` / `source` mogła poprawnie utworzyć
-            // nowego YT.Player zamiast ponownie karmić martwą instancję.
             isPlayerReadyRef.current = false;
             ytAutoplayRef.current = false;
             setPlaying(false);
