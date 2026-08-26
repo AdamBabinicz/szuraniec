@@ -6,13 +6,8 @@
   NODE_VERSION = "22.15.0"
   PNPM_FLAGS = "--no-frozen-lockfile"
 
-# FIX: Blokada wstrzykiwania skryptu HUD/Drawer za tagiem </html>
-# oraz wyłączenie post-processingu Netlify dla czystego wyniku W3C/Lighthouse.
 [build.processing]
   skip_post_processing = true
-
-[build.processing.html]
-  pretty_urls = true
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
