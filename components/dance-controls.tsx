@@ -41,6 +41,20 @@ type Props = {
   ytErrorCode?: number | null;
 };
 
+// Subtelne, wektorowe logo YouTube dopasowane do stylistyki przycisku
+function YouTubeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={cn("size-4 shrink-0", className)}
+      aria-hidden="true"
+    >
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    </svg>
+  );
+}
+
 export function DanceControls({
   lang,
   song,
@@ -155,7 +169,7 @@ export function DanceControls({
           onClick={onTogglePlay}
           aria-label={playing ? (t.PAUSE as string) : (t.PLAY as string)}
           className={cn(
-            "flex flex-1 items-center justify-center gap-2.5 sm:size-auto rounded-xl py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98]",
+            "flex flex-1 items-center justify-center gap-2.5 rounded-xl py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98]",
             playing
               ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
               : "bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:opacity-90",
@@ -216,7 +230,7 @@ export function DanceControls({
             onClick={() => onSourceChange("click")}
             aria-label={t.SOURCE_CLICK as string}
             className={cn(
-              "flex min-h-[48px] items-center justify-center gap-2 rounded-xl border px-3 py-2.5 sm:py-3 text-center text-xs font-black uppercase tracking-wider transition-all leading-tight",
+              "flex h-12 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-black uppercase tracking-wider transition-all",
               source === "click"
                 ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/10"
                 : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
@@ -225,21 +239,20 @@ export function DanceControls({
             <AudioLines className="size-4 shrink-0" />
             <span className="truncate">{t.SOURCE_CLICK}</span>
           </button>
+
           <button
             type="button"
             onClick={() => onSourceChange("youtube")}
             aria-label={t.SOURCE_YOUTUBE as string}
             className={cn(
-              "flex min-h-[48px] items-center justify-center gap-2 rounded-xl border px-3 py-2.5 sm:py-3 text-center text-xs font-black uppercase tracking-wider transition-all leading-tight",
+              "flex h-12 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-black uppercase tracking-wider transition-all",
               source === "youtube"
                 ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/10"
                 : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
             )}
           >
-            <Video className="size-4 shrink-0" />
-            <span className="leading-none text-[11px] sm:text-xs font-black">
-              {t.SOURCE_YOUTUBE}
-            </span>
+            <YouTubeIcon className="size-4 shrink-0" />
+            <span className="truncate">YouTube</span>
           </button>
         </div>
 
