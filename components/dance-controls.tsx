@@ -248,7 +248,7 @@ export function DanceControls({
           </button>
         </div>
 
-        {/* Kontener YouTube z wymuszeniem rozciągnięcia wstrzykniętego iframe */}
+        {/* Kontener z unikalnym ID yt-player-container */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
@@ -270,7 +270,7 @@ export function DanceControls({
           <div className="relative w-full aspect-video max-h-48 sm:max-h-60 rounded-xl overflow-hidden border border-border bg-black shadow-inner [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:size-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0">
             <div
               ref={ytPlayerMountRef}
-              id="yt-player-iframe"
+              id="yt-player-container"
               className="absolute inset-0 size-full"
               {...ytMountProps}
             />
