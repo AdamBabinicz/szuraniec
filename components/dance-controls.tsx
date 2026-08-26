@@ -61,7 +61,7 @@ export function DanceControls({
 
   const ytEmbedUrl = useMemo(() => {
     if (!song.youtubeId) return null;
-    return `https://www.youtube.com/embed/${song.youtubeId}?enablejsapi=1&autoplay=0&controls=1&rel=0&playsinline=1&modestbranding=1`;
+    return `https://www.youtube-nocookie.com/embed/${song.youtubeId}?enablejsapi=1&autoplay=0&controls=1&rel=0&playsinline=1&modestbranding=1`;
   }, [song.youtubeId]);
 
   const ytWatchUrl = song.youtubeId
@@ -155,16 +155,16 @@ export function DanceControls({
           onClick={onTogglePlay}
           aria-label={playing ? (t.PAUSE as string) : (t.PLAY as string)}
           className={cn(
-            "flex flex-1 items-center justify-center gap-2.5 sm:gap-3 rounded-xl py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98]",
+            "flex flex-1 items-center justify-center gap-2.5 sm:size-auto rounded-xl py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98]",
             playing
               ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
               : "bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:opacity-90",
           )}
         >
           {playing ? (
-            <Pause className="size-4 sm:size-5 fill-current" />
+            <Pause className="size-4 sm:size-5 fill-current shrink-0" />
           ) : (
-            <Play className="size-4 sm:size-5 fill-current" />
+            <Play className="size-4 sm:size-5 fill-current shrink-0" />
           )}
           <span>{playing ? t.PAUSE : t.PLAY}</span>
         </button>
@@ -192,9 +192,9 @@ export function DanceControls({
           )}
         >
           {muted ? (
-            <VolumeX className="size-4 sm:size-5" />
+            <VolumeX className="size-4 sm:size-5 shrink-0" />
           ) : (
-            <Volume2 className="size-4 sm:size-5" />
+            <Volume2 className="size-4 sm:size-5 shrink-0" />
           )}
           <span className="hidden md:inline">
             {muted ? t.MUTED : t.UNMUTED}
@@ -216,28 +216,30 @@ export function DanceControls({
             onClick={() => onSourceChange("click")}
             aria-label={t.SOURCE_CLICK as string}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-xl border py-2.5 sm:py-3 text-xs font-black uppercase tracking-widest transition-all",
+              "flex min-h-[48px] items-center justify-center gap-2 rounded-xl border px-3 py-2.5 sm:py-3 text-center text-xs font-black uppercase tracking-wider transition-all leading-tight",
               source === "click"
                 ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/10"
                 : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
             )}
           >
-            <AudioLines className="size-4" />
-            <span>{t.SOURCE_CLICK}</span>
+            <AudioLines className="size-4 shrink-0" />
+            <span className="truncate">{t.SOURCE_CLICK}</span>
           </button>
           <button
             type="button"
             onClick={() => onSourceChange("youtube")}
             aria-label={t.SOURCE_YOUTUBE as string}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-xl border py-2.5 sm:py-3 text-xs font-black uppercase tracking-widest transition-all",
+              "flex min-h-[48px] items-center justify-center gap-2 rounded-xl border px-3 py-2.5 sm:py-3 text-center text-xs font-black uppercase tracking-wider transition-all leading-tight",
               source === "youtube"
                 ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/10"
                 : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
             )}
           >
-            <Video className="size-4" />
-            <span>{t.SOURCE_YOUTUBE}</span>
+            <Video className="size-4 shrink-0" />
+            <span className="leading-none text-[11px] sm:text-xs font-black">
+              {t.SOURCE_YOUTUBE}
+            </span>
           </button>
         </div>
 
