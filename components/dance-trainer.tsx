@@ -37,20 +37,8 @@ declare global {
   interface Window {
     YT?: {
       Player: new (
-        element: string | HTMLElement,
+        elementId: string | HTMLElement,
         config: {
-          host?: string;
-          videoId?: string;
-          width?: string | number;
-          height?: string | number;
-          playerVars?: {
-            autoplay?: 0 | 1;
-            controls?: 0 | 1;
-            rel?: 0 | 1;
-            playsinline?: 0 | 1;
-            modestbranding?: 0 | 1;
-            enablejsapi?: 0 | 1;
-          };
           events?: {
             onReady?: (event: { target: YTPlayerInstance }) => void;
             onStateChange?: (event: {
@@ -108,9 +96,7 @@ export function DanceTrainer() {
   const [ytErrorCode, setYtErrorCode] = useState<number | null>(null);
 
   const ytPlayerRef = useRef<YTPlayerInstance | null>(null);
-  const ytPlayerMountRef = useRef<HTMLDivElement | null>(null);
   const isPlayerReadyRef = useRef(false);
-  const ytAutoplayRef = useRef(false);
 
   const playingRef = useRef(playing);
   playingRef.current = playing;
@@ -152,31 +138,22 @@ export function DanceTrainer() {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  // Ładowanie biblioteki YouTube IFrame API
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    if (window.YT?.Player) {
+    if (window.YT && window.YT.Player) {
       setYtReady(true);
       return;
     }
-
-    const previousReady = window.onYouTubeIframeAPIReady;
-
-    window.onYouTubeIframeAPIReady = () => {
-      previousReady?.();
-      setYtReady(true);
-    };
-
     const existingScript = document.getElementById("yt-iframe-api");
     if (!existingScript) {
-      const script = document.createElement("script");
-      script.id = "yt-iframe-api";
-      script.src = "https://www.youtube.com/iframe_api";
-      document.body.appendChild(script);
+      const tag = document.createElement("script");
+      tag.id = "yt-iframe-api";
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.body.appendChild(tag);
     }
-
-    return () => {
-      if (window.onYouTubeIframeAPIReady === previousReady) return;
+    window.onYouTubeIframeAPIReady = () => {
+      setYtReady(true);
     };
   }, []);
 
@@ -225,48 +202,28 @@ export function DanceTrainer() {
     setYtErrorCode(null);
   }, [songId, source]);
 
+  // Podpięcie YouTube API pod istniejącą ramkę iframe
   useEffect(() => {
-    return () => {
+    if (!ytReady || typeof window === "undefined") return;
+    if (source !== "youtube") return;
+
+    let isSubscribed = true;
+
+    const timer = setTimeout(() => {
+      const el = document.getElementById("yt-player-iframe");
+      if (!el || !window.YT?.Player) return;
+
       try {
         ytPlayerRef.current?.destroy();
-      } catch {
-        // noop
-      } finally {
-        ytPlayerRef.current = null;
-        isPlayerReadyRef.current = false;
-      }
-    };
-  }, []);
+      } catch {}
 
-  useEffect(() => {
-    if (!ytReady || source !== "youtube") return;
-    if (!song.youtubeId) {
-      setYtErrorCode(2);
-      return;
-    }
-    if (!ytPlayerMountRef.current) return;
-    if (!window.YT?.Player) return;
-
-    if (!ytPlayerRef.current) {
       setYtLoading(true);
       isPlayerReadyRef.current = false;
 
-      // FIX: Jawny host YouTube gwarantujący pełny adres https://www.youtube.com/embed/...
-      ytPlayerRef.current = new window.YT.Player(ytPlayerMountRef.current, {
-        host: "https://www.youtube.com",
-        videoId: song.youtubeId,
-        width: "100%",
-        height: "100%",
-        playerVars: {
-          autoplay: 0,
-          controls: 1,
-          rel: 0,
-          playsinline: 1,
-          modestbranding: 1,
-          enablejsapi: 1,
-        },
+      ytPlayerRef.current = new window.YT.Player("yt-player-iframe", {
         events: {
           onReady: (event) => {
+            if (!isSubscribed) return;
             isPlayerReadyRef.current = true;
             setYtLoading(false);
             setYtErrorCode(null);
@@ -274,86 +231,46 @@ export function DanceTrainer() {
             try {
               if (muted) event.target.mute();
               else event.target.unMute();
-
               event.target.setPlaybackRate(speed);
-
-              if (song.youtubeId) {
-                if (ytAutoplayRef.current || playingRef.current) {
-                  event.target.loadVideoById({ videoId: song.youtubeId });
-                  event.target.playVideo();
-                } else {
-                  event.target.cueVideoById({ videoId: song.youtubeId });
-                }
+              if (playingRef.current) {
+                event.target.playVideo();
+              } else {
+                event.target.pauseVideo();
               }
-            } catch {
-              // noop
-            }
+            } catch {}
           },
           onStateChange: (event) => {
-            if (event.data === window.YT?.PlayerState.PLAYING) {
+            if (!isSubscribed) return;
+            // 1 = PLAYING, 2 = PAUSED, 0 = ENDED, 3 = BUFFERING
+            if (event.data === 1) {
               unlockAudio();
               setPlaying(true);
               setYtLoading(false);
-            } else if (event.data === window.YT?.PlayerState.PAUSED) {
+            } else if (event.data === 2 || event.data === 0) {
               setPlaying(false);
               setYtLoading(false);
-            } else if (event.data === window.YT?.PlayerState.ENDED) {
-              ytAutoplayRef.current = false;
-              setPlaying(false);
-              setYtLoading(false);
-              reset();
-            } else if (event.data === window.YT?.PlayerState.BUFFERING) {
+            } else if (event.data === 3) {
               setYtLoading(true);
-            } else if (event.data === window.YT?.PlayerState.CUED) {
-              setYtLoading(false);
             }
           },
           onError: (event) => {
+            if (!isSubscribed) return;
             isPlayerReadyRef.current = false;
-            ytAutoplayRef.current = false;
             setPlaying(false);
             setYtLoading(false);
             setYtErrorCode(event.data);
-            try {
-              ytPlayerRef.current?.destroy();
-            } catch {
-              // noop
-            } finally {
-              ytPlayerRef.current = null;
-            }
           },
         },
       });
+    }, 150);
 
-      return;
-    }
+    return () => {
+      isSubscribed = false;
+      clearTimeout(timer);
+    };
+  }, [ytReady, song.youtubeId, source, muted, speed]);
 
-    setYtLoading(true);
-    safeYtCall((player) => {
-      if (muted) player.mute();
-      else player.unMute();
-
-      player.setPlaybackRate(speed);
-
-      if (playingRef.current || ytAutoplayRef.current) {
-        player.loadVideoById({ videoId: song.youtubeId });
-        player.playVideo();
-      } else {
-        player.cueVideoById({ videoId: song.youtubeId });
-        setYtLoading(false);
-      }
-    });
-  }, [ytReady, source, song.youtubeId, muted, speed, safeYtCall, reset]);
-
-  useEffect(() => {
-    if (source === "youtube") return;
-    ytAutoplayRef.current = false;
-    setYtLoading(false);
-    safeYtCall((player) => {
-      player.pauseVideo();
-    });
-  }, [source, safeYtCall]);
-
+  // Synchronizacja wyciszenia
   useEffect(() => {
     if (source !== "youtube") return;
     safeYtCall((player) => {
@@ -362,6 +279,7 @@ export function DanceTrainer() {
     });
   }, [muted, source, safeYtCall]);
 
+  // Synchronizacja tempa
   useEffect(() => {
     if (source !== "youtube") return;
     safeYtCall((player) => {
@@ -408,46 +326,33 @@ export function DanceTrainer() {
     }
   };
 
+  // Pełna synchronizacja przycisku START ze stopami i z wideo
   const togglePlay = useCallback(() => {
     unlockAudio();
 
     if (source === "youtube") {
-      if (!song.youtubeId) {
-        setYtErrorCode(2);
-        return;
-      }
-
-      if (!isPlayerReadyRef.current || !ytPlayerRef.current) {
-        ytAutoplayRef.current = true;
-        setYtLoading(true);
-        return;
-      }
-
       safeYtCall((player) => {
         const state = player.getPlayerState();
-
         if (state === 1) {
-          ytAutoplayRef.current = false;
           player.pauseVideo();
           setPlaying(false);
         } else {
-          ytAutoplayRef.current = true;
-          setYtLoading(true);
           player.playVideo();
+          setPlaying(true);
         }
       });
-
+      if (!isPlayerReadyRef.current) {
+        setPlaying((value) => !value);
+      }
       return;
     }
 
     setPlaying((value) => !value);
-  }, [song.youtubeId, source, safeYtCall]);
+  }, [source, safeYtCall]);
 
   const restart = useCallback(() => {
-    ytAutoplayRef.current = false;
     setPlaying(false);
     reset();
-
     if (source === "youtube") {
       safeYtCall((player) => {
         player.pauseVideo();
@@ -694,7 +599,6 @@ export function DanceTrainer() {
           ytLoading={ytLoading}
           ytReady={ytReady}
           ytErrorCode={ytErrorCode}
-          ytPlayerMountRef={ytPlayerMountRef}
         />
 
         <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
