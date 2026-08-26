@@ -11,8 +11,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import type { RefObject } from "react";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   SONGS,
@@ -38,9 +37,7 @@ type Props = {
   source: AudioSource;
   onSourceChange: (source: AudioSource) => void;
   ytLoading?: boolean;
-  ytReady?: boolean;
   ytErrorCode?: number | null;
-  ytPlayerMountRef?: RefObject<HTMLDivElement | null>;
 };
 
 export function DanceControls({
@@ -58,13 +55,86 @@ export function DanceControls({
   onSourceChange,
   ytLoading = false,
   ytErrorCode = null,
-  ytPlayerMountRef,
 }: Props) {
   const t = translations[lang];
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  const [originParam, setOriginParam] = useState("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setOriginParam(encodeURIComponent(window.location.origin));
+  }, []);
+
+  // W 100% poprawny adres URL renderowany natywnie przez przeglądarkę
+  const ytEmbedUrl = useMemo(() => {
+    if (!song.youtubeId) return null;
+    return `https://www.youtube-nocookie.com/embed/${song.youtubeId}?enablejsapi=1&autoplay=0&controls=1&rel=0&playsinline=1${
+      originParam ? `&origin=${originParam}` : ""
+    }`;
+  }, [song.youtubeId, originParam]);
 
   const ytWatchUrl = song.youtubeId
     ? `https://www.youtube.com/watch?v=${song.youtubeId}`
     : null;
+
+  const sendYtCommand = useCallback((func: string, args: unknown[] = []) => {
+    const iframe = iframeRef.current;
+    if (!iframe || !iframe.contentWindow) return;
+    try {
+      iframe.contentWindow.postMessage(
+        JSON.stringify({
+          event: "command",
+          func,
+          args,
+        }),
+        "*",
+      );
+    } catch {
+      // Bezpieczne wyciszenie
+    }
+  }, []);
+
+  // Rejestracja nasłuchu zdarzeń po załadowaniu ramki
+  const handleIframeLoad = () => {
+    const iframe = iframeRef.current;
+    if (!iframe || !iframe.contentWindow) return;
+    try {
+      iframe.contentWindow.postMessage(
+        JSON.stringify({ event: "listening" }),
+        "*",
+      );
+    } catch {}
+  };
+
+  // Synchronizacja przycisku START / STOP
+  useEffect(() => {
+    if (source !== "youtube") return;
+    if (playing) {
+      sendYtCommand("playVideo");
+    } else {
+      sendYtCommand("pauseVideo");
+    }
+  }, [playing, source, sendYtCommand]);
+
+  // Synchronizacja tempa
+  useEffect(() => {
+    if (source !== "youtube") return;
+    sendYtCommand("setPlaybackRate", [speed]);
+  }, [speed, source, sendYtCommand]);
+
+  // Synchronizacja wyciszenia
+  useEffect(() => {
+    if (source !== "youtube") return;
+    sendYtCommand(muted ? "mute" : "unMute");
+  }, [muted, source, sendYtCommand]);
+
+  const handleRestart = () => {
+    if (source === "youtube") {
+      sendYtCommand("seekTo", [0, true]);
+      sendYtCommand("pauseVideo");
+    }
+    onRestart();
+  };
 
   const ytErrorMessage = useMemo(() => {
     if (ytErrorCode === 2)
@@ -169,7 +239,7 @@ export function DanceControls({
 
         <button
           type="button"
-          onClick={onRestart}
+          onClick={handleRestart}
           title={t.RESTART as string}
           aria-label={t.RESTART as string}
           className="flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-all hover:border-primary hover:text-primary active:rotate-[-45deg]"
@@ -239,7 +309,7 @@ export function DanceControls({
           </button>
         </div>
 
-        {/* Kontener podpięty pod React Ref dla YouTube SDK */}
+        {/* Natywnie renderowany odtwarzacz YouTube - brak czarnego ekranu */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
@@ -278,13 +348,19 @@ export function DanceControls({
                   </a>
                 )}
               </div>
-            ) : (
-              <div
-                ref={ytPlayerMountRef}
+            ) : ytEmbedUrl ? (
+              <iframe
+                ref={iframeRef}
                 id="yt-player-iframe"
-                className="size-full"
+                src={ytEmbedUrl}
+                onLoad={handleIframeLoad}
+                title={t.YOUTUBE_PLAYER_LABEL as string}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+                className="size-full border-0"
               />
-            )}
+            ) : null}
           </div>
         </div>
       </div>
