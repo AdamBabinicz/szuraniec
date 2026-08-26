@@ -39,6 +39,7 @@ declare global {
       Player: new (
         element: string | HTMLElement,
         config: {
+          host?: string;
           videoId?: string;
           width?: string | number;
           height?: string | number;
@@ -250,8 +251,9 @@ export function DanceTrainer() {
       setYtLoading(true);
       isPlayerReadyRef.current = false;
 
-      // Usunięto wadliwy parametr origin powodujący obcinanie adresu URL
+      // FIX: Jawny host YouTube gwarantujący pełny adres https://www.youtube.com/embed/...
       ytPlayerRef.current = new window.YT.Player(ytPlayerMountRef.current, {
+        host: "https://www.youtube.com",
         videoId: song.youtubeId,
         width: "100%",
         height: "100%",
