@@ -43,17 +43,6 @@ type Props = {
   ytPlayerMountRef?: RefObject<HTMLDivElement | null>;
 };
 
-// FIX: YouTube IFrame Player API kopiuje atrybut `allow` z elementu
-// kontenera (DIV) do wstrzykiwanego iframe YT — w reakcji na to przeglądarka
-// udziela uprawnień (picture-in-picture, autoplay, encrypted-media) nawet
-// przy restrykcyjnym Permissions-Policy. React typy dla HTMLDivElement nie
-// zawierają `allow` (bo w normalnym HTML atrybut `allow` NIE jest dozwolony
-// na <div>). Dodajemy minimalny typ rozszerzony przez `& { allow?: string }`
-// i przekazujemy go do kontenera przez spread, dzięki czemu:
-//   1) TypeScript akceptuje atrybut,
-//   2) runtime'owo React przepuszcza `allow` do DOM (w HTMLAttributes to
-//      `unknown` → przechodzi do setAttribute po stronie Reacta),
-//   3) YouTube IFrame Player API kopiuje go do iframe.
 type YtMountProps = HTMLAttributes<HTMLDivElement> & {
   allow?: string;
 };
@@ -98,7 +87,6 @@ export function DanceControls({
     return null;
   }, [ytErrorCode, song.youtubeId, t]);
 
-  // FIX: typowane rozszerzenie – `allow` trafia do kontenera playera.
   const ytMountProps: YtMountProps = { allow: YT_ALLOW_VALUE };
 
   return (
@@ -260,20 +248,7 @@ export function DanceControls({
           </button>
         </div>
 
-        {/* Kontener YouTube — STABILNY WĘZEŁ REFA.
-            • <div ref={ytPlayerMountRef}> renderowany ZAWSZE (również przy
-              ukrytym źródle i przy błędzie) — dzięki czemu YT.Player ma stałą
-              referencję DOM, nie zostaje sierotą po podmianie węzła.
-            • Sam węzeł jest absolutnie pozycjonowany (absolute inset-0
-              size-full), więc YT iframe dostaje prawidłowe wymiary nawet jeśli
-              kontener nadrzędny miał chwilowo display:none.
-            • Komunikat błędu to overlay (z-index 10), a NIE zamiennik węzła
-              z refem. Po wyczyszczeniu błędu iframe YT zostaje na miejscu.
-            • atrybut 'allow' jest kopiowany do iframe wstrzykniętego przez
-              YT.Player — to jest jedyne wiarygodne miejsce, żeby nadać mu
-              uprawnienia (picture-in-picture, autoplay, encrypted-media)
-              wymagane przez Permissions-Policy w produkcji, ale zignorowane
-              przez YT API na localhost. */}
+        {/* Kontener YouTube z wymuszeniem rozciągnięcia wstrzykniętego iframe */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
@@ -292,7 +267,7 @@ export function DanceControls({
             )}
           </div>
 
-          <div className="relative w-full aspect-video max-h-48 sm:max-h-60 rounded-xl overflow-hidden border border-border bg-black shadow-inner">
+          <div className="relative w-full aspect-video max-h-48 sm:max-h-60 rounded-xl overflow-hidden border border-border bg-black shadow-inner [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:size-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0">
             <div
               ref={ytPlayerMountRef}
               id="yt-player-iframe"
