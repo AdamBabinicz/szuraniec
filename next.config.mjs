@@ -1,12 +1,5 @@
 /** @type {import('next').NextConfig} */
 const isProd = process.env.NODE_ENV === "production";
-//
-// Jeśli chcesz najpierw TYLKO ZEBRAĆ raport naruszeń zamiast blokować,
-// zmień nazwę klucza z "Content-Security-Policy" na
-// "Content-Security-Policy-Report-Only" na czas debugowania. Przeglądarka
-// zaloguje wtedy KAŻDY blokowany zasób w konsoli, ale niczego nie zablokuje.
-// Po 24h notuj zgłoszenia i wklej tu listę brakujących originów.
-//
 
 const ContentSecurityPolicy = [
   "default-src 'self'",
@@ -33,7 +26,6 @@ const ContentSecurityPolicy = [
     "https://www.youtube.com https://www.youtube-nocookie.com " +
     "https://*.googlevideo.com",
   // KLUCZOWE: YouTube embed + GTM iframe (noscript/pixel GA) + Ads.
-  // Bez tego YT iframe jest czarny.
   "frame-src 'self' " +
     "https://www.youtube.com https://www.youtube-nocookie.com " +
     "https://www.googletagmanager.com https://tagmanager.google.com " +
@@ -53,19 +45,17 @@ const ContentSecurityPolicy = [
 ].join("; ");
 
 const PermissionsPolicy = [
-  // Potrzebne YouTube iframe (błąd w Twojej konsoli).
-  "picture-in-picture=(self)",
-  // Potrzebne YouTube API (loadVideoById / setPlaybackRate).
-  "autoplay=(self)",
-  "encrypted-media=(self)",
-  // Fullscreen działa po TWOJEJ stronie, gdy YT wzywa requestFullscreen.
-  "fullscreen=(self)",
+  // Odblokowane delegowanie uprawnień do cross-origin iframe YouTube (rozwiązuje czarny ekran na produkcji)
+  'picture-in-picture=(self "https://www.youtube.com" "https://www.youtube-nocookie.com")',
+  'autoplay=(self "https://www.youtube.com" "https://www.youtube-nocookie.com")',
+  'encrypted-media=(self "https://www.youtube.com" "https://www.youtube-nocookie.com")',
+  'fullscreen=(self "https://www.youtube.com" "https://www.youtube-nocookie.com")',
   // Wymagane przez GTM/GA do własnych pomiarów.
   "clipboard-read=(self)",
   "clipboard-write=(self)",
   "publickey-credentials-get=(self)",
   "web-share=(self)",
-  // Reszta — domyślnie blokowana (Twoje obecne mikro/kamera/geo też mają zostać zamknięte).
+  // Reszta — domyślnie blokowana
   "accelerometer=()",
   "camera=()",
   "geolocation=()",
@@ -96,14 +86,9 @@ const nextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: ContentSecurityPolicy.replace(
-              "'unsafe-inline' 'unsafe-eval'",
-              isProd ? "'unsafe-inline'" : "'unsafe-inline' 'unsafe-eval'",
-            ),
+            value: ContentSecurityPolicy,
           },
           { key: "Permissions-Policy", value: PermissionsPolicy },
-          // COEP celowo NIE włączamy — YT iframe i GTM iframe nie są
-          // COEP-compatible (czarny iframe / martwa analityka).
           {
             key: "Cross-Origin-Opener-Policy",
             value: "same-origin-allow-popups",
