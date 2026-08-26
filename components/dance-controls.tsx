@@ -11,7 +11,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import type { RefObject } from "react";
+import type { HTMLAttributes, RefObject } from "react";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -42,6 +42,24 @@ type Props = {
   ytErrorCode?: number | null;
   ytPlayerMountRef?: RefObject<HTMLDivElement | null>;
 };
+
+// FIX: YouTube IFrame Player API kopiuje atrybut `allow` z elementu
+// kontenera (DIV) do wstrzykiwanego iframe YT — w reakcji na to przeglądarka
+// udziela uprawnień (picture-in-picture, autoplay, encrypted-media) nawet
+// przy restrykcyjnym Permissions-Policy. React typy dla HTMLDivElement nie
+// zawierają `allow` (bo w normalnym HTML atrybut `allow` NIE jest dozwolony
+// na <div>). Dodajemy minimalny typ rozszerzony przez `& { allow?: string }`
+// i przekazujemy go do kontenera przez spread, dzięki czemu:
+//   1) TypeScript akceptuje atrybut,
+//   2) runtime'owo React przepuszcza `allow` do DOM (w HTMLAttributes to
+//      `unknown` → przechodzi do setAttribute po stronie Reacta),
+//   3) YouTube IFrame Player API kopiuje go do iframe.
+type YtMountProps = HTMLAttributes<HTMLDivElement> & {
+  allow?: string;
+};
+
+const YT_ALLOW_VALUE =
+  "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen";
 
 export function DanceControls({
   lang,
@@ -79,6 +97,9 @@ export function DanceControls({
       return { title: t.YT_ERR_NO_ID_TITLE, desc: t.YT_ERR_NO_ID_DESC };
     return null;
   }, [ytErrorCode, song.youtubeId, t]);
+
+  // FIX: typowane rozszerzenie – `allow` trafia do kontenera playera.
+  const ytMountProps: YtMountProps = { allow: YT_ALLOW_VALUE };
 
   return (
     <div className="grid gap-5 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 text-card-foreground">
@@ -243,11 +264,16 @@ export function DanceControls({
             • <div ref={ytPlayerMountRef}> renderowany ZAWSZE (również przy
               ukrytym źródle i przy błędzie) — dzięki czemu YT.Player ma stałą
               referencję DOM, nie zostaje sierotą po podmianie węzła.
-            • Sam węzeł jest absolutnie pozycjonowany do kontenera nadrzędnego
-              (absolute inset-0 size-full), więc YT iframe dostaje prawidłowe
-              wymiary nawet jeśli kontener nadrzędny miał chwilowo display:none.
+            • Sam węzeł jest absolutnie pozycjonowany (absolute inset-0
+              size-full), więc YT iframe dostaje prawidłowe wymiary nawet jeśli
+              kontener nadrzędny miał chwilowo display:none.
             • Komunikat błędu to overlay (z-index 10), a NIE zamiennik węzła
-              z refem. Po wyczyszczeniu błędu iframe YT zostaje na miejscu. */}
+              z refem. Po wyczyszczeniu błędu iframe YT zostaje na miejscu.
+            • atrybut 'allow' jest kopiowany do iframe wstrzykniętego przez
+              YT.Player — to jest jedyne wiarygodne miejsce, żeby nadać mu
+              uprawnienia (picture-in-picture, autoplay, encrypted-media)
+              wymagane przez Permissions-Policy w produkcji, ale zignorowane
+              przez YT API na localhost. */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
@@ -271,6 +297,7 @@ export function DanceControls({
               ref={ytPlayerMountRef}
               id="yt-player-iframe"
               className="absolute inset-0 size-full"
+              {...ytMountProps}
             />
             {ytErrorMessage && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 p-4 text-center text-white bg-black/85 backdrop-blur-sm">
