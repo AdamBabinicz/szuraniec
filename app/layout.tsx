@@ -113,8 +113,10 @@ export default function RootLayout({
 
   return (
     <html lang="pl" suppressHydrationWarning className="bg-background">
-      <head>
-        {/* Google Tag Manager - nieblokujący skrypt ładowany po interakcji */}
+      <body
+        className={`${outfit.className} ${jetBrainsMono.variable} antialiased`}
+      >
+        {/* Google Tag Manager - poprawnie umieszczony wewnątrz <body> */}
         <Script
           id="google-tag-manager"
           strategy="afterInteractive"
@@ -127,14 +129,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           }}
         />
 
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      </head>
-      <body
-        className={`${outfit.className} ${jetBrainsMono.variable} antialiased`}
-      >
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
@@ -143,6 +137,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             width="0"
           />
         </noscript>
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
 
         {children}
         <ScrollToTop />
