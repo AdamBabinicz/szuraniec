@@ -116,6 +116,25 @@ export default function RootLayout({
       <body
         className={`${outfit.className} ${jetBrainsMono.variable} antialiased`}
       >
+        {/* Domyślny stan Google Consent Mode v2 przed załadowaniem kontenera GTM */}
+        <Script
+          id="google-consent-default"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('consent', 'default', {
+                'analytics_storage': 'denied',
+                'ad_storage': 'denied',
+                'ad_user_data': 'denied',
+                'ad_personalization': 'denied',
+                'wait_for_update': 500
+              });
+            `,
+          }}
+        />
+
         {/* Google Tag Manager - poprawnie umieszczony wewnątrz <body> */}
         <Script
           id="google-tag-manager"
