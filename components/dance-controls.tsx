@@ -40,7 +40,7 @@ type Props = {
   ytLoading?: boolean;
   ytReady?: boolean;
   ytErrorCode?: number | null;
-  ytPlayerMountRef: RefObject<HTMLDivElement | null>;
+  ytPlayerMountRef?: RefObject<HTMLDivElement | null>;
 };
 
 export function DanceControls({
@@ -57,7 +57,6 @@ export function DanceControls({
   source,
   onSourceChange,
   ytLoading = false,
-  ytReady = false,
   ytErrorCode = null,
   ytPlayerMountRef,
 }: Props) {
@@ -83,6 +82,7 @@ export function DanceControls({
 
   return (
     <div className="grid gap-5 sm:gap-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 text-card-foreground">
+      {/* Wybór piosenki */}
       <div className="grid gap-2">
         <label
           htmlFor="song"
@@ -115,6 +115,7 @@ export function DanceControls({
         </div>
       </div>
 
+      {/* Wybór tempa */}
       <div className="grid gap-2.5 sm:gap-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground">
@@ -145,6 +146,7 @@ export function DanceControls({
         </div>
       </div>
 
+      {/* Główny przycisk sterowania */}
       <div className="flex items-center gap-2.5 sm:gap-3">
         <button
           type="button"
@@ -201,11 +203,11 @@ export function DanceControls({
         </button>
       </div>
 
+      {/* Wybór źródła dźwięku */}
       <div className="grid gap-2.5 sm:gap-3 border-t border-border pt-4 sm:pt-5">
         <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground">
           {t.AUDIO_LABEL}
         </span>
-
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <button
             type="button"
@@ -221,7 +223,6 @@ export function DanceControls({
             <AudioLines className="size-4" />
             <span>{t.SOURCE_CLICK}</span>
           </button>
-
           <button
             type="button"
             onClick={() => onSourceChange("youtube")}
@@ -238,6 +239,7 @@ export function DanceControls({
           </button>
         </div>
 
+        {/* Kontener podpięty pod React Ref dla YouTube SDK */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
@@ -248,7 +250,7 @@ export function DanceControls({
             <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
               {t.YOUTUBE_PLAYER_LABEL}
             </span>
-            {!ytErrorMessage && (ytLoading || !ytReady) && (
+            {!ytErrorMessage && ytLoading && (
               <span className="font-mono text-[10px] font-bold text-primary animate-pulse">
                 {t.YOUTUBE_LOADING}
               </span>
@@ -276,22 +278,13 @@ export function DanceControls({
                   </a>
                 )}
               </div>
-            ) : song.youtubeId ? (
-              <>
-                <div
-                  ref={ytPlayerMountRef}
-                  id="yt-player-mount"
-                  className="size-full"
-                />
-                {(!ytReady || ytLoading) && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white">
-                    <span className="text-xs font-black uppercase tracking-widest animate-pulse">
-                      {t.YOUTUBE_LOADING}
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : null}
+            ) : (
+              <div
+                ref={ytPlayerMountRef}
+                id="yt-player-iframe"
+                className="size-full"
+              />
+            )}
           </div>
         </div>
       </div>
