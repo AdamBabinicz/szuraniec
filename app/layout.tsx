@@ -6,7 +6,6 @@ import "./globals.css";
 
 const GTM_ID = "GTM-N74LH3ML";
 
-// display: "swap" zapobiega blokowaniu renderowania przez czcionki
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
@@ -26,6 +25,7 @@ const SEO = {
     "Szuraniec to weselny hit! Poznaj kroki taneczne krok po kroku. Interaktywny kurs disco polo z muzyką. Zaskocz gości i zostań królem każdego parkietu!!!",
   url: "https://dwanajeden.netlify.app",
   ogImage: "/images/1_.png",
+  brandName: "Dwa na Jeden — Szkoła Weselnego Kroku",
 };
 
 export const metadata: Metadata = {
@@ -97,33 +97,49 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Dane strukturalne JSON-LD (Schema.org)
+  // Pełna struktura danych Schema.org (Organization + WebApplication)
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
-    name: "Dwa na Jeden",
-    description: SEO.description,
-    url: SEO.url,
-    applicationCategory: "EducationalApplication",
-    genre: "Dance",
-    operatingSystem: "Android, iOS, Windows, macOS",
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "PLN",
-    },
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${SEO.url}/#organization`,
+        name: SEO.brandName,
+        url: SEO.url,
+        logo: `${SEO.url}${SEO.ogImage}`,
+        description: SEO.description,
+      },
+      {
+        "@type": "WebApplication",
+        "@id": `${SEO.url}/#webapp`,
+        name: "Dwa na Jeden",
+        url: SEO.url,
+        description: SEO.description,
+        applicationCategory: "EducationalApplication",
+        genre: "Dance",
+        operatingSystem: "Android, iOS, Windows, macOS",
+        publisher: {
+          "@id": `${SEO.url}/#organization`,
+        },
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "PLN",
+        },
+      },
+    ],
   };
 
   return (
     <html lang="pl" suppressHydrationWarning className="bg-background">
       <head>
-        {/* Wstępne połączenia (preconnect) do domen YouTube zoptymalizowane pod LCP */}
+        {/* Preconnect pod YouTube */}
         <link rel="preconnect" href="https://www.youtube-nocookie.com" />
         <link rel="preconnect" href="https://www.youtube.com" />
         <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
         <link rel="dns-prefetch" href="https://www.youtube.com" />
 
-        {/* Natychmiastowe ładowanie głównego obrazu LCP */}
+        {/* Preload obrazu LCP */}
         <link
           rel="preload"
           as="image"
@@ -135,7 +151,7 @@ export default function RootLayout({
       <body
         className={`${outfit.className} ${jetBrainsMono.variable} antialiased`}
       >
-        {/* Domyślny stan Google Consent Mode v2 przed załadowaniem kontenera GTM */}
+        {/* Domyślny stan Google Consent Mode v2 */}
         <Script
           id="google-consent-default"
           strategy="beforeInteractive"
@@ -154,7 +170,7 @@ export default function RootLayout({
           }}
         />
 
-        {/* Google Tag Manager - poprawnie umieszczony wewnątrz <body> */}
+        {/* Google Tag Manager */}
         <Script
           id="google-tag-manager"
           strategy="afterInteractive"
@@ -176,6 +192,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         </noscript>
 
+        {/* Znacznik Schema.org zawierający tożsamość Organization */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
