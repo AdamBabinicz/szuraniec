@@ -113,6 +113,16 @@ export default function RootLayout({
 
   return (
     <html lang="pl" suppressHydrationWarning className="bg-background">
+      <head>
+        {/* Preload obrazu LCP - natychmiastowe pobieranie o wysokim priorytecie od 0 ms */}
+        <link
+          rel="preload"
+          as="image"
+          href="/images/4.avif"
+          type="image/avif"
+          fetchPriority="high"
+        />
+      </head>
       <body
         className={`${outfit.className} ${jetBrainsMono.variable} antialiased`}
       >

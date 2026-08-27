@@ -660,10 +660,10 @@ export function DanceTrainer() {
               alt={t.STEP_NAME}
               fill
               priority
+              loading="eager"
               sizes="(min-width: 768px) 736px, calc(100vw - 2rem)"
               quality={75}
               className="object-cover object-[center_18%] brightness-100 contrast-100 transition-transform duration-700 group-hover:scale-105 dark:brightness-[0.92] dark:contrast-[1.04]"
-              decoding="async"
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/60 to-transparent dark:from-black/90 dark:via-black/40 dark:to-transparent" />
