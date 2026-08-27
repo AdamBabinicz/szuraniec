@@ -3,15 +3,15 @@
 > Interactive PWA trainer for the "Szuraniec" (Disco Fox / 2-on-1) wedding step popular at Polish weddings.
 
 ## Overview
-Dwa na Jeden (https://dwanajeden.netlify.app) is an interactive, mobile-first dance educational tool. It teaches the popular Polish wedding shuffle step ("Szuraniec") based on the PrimaDance methodology (minimal foot lifting, sliding, bent knees, baby steps).
+[Dwa na Jeden](https://dwanajeden.netlify.app) is an interactive, mobile-first dance educational tool. It teaches the popular Polish wedding shuffle step ("Szuraniec") based on the PrimaDance methodology (minimal foot lifting, sliding, bent knees, baby steps).
 
 ## Key Features & Architecture
 - **Interactive Dance Floor**: Dynamic SVG foot tracking with trail effects and weight distribution indicators.
-- **Rhythm & Syncopation Engine**: Supports the classic "1, 2, 3 &" syncopated step pattern using Web Audio API and synchronized MP3 playback.
+- **Rhythm & Syncopation Engine**: Supports the classic "1, 2, 3 &" syncopated step pattern using Web Audio API and synchronized MP3/YouTube playback.
 - **Role Mode (Mirror)**: Supports separate perspectives for Lead (He) and Follow (She).
 - **Haptic Pocket Metronome**: Web Vibration API pulses matching the syncopation for hands-free training.
 - **Baby Steps Mode**: Forces compact movement (0.4 scale) to improve balance and posture.
-- **Privacy & Accessibility**: GDPR/ROMO compliant, WCAG accessible, full bilingual support (PL / EN).
+- **Privacy & Accessibility**: GDPR/RODO compliant, WCAG AAA accessible, full bilingual support (PL / EN).
 
 ## Dance Steps Breakdown
 1. **One (Raz)**: Leading foot slides outward. Weight stays on trailing foot.
@@ -20,14 +20,15 @@ Dwa na Jeden (https://dwanajeden.netlify.app) is an interactive, mobile-first da
 4. **And (& / I)**: Closing syncopation. Next bar mirrors movement in reverse.
 
 ## Technology Stack
-- **Framework**: Next.js 14+ (App Router)
+- **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript (Strict)
 - **Styling**: Tailwind CSS
 - **Motion**: Framer Motion
-- **Audio**: Web Audio API & HTML5 Audio
-- **Localization**: JSON dictionaries (`lib/locales/pl.json`, `en.json`)
+- **Audio & Haptics**: Web Audio API & Web Vibration API
+- **AI Agent Standard**: WebMCP (Model Context Protocol)
 
 ## Links
-- Homepage: https://dwanajeden.netlify.app
-- Privacy Policy: https://dwanajeden.netlify.app/polityka-prywatnosci
-- Terms of Service: https://dwanajeden.netlify.app/regulamin
+- [Dwa na Jeden Homepage](https://dwanajeden.netlify.app): Interactive dance coach web application.
+- [Privacy Policy](https://dwanajeden.netlify.app/polityka-prywatnosci): GDPR/RODO privacy and data policy.
+- [Terms of Service](https://dwanajeden.netlify.app/regulamin): Application rules and terms of service.
+- [WebMCP Discovery Manifest](https://dwanajeden.netlify.app/.well-known/mcp.json): Model Context Protocol tools and resources.
