@@ -222,9 +222,13 @@ export function DanceTrainer() {
       setYtLoading(true);
       isPlayerReadyRef.current = false;
 
+      // Uwaga: tryb prywatności YouTube (host: "https://www.youtube-nocookie.com")
+      // wymaga jednoczesnej zmiany adresu <iframe src> w komponencie DanceFloor
+      // na https://www.youtube-nocookie.com/embed/<ID> ORAZ załadowania
+      // skryptu API z https://www.youtube-nocookie.com/iframe_api.
+      // Bez spójności domen API nie dostarcza onStateChange/onReady i psuje
+      // synchronizację START ↔ PLAY ↔ animacja kroków.
       ytPlayerRef.current = new window.YT.Player("yt-player-iframe", {
-        // Tryb prywatności YouTube: nie ustawia cookie śledzących (Issues/3rd-party cookies)
-        host: "https://www.youtube-nocookie.com",
         events: {
           onReady: (event) => {
             if (!isSubscribed) return;
