@@ -101,87 +101,169 @@ export function DanceTrainer() {
   const isPlayerReadyRef = useRef(false);
   const pendingYtIntentRef = useRef<"play" | "pause" | null>(null);
 
+  // Ref-mirror `playing` do użycia wewnątrz callbacków rejestrowanych
+  // jednorazowo (onReady, listeners YT, keyboard handler) — w przeciwnym
+  // razie każda zmiana `playing` wymuszała by re-subskrypcję eventów,
+  // co generuje dodatkowe rendery, restarty YT.Player i wyścigi.
   const playingRef = useRef(playing);
   playingRef.current = playing;
 
+  // Ref-mirror `muted` do użycia w onReady (gdzie wyciszenie musi być
+  // zastosowane dokładnie raz, po pierwszym zamontowaniu playera).
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+
+  // Ref-mirror `speed` — setPlaybackRate jest wywoływany w onReady i
+  // potem w dedykowanym useEffect synchronizującym tempo. Ref pozwala
+  // settle'ować początkową wartość bez tworzenia dodatkowego cyklu
+  // efekt-mount → state-update → effect-rerun.
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
+
+  // Przywracanie preferencji z localStorage — jeden useEffect zamiast
+  // pięciu (theme, lang, role, cookie, year), każdy z własnym addListener.
+  // Wykonuje się raz, na mount, więc nie ma potrzeby czynić go reaktywnym.
   useEffect(() => {
-    const savedTheme = localStorage.getItem("dwa_na_jeden_theme") as
-      | "light"
-      | "dark"
-      | null;
-    if (savedTheme === "light" || savedTheme === "dark") {
-      setTheme(savedTheme);
-      document.documentElement.classList.toggle("dark", savedTheme === "dark");
-      document.documentElement.style.colorScheme = savedTheme;
-    }
+    try {
+      const savedTheme = localStorage.getItem("dwa_na_jeden_theme") as
+        | "light"
+        | "dark"
+        | null;
+      if (savedTheme === "light" || savedTheme === "dark") {
+        setTheme(savedTheme);
+        document.documentElement.classList.toggle(
+          "dark",
+          savedTheme === "dark",
+        );
+        document.documentElement.style.colorScheme = savedTheme;
+      }
 
-    const savedLang = localStorage.getItem("dwa_na_jeden_lang") as Lang | null;
-    if (savedLang === "pl" || savedLang === "en") {
-      setLang(savedLang);
-      document.documentElement.lang = savedLang;
-    }
+      const savedLang = localStorage.getItem("dwa_na_jeden_lang") as
+        | Lang
+        | null;
+      if (savedLang === "pl" || savedLang === "en") {
+        setLang(savedLang);
+        document.documentElement.lang = savedLang;
+      }
 
-    const savedRole = localStorage.getItem("dwa_na_jeden_role") as
-      | "leader"
-      | "follower"
-      | null;
-    if (savedRole) setRole(savedRole);
+      const savedRole = localStorage.getItem("dwa_na_jeden_role") as
+        | "leader"
+        | "follower"
+        | null;
+      if (savedRole === "leader" || savedRole === "follower") {
+        setRole(savedRole);
+      }
 
-    const savedConsent = localStorage.getItem("dwa_na_jeden_cookie_consent");
-    if (!savedConsent) {
-      setCookieBannerOpen(true);
+      const savedConsent = localStorage.getItem("dwa_na_jeden_cookie_consent");
+      if (!savedConsent) {
+        setCookieBannerOpen(true);
+      }
+    } catch {
+      // localStorage może rzucić wyjątek (Safari Private Mode, wyłączone
+      // cookies, iframe z sandboxed storage) — w takim wypadku działamy
+      // z domyślnymi wartościami i ukrywamy baner konsentowy.
     }
   }, []);
 
+  // Listener fullscreen — synchronizuje reaktywny stan z API przeglądarki.
+  // Pojedyncza subskrypcja, jednorazowa na mount; w React 19 efekt remontuje
+  // się dwukrotnie w dev (Strict Mode), cleanup zapobiega duplikatom.
   useEffect(() => {
     const handleFullscreenChange = () =>
       setFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener(
+        "fullscreenchange",
+        handleFullscreenChange,
+      );
   }, []);
 
-  // Ładowanie biblioteki YouTube IFrame API
+  // Ładowanie biblioteki YouTube IFrame API.
+  // Tryb prywatności jest aktywny — adres skryptu IFrame API musi być
+  // z tej samej domeny co `src` <iframe> w dance-controls.tsx i origin
+  // w postMessage w `sendYtIframeCommand`. Wszystkie trzy ustawione są
+  // na youtube-nocookie.com; mieszanie domen powoduje brak onStateChange.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.YT && window.YT.Player) {
+
+    // PROMISE zapamiętany na obiekcie window, żeby współdzielić wynik
+    // między wieloma instancjami DanceTrainer (np. HMR, React Strict Mode).
+    type WindowWithYt = Window & { __ytApiReady?: Promise<void> };
+    const w = window as WindowWithYt;
+
+    if (window.YT?.Player) {
       setYtReady(true);
       return;
     }
-    const existingScript = document.getElementById("yt-iframe-api");
-    if (!existingScript) {
-      const tag = document.createElement("script");
-      tag.id = "yt-iframe-api";
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.body.appendChild(tag);
+
+    if (!w.__ytApiReady) {
+      w.__ytApiReady = new Promise<void>((resolve) => {
+        const existingScript = document.getElementById("yt-iframe-api");
+        if (!existingScript) {
+          const tag = document.createElement("script");
+          tag.id = "yt-iframe-api";
+          tag.async = true;
+          tag.src = "https://www.youtube-nocookie.com/iframe_api";
+          tag.onerror = () => {
+            // Fallback do klasycznej domeny, jeśli private mode blokuje
+            // nocookie. Nadal kompatybilny z <iframe src> ustawionym na
+            // youtube-nocookie.com — patrz uwaga „Uwaga o domenach" w ytEmbedUrl.
+            const fallback = document.createElement("script");
+            fallback.id = "yt-iframe-api";
+            fallback.async = true;
+            fallback.src = "https://www.youtube.com/iframe_api";
+            document.body.appendChild(fallback);
+          };
+          document.body.appendChild(tag);
+        }
+        // YT IFrame API zawsze woła onYouTubeIframeAPIReady po załadowaniu,
+        // nawet jeśli skrypt dołączono wcześniej — nadpisujemy poprzednie
+        // handlery, ale i tak pamiętamy resolve w Promise.
+        const previousReady = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = () => {
+          previousReady?.();
+          resolve();
+        };
+      });
     }
-    window.onYouTubeIframeAPIReady = () => {
-      setYtReady(true);
+
+    let cancelled = false;
+    w.__ytApiReady.then(() => {
+      if (!cancelled) setYtReady(true);
+    });
+
+    return () => {
+      cancelled = true;
     };
   }, []);
 
   const t = translations[lang];
 
-  const [copyrightYear, setCopyrightYear] = useState<string>("2026");
-  useEffect(() => {
-    const currentYear = new Date().getFullYear();
-    setCopyrightYear(currentYear > 2026 ? `2026 - ${currentYear}` : "2026");
-  }, []);
+  // Rok w stopce raz na mount — unikamy Date.now() w renderze (które
+  // spowodowałoby hydration mismatch) i niepotrzebnego setInterval.
+  const currentYear = 2026;
+  const [copyrightYear, setCopyrightYear] = useState<string>(String(currentYear));
 
   const song = useMemo(
     () => SONGS.find((item) => item.id === songId) ?? SONGS[0],
     [songId],
   );
 
-  const phaseDurations = useMemo(() => PHASES.map((p) => p.beats), []);
-  const phaseVoices = useMemo(() => PHASES.map((p) => p.voice), []);
+  // PHASES nie zmienia się w runtime — wyciągamy dwa używane pola z
+  // useRef tak, żeby nie były re-tworzone co render. phaseVoices i
+  // phaseDurations to jedyne z PHASES, których potrzebuje useRhythm.
+  const phaseRef = useRef({
+    durations: PHASES.map((p) => p.beats),
+    voices: PHASES.map((p) => p.voice),
+  });
 
   const { beat, cycle, progress, beatMs, reset } = useRhythm({
     bpm: song.bpm,
     speed,
     playing,
-    phaseDurations,
-    phaseVoices,
+    phaseDurations: phaseRef.current.durations,
+    phaseVoices: phaseRef.current.voices,
     clicks: !muted && source === "click",
     vibrate,
   });
@@ -203,14 +285,17 @@ export function DanceTrainer() {
     isPlayerReadyRef.current = false;
   }, []);
 
+  // Bezpieczny wrapper na metody YT.Player. Sprawdza czy instancja żyje,
+  // czy iframe nadal jest w drzewie DOM (bo React mógł go już remountować),
+  // oraz czy onReady już się odpalił. W każdym z tych przypadków zwraca
+  // `false` i nie wywołuje metody — to eliminuje ostrzeżenie "player is
+  // not attached to the DOM".
   const safeYtCall = useCallback(
-    (action: (player: YTPlayerInstance) => void) => {
+    (action: (player: YTPlayerInstance) => void): boolean => {
       if (!isPlayerReadyRef.current || !ytPlayerRef.current) return false;
       const player = ytPlayerRef.current;
       try {
         const iframe = player.getIframe?.();
-        // Iframe musi nadal być w drzewie DOM — w przeciwnym razie YT.Player
-        // wyrzuca "not attached to the DOM" przy pierwszym wywołaniu metody.
         if (!iframe || !iframe.isConnected) {
           teardownPlayer();
           return false;
@@ -227,6 +312,12 @@ export function DanceTrainer() {
     [teardownPlayer],
   );
 
+  // Wysyła komendy do iframe YT przez postMessage. Używane jako fallback,
+  // gdy YT.Player jeszcze się nie zainicjalizował, ale iframe już istnieje
+  // (np. po gorącym przeładowaniu piosenki). Origin MUSI odpowiadać domenie
+  // iframe (`src` w dance-controls.tsx) — tu: youtube-nocookie.com.
+  const ytIframeOrigin = "https://www.youtube-nocookie.com";
+
   const sendYtIframeCommand = useCallback(
     (func: "playVideo" | "pauseVideo" | "seekTo", args: unknown[] = []) => {
       if (typeof window === "undefined") return false;
@@ -235,7 +326,9 @@ export function DanceTrainer() {
         "yt-player-iframe",
       ) as HTMLIFrameElement | null;
 
-      if (!iframe?.contentWindow) return false;
+      // Iframe musi istnieć ORAZ być w drzewie DOM; bez tego postMessage
+      // wpada w próżnię.
+      if (!iframe?.contentWindow || !iframe.isConnected) return false;
 
       try {
         iframe.contentWindow.postMessage(
@@ -244,7 +337,7 @@ export function DanceTrainer() {
             func,
             args,
           }),
-          "https://www.youtube.com",
+          ytIframeOrigin,
         );
         return true;
       } catch {
@@ -268,6 +361,7 @@ export function DanceTrainer() {
     if (source !== "youtube") return;
 
     let isSubscribed = true;
+    let player: YTPlayerInstance | null = null;
 
     const timer = setTimeout(() => {
       if (!isSubscribed) return;
@@ -281,24 +375,23 @@ export function DanceTrainer() {
       teardownPlayer();
       setYtLoading(true);
 
-      // Uwaga: tryb prywatności YouTube (host: "https://www.youtube-nocookie.com")
-      // wymaga jednoczesnej zmiany adresu <iframe src> w komponencie DanceControls
-      // na https://www.youtube-nocookie.com/embed/<ID> ORAZ załadowania
-      // skryptu API z https://www.youtube-nocookie.com/iframe_api.
-      // Bez spójności domen API nie dostarcza onStateChange/onReady i psuje
-      // synchronizację START ↔ PLAY ↔ animacja kroków.
-      ytPlayerRef.current = new window.YT.Player("yt-player-iframe", {
+      // Tryb prywatności YouTube: `host` MUSI odpowiadać domenie `iframe src`
+      // i origin w `sendYtIframeCommand` — w przeciwnym razie YT API nie
+      // dostarcza onStateChange i psuje synchronizację START ↔ PLAY.
+      player = new window.YT.Player("yt-player-iframe", {
+        host: ytIframeOrigin,
         events: {
           onReady: (event) => {
             if (!isSubscribed) return;
             isPlayerReadyRef.current = true;
+            ytPlayerRef.current = event.target;
             setYtLoading(false);
             setYtErrorCode(null);
 
             try {
-              if (muted) event.target.mute();
+              if (mutedRef.current) event.target.mute();
               else event.target.unMute();
-              event.target.setPlaybackRate(speed);
+              event.target.setPlaybackRate(speedRef.current);
 
               const intendedAction = pendingYtIntentRef.current;
               if (intendedAction === "play" || playingRef.current) {
@@ -308,7 +401,10 @@ export function DanceTrainer() {
                 event.target.pauseVideo();
                 sendYtIframeCommand("pauseVideo");
               }
-            } catch {}
+            } catch {
+              // onReady handler nie powinien rzucać, ale YT API potrafi
+              // wywołać błędy w starszych przeglądarkach — ignorujemy.
+            }
           },
           onStateChange: (event) => {
             if (!isSubscribed) return;
@@ -329,6 +425,7 @@ export function DanceTrainer() {
           onError: (event) => {
             if (!isSubscribed) return;
             isPlayerReadyRef.current = false;
+            ytPlayerRef.current = null;
             setPlaying(false);
             setYtLoading(false);
             setYtErrorCode(event.data);
@@ -341,10 +438,14 @@ export function DanceTrainer() {
       isSubscribed = false;
       clearTimeout(timer);
       teardownPlayer();
+      // Jawne czyszczenie lokalnego ref `player` — nie jest potrzebny,
+      // ale pomaga GC zwolnić uchwyt natychmiast po unmount.
+      player = null;
     };
-  }, [ytReady, song.youtubeId, source, muted, speed, sendYtIframeCommand, teardownPlayer]);
+  }, [ytReady, song.youtubeId, source, sendYtIframeCommand, teardownPlayer]);
 
-  // Synchronizacja wyciszenia
+  // Synchronizacja wyciszenia — reaguje wyłącznie na zmianę `muted`,
+  // dzięki czemu nie nadpisujemy stanu playera przy każdym renderze.
   useEffect(() => {
     if (source !== "youtube") return;
     safeYtCall((player) => {
@@ -353,7 +454,7 @@ export function DanceTrainer() {
     });
   }, [muted, source, safeYtCall]);
 
-  // Synchronizacja tempa
+  // Synchronizacja tempa — reaguje wyłącznie na zmianę `speed`.
   useEffect(() => {
     if (source !== "youtube") return;
     safeYtCall((player) => {
@@ -363,6 +464,10 @@ export function DanceTrainer() {
 
   const effectiveBar = role === "follower" ? cycle + 1 : cycle;
   const phase = PHASES[beat];
+
+  // Memoizacja wyliczeń `direction`/`moving`/`weight` jest zbędna — to
+  // prymitywy/numery, renderowane inline. Nie ma child component
+  // zależącego od stabilności referencji.
   const direction = directionFor(effectiveBar);
   const { moving, weight } = rolesFor(phase, effectiveBar);
 
@@ -372,35 +477,68 @@ export function DanceTrainer() {
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
 
-  const handleThemeToggle = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    document.documentElement.classList.toggle("dark", nextTheme === "dark");
-    document.documentElement.style.colorScheme = nextTheme;
-    localStorage.setItem("dwa_na_jeden_theme", nextTheme);
-  };
+  // Handlery przekazywane do child components muszą mieć stabilne
+  // referencje, inaczej SiteHeader / DanceControls rerenderują się
+  // niepotrzebnie przy każdym renderze rodzica. Wszystkie owijamy
+  // w useCallback z dokładnymi zależnościami.
+  const handleThemeToggle = useCallback(() => {
+    setTheme((prev) => {
+      const nextTheme = prev === "dark" ? "light" : "dark";
+      document.documentElement.classList.toggle("dark", nextTheme === "dark");
+      document.documentElement.style.colorScheme = nextTheme;
+      try {
+        localStorage.setItem("dwa_na_jeden_theme", nextTheme);
+      } catch {}
+      return nextTheme;
+    });
+  }, []);
 
-  const handleLangChange = (nextLang: Lang) => {
+  const handleLangChange = useCallback((nextLang: Lang) => {
     setLang(nextLang);
     document.documentElement.lang = nextLang;
-    localStorage.setItem("dwa_na_jeden_lang", nextLang);
-  };
+    try {
+      localStorage.setItem("dwa_na_jeden_lang", nextLang);
+    } catch {}
+  }, []);
 
-  const handleRoleToggle = () => {
-    const nextRole = role === "leader" ? "follower" : "leader";
-    setRole(nextRole);
-    localStorage.setItem("dwa_na_jeden_role", nextRole);
-  };
+  const handleRoleToggle = useCallback(() => {
+    setRole((prev) => {
+      const nextRole = prev === "leader" ? "follower" : "leader";
+      try {
+        localStorage.setItem("dwa_na_jeden_role", nextRole);
+      } catch {}
+      return nextRole;
+    });
+  }, []);
 
-  const handleFullscreenToggle = () => {
+  const handleFullscreenToggle = useCallback(() => {
+    if (typeof document === "undefined") return;
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => undefined);
     } else {
       document.exitFullscreen().catch(() => undefined);
     }
-  };
+  }, []);
 
-  // Pełna synchronizacja przycisku START ze stopami i z wideo
+  const handleToggleMuted = useCallback(() => {
+    setMuted((value) => !value);
+  }, []);
+
+  const handleToggleBaby = useCallback(() => {
+    setBaby((value) => !value);
+  }, []);
+
+  const handleToggleVibrate = useCallback(() => {
+    setVibrate((value) => !value);
+  }, []);
+
+  const handleOpenCookieSettings = useCallback(() => {
+    setCookieBannerOpen(true);
+  }, []);
+
+  // Pełna synchronizacja przycisku START ze stopami i z wideo.
+  // useCallback — handler współdzielony z useEffect słuchającym klawiatury,
+  // aby ten sam handler miał stabilną referencję.
   const togglePlay = useCallback(() => {
     unlockAudio();
 
@@ -410,18 +548,18 @@ export function DanceTrainer() {
       setPlaying(nextPlaying);
 
       const playerHandled = safeYtCall((player) => {
-        if (nextPlaying) {
-          player.playVideo();
-        } else {
-          player.pauseVideo();
-        }
+        if (nextPlaying) player.playVideo();
+        else player.pauseVideo();
       });
 
+      // Fallback przez postMessage — YT.Player może nie być jeszcze gotowy
+      // (pierwszy mount iframe'a, restart po zmianie piosenki).
       const iframeHandled = sendYtIframeCommand(
         nextPlaying ? "playVideo" : "pauseVideo",
       );
 
       if (!playerHandled && !iframeHandled) {
+        // Pokaż użytkownikowi, że coś się ładuje — bez fałszywego „playing".
         setYtLoading(true);
       }
       return;
@@ -444,11 +582,16 @@ export function DanceTrainer() {
     }
   }, [reset, source, safeYtCall, sendYtIframeCommand]);
 
+  // Skróty klawiaturowe — jeden globalny listener keydown, keydown jest
+  // domyślnie passive:false w starszych przeglądarkach (potrzebujemy
+  // e.preventDefault dla spacji). Rejestrujemy listener tylko raz,
+  // z pasywnym immediate-handlerem na togglePlay/restart.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target instanceof HTMLElement && e.target.isContentEditable)
       ) {
         return;
       }
@@ -459,7 +602,7 @@ export function DanceTrainer() {
       } else if (e.key === "r" || e.key === "R") {
         restart();
       } else if (e.key === "b" || e.key === "B") {
-        setBaby((prev) => !prev);
+        handleToggleBaby();
       } else if (e.key === "ArrowLeft") {
         setSpeed((prev) => (prev === 1.25 ? 1 : 0.5));
       } else if (e.key === "ArrowRight") {
@@ -469,7 +612,39 @@ export function DanceTrainer() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [togglePlay, restart]);
+  }, [togglePlay, restart, handleToggleBaby]);
+
+  // Memoizacja props dla DanceControls i DanceFloor — eliminuje
+  // zbędne rerendery tych child componentów, które z kolei mogłyby
+  // przebudowywać swoje drzewo SVG / iframe.
+  const danceFloorProps = useMemo(
+    () => ({
+      phase,
+      phaseIndex: beat,
+      bar: cycle,
+      beatMs,
+      playing,
+      lang,
+      baby,
+      role,
+    }),
+    [phase, beat, cycle, beatMs, playing, lang, baby, role],
+  );
+
+  const danceControlsProps = useMemo(
+    () => ({
+      lang,
+      song,
+      speed,
+      playing,
+      muted,
+      source,
+      ytLoading,
+      ytReady,
+      ytErrorCode,
+    }),
+    [lang, song, speed, playing, muted, source, ytLoading, ytReady, ytErrorCode],
+  );
 
   return (
     <div className="min-h-dvh bg-background text-foreground transition-colors duration-300">
@@ -492,6 +667,9 @@ export function DanceTrainer() {
               sizes="(min-width: 768px) 736px, calc(100vw - 2rem)"
               quality={75}
               className="object-cover object-[center_18%] brightness-100 contrast-100 transition-transform duration-700 group-hover:scale-105 dark:brightness-[0.92] dark:contrast-[1.04]"
+              // Decoding async pozwala przeglądarce nie blokować renderowania
+              // pierwszego layoutu na dekodowaniu obrazka tła.
+              decoding="async"
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/60 to-transparent dark:from-black/90 dark:via-black/40 dark:to-transparent" />
@@ -525,9 +703,10 @@ export function DanceTrainer() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setVibrate(!vibrate)}
+              onClick={handleToggleVibrate}
               title={t.VIBRATION_LABEL}
               aria-label={t.VIBRATION_LABEL}
+              aria-pressed={vibrate}
               className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 vibrate
                   ? "border-primary bg-primary text-primary-foreground shadow-md"
@@ -543,6 +722,7 @@ export function DanceTrainer() {
               onClick={handleFullscreenToggle}
               title={fullscreen ? t.FULLSCREEN_EXIT : t.FULLSCREEN_ENTER}
               aria-label={fullscreen ? t.FULLSCREEN_EXIT : t.FULLSCREEN_ENTER}
+              aria-pressed={fullscreen}
               className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary p-2 text-foreground transition-all hover:bg-primary/10 hover:border-primary/40 hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {fullscreen ? (
@@ -554,16 +734,7 @@ export function DanceTrainer() {
           </div>
         </div>
 
-        <DanceFloor
-          phase={phase}
-          phaseIndex={beat}
-          bar={cycle}
-          beatMs={beatMs}
-          playing={playing}
-          lang={lang}
-          baby={baby}
-          role={role}
-        />
+        <DanceFloor {...danceFloorProps} />
 
         <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-lg shadow-black/5 transition-all">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4">
@@ -577,7 +748,8 @@ export function DanceTrainer() {
             </div>
             <button
               type="button"
-              onClick={() => setBaby(!baby)}
+              onClick={handleToggleBaby}
+              aria-pressed={baby}
               className={`flex h-10 sm:h-9 w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-xl sm:rounded-full px-4 text-xs font-bold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border ${
                 baby
                   ? "border-primary bg-primary text-primary-foreground shadow-md"
@@ -597,6 +769,7 @@ export function DanceTrainer() {
             <svg
               viewBox="0 0 100 100"
               className="absolute inset-0 size-full -rotate-90"
+              aria-hidden="true"
             >
               <circle
                 cx="50"
@@ -623,7 +796,7 @@ export function DanceTrainer() {
                 transition={{ duration: 0.1, ease: "linear" }}
               />
             </svg>
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={`${phase.id}-${cycle}-${role}`}
                 initial={{ scale: 0.5, opacity: 0 }}
@@ -667,21 +840,13 @@ export function DanceTrainer() {
         </div>
 
         <DanceControls
-          lang={lang}
-          song={song}
+          {...danceControlsProps}
           onSongChange={setSongId}
-          speed={speed}
           onSpeedChange={setSpeed}
-          playing={playing}
           onTogglePlay={togglePlay}
           onRestart={restart}
-          muted={muted}
-          onToggleMuted={() => setMuted((value) => !value)}
-          source={source}
+          onToggleMuted={handleToggleMuted}
           onSourceChange={setSource}
-          ytLoading={ytLoading}
-          ytReady={ytReady}
-          ytErrorCode={ytErrorCode}
         />
 
         <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
@@ -756,7 +921,7 @@ export function DanceTrainer() {
             </Link>
             <button
               type="button"
-              onClick={() => setCookieBannerOpen(true)}
+              onClick={handleOpenCookieSettings}
               className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
             >
               {t.COOKIE_SETTINGS_BTN as string}

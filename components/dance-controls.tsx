@@ -75,13 +75,20 @@ export function DanceControls({
   // Adres URL generowany deterministycznie — bez odwołań do `window`,
   // `Date.now()` czy `Math.random()`, aby SSR i klient renderowały
   // identyczny atrybut `src` elementu <iframe> (hydration mismatch).
-  // Parametr `origin` został usunięty; YouTube IFrame API z `enablejsapi=1`
-  // działa bez niego, a nadawca postMessage jest i tak podany jawnie
-  // (`"https://www.youtube.com"`) w komponencie DanceTrainer.
+  //
+  // Domena `youtube-nocookie.com` zapobiega ładowaniu cookie śledzących
+  // (wykorzystywanych przez googleads.g.doubleclick.net) przed interakcją
+  // użytkownika z playerem. W połączeniu z `host` i `ytIframeOrigin` w
+  // `dance-trainer.tsx` eliminuje komunikaty CORS:
+  //   "Access to fetch at 'googleads.g.doubleclick.net/...' has been blocked
+  //    by CORS policy: No 'Access-Control-Allow-Origin'"
+  //
+  // UWAGA: domeny `iframe src`, skryptu API i `postMessage` origin MUSZĄ
+  // być zgodne — patrz komentarz w `dance-trainer.tsx` przy `ytIframeOrigin`.
   const ytEmbedUrl = useMemo(() => {
     if (!song.youtubeId) return null;
 
-    return `https://www.youtube.com/embed/${song.youtubeId}?enablejsapi=1&autoplay=0&controls=1&rel=0&playsinline=1&modestbranding=1`;
+    return `https://www.youtube-nocookie.com/embed/${song.youtubeId}?enablejsapi=1&autoplay=0&controls=1&rel=0&playsinline=1&modestbranding=1`;
   }, [song.youtubeId]);
 
   const ytWatchUrl = song.youtubeId
@@ -311,6 +318,10 @@ export function DanceControls({
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
+                loading="lazy"
+                // aria-busy informuje AT, że player się ładuje; bez tego
+                // SC pomija kontrolki yt podczas initializacji.
+                aria-busy={ytLoading}
                 className="absolute inset-0 size-full border-0"
               />
             ) : null}
