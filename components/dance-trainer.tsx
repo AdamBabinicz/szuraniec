@@ -39,7 +39,6 @@ declare global {
       Player: new (
         elementId: string | HTMLElement,
         config: {
-          // Tryb prywatności YouTube (youtube-nocookie.com) — brak cookie śledzących
           host?: string;
           events?: {
             onReady?: (event: { target: YTPlayerInstance }) => void;
@@ -101,28 +100,15 @@ export function DanceTrainer() {
   const isPlayerReadyRef = useRef(false);
   const pendingYtIntentRef = useRef<"play" | "pause" | null>(null);
 
-  // Ref-mirror `playing` do użycia wewnątrz callbacków rejestrowanych
-  // jednorazowo (onReady, listeners YT, keyboard handler) — w przeciwnym
-  // razie każda zmiana `playing` wymuszała by re-subskrypcję eventów,
-  // co generuje dodatkowe rendery, restarty YT.Player i wyścigi.
   const playingRef = useRef(playing);
   playingRef.current = playing;
 
-  // Ref-mirror `muted` do użycia w onReady (gdzie wyciszenie musi być
-  // zastosowane dokładnie raz, po pierwszym zamontowaniu playera).
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
 
-  // Ref-mirror `speed` — setPlaybackRate jest wywoływany w onReady i
-  // potem w dedykowanym useEffect synchronizującym tempo. Ref pozwala
-  // settle'ować początkową wartość bez tworzenia dodatkowego cyklu
-  // efekt-mount → state-update → effect-rerun.
   const speedRef = useRef(speed);
   speedRef.current = speed;
 
-  // Przywracanie preferencji z localStorage — jeden useEffect zamiast
-  // pięciu (theme, lang, role, cookie, year), każdy z własnym addListener.
-  // Wykonuje się raz, na mount, więc nie ma potrzeby czynić go reaktywnym.
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem("dwa_na_jeden_theme") as
@@ -158,16 +144,9 @@ export function DanceTrainer() {
       if (!savedConsent) {
         setCookieBannerOpen(true);
       }
-    } catch {
-      // localStorage może rzucić wyjątek (Safari Private Mode, wyłączone
-      // cookies, iframe z sandboxed storage) — w takim wypadku działamy
-      // z domyślnymi wartościami i ukrywamy baner konsentowy.
-    }
+    } catch {}
   }, []);
 
-  // Listener fullscreen — synchronizuje reaktywny stan z API przeglądarki.
-  // Pojedyncza subskrypcja, jednorazowa na mount; w React 19 efekt remontuje
-  // się dwukrotnie w dev (Strict Mode), cleanup zapobiega duplikatom.
   useEffect(() => {
     const handleFullscreenChange = () =>
       setFullscreen(Boolean(document.fullscreenElement));
@@ -176,15 +155,9 @@ export function DanceTrainer() {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // Ładowanie biblioteki YouTube IFrame API.
-  // Pobierane bezpośrednio z https://www.youtube.com/iframe_api, co eliminuje
-  // błędy 404 w konsoli. Konfiguracja `host: ytIframeOrigin` w YT.Player
-  // zapewnia pełną obsługę trybu nocookie dla ramki odtwarzacza.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // PROMISE zapamiętany na obiekcie window, żeby współdzielić wynik
-    // między wieloma instancjami DanceTrainer (np. HMR, React Strict Mode).
     type WindowWithYt = Window & { __ytApiReady?: Promise<void> };
     const w = window as WindowWithYt;
 
@@ -203,9 +176,6 @@ export function DanceTrainer() {
           tag.src = "https://www.youtube.com/iframe_api";
           document.body.appendChild(tag);
         }
-        // YT IFrame API zawsze woła onYouTubeIframeAPIReady po załadowaniu,
-        // nawet jeśli skrypt dołączono wcześniej — nadpisujemy poprzednie
-        // handlery, ale i tak pamiętamy resolve w Promise.
         const previousReady = window.onYouTubeIframeAPIReady;
         window.onYouTubeIframeAPIReady = () => {
           previousReady?.();
@@ -225,9 +195,6 @@ export function DanceTrainer() {
   }, []);
 
   const t = translations[lang];
-
-  // Rok w stopce raz na mount — unikamy Date.now() w renderze (które
-  // spowodowałoby hydration mismatch) i niepotrzebnego setInterval.
   const currentYear = 2026;
   const [copyrightYear] = useState<string>(String(currentYear));
 
@@ -236,9 +203,6 @@ export function DanceTrainer() {
     [songId],
   );
 
-  // PHASES nie zmienia się w runtime — wyciągamy dwa używane pola z
-  // useRef tak, żeby nie były re-tworzone co render. phaseVoices i
-  // phaseDurations to jedyne z PHASES, których potrzebuje useRhythm.
   const phaseRef = useRef({
     durations: PHASES.map((p) => p.beats),
     voices: PHASES.map((p) => p.voice),
@@ -254,28 +218,17 @@ export function DanceTrainer() {
     vibrate,
   });
 
-  // Bezpiecznie niszczy instancję YT.Player i czyści nasze referencje.
-  // Wywoływany przy każdej zmianie piosenki / źródła / zamknięciu komponentu,
-  // aby uniknąć ostrzeżenia "The YouTube player is not attached to the DOM".
-  // Wynika ono z faktu, że <iframe id="yt-player-iframe"> w dance-controls.tsx
-  // jest remountowany po `key={song.youtubeId}` — stara instancja YT.Player
-  // traci swój kontener DOM i każda kolejna metoda API/postMessage emituje
-  // ten sam warning.
+  // Bezpieczne czyszczenie odtwarzacza — pauzujemy i czyścimy referencje
+  // bez wywoływania destrukcyjnego player.destroy(), co zapobiega błędowi
+  // NotFoundError: Failed to execute 'removeChild' on 'Node'.
   const teardownPlayer = useCallback(() => {
     try {
-      ytPlayerRef.current?.destroy();
-    } catch {
-      // Instancja mogła już być zwolniona wewnętrznie przez YT API — ignorujemy.
-    }
+      ytPlayerRef.current?.pauseVideo?.();
+    } catch {}
     ytPlayerRef.current = null;
     isPlayerReadyRef.current = false;
   }, []);
 
-  // Bezpieczny wrapper na metody YT.Player. Sprawdza czy instancja żyje,
-  // czy iframe nadal jest w drzewie DOM (bo React mógł go już remountować),
-  // oraz czy onReady już się odpalił. W każdym z tych przypadków zwraca
-  // `false` i nie wywołuje metody — to eliminuje ostrzeżenie "player is
-  // not attached to the DOM".
   const safeYtCall = useCallback(
     (action: (player: YTPlayerInstance) => void): boolean => {
       if (!isPlayerReadyRef.current || !ytPlayerRef.current) return false;
@@ -289,7 +242,6 @@ export function DanceTrainer() {
         action(player);
         return true;
       } catch {
-        // Player mógł zostać zniszczony zewnętrznie — porzucamy uchwyt.
         ytPlayerRef.current = null;
         isPlayerReadyRef.current = false;
         return false;
@@ -298,22 +250,19 @@ export function DanceTrainer() {
     [teardownPlayer],
   );
 
-  // Wysyła komendy do iframe YT przez postMessage. Używane jako fallback,
-  // gdy YT.Player jeszcze się nie zainicjalizował, ale iframe już istnieje
-  // (np. po gorącym przeładowaniu piosenki). Origin MUSI odpowiadać domenie
-  // iframe (`src` w dance-controls.tsx) — tu: youtube-nocookie.com.
   const ytIframeOrigin = "https://www.youtube-nocookie.com";
 
   const sendYtIframeCommand = useCallback(
-    (func: "playVideo" | "pauseVideo" | "seekTo", args: unknown[] = []) => {
+    (
+      func: "playVideo" | "pauseVideo" | "seekTo" | "setPlaybackRate",
+      args: unknown[] = [],
+    ) => {
       if (typeof window === "undefined") return false;
 
       const iframe = document.getElementById(
         "yt-player-iframe",
       ) as HTMLIFrameElement | null;
 
-      // Iframe musi istnieć ORAZ być w drzewie DOM; bez tego postMessage
-      // wpada w próżnię.
       if (!iframe?.contentWindow || !iframe.isConnected) return false;
 
       try {
@@ -338,10 +287,6 @@ export function DanceTrainer() {
     pendingYtIntentRef.current = null;
   }, [songId, source]);
 
-  // Podpięcie YouTube API pod istniejącą ramkę iframe.
-  // Cleanup niszczy poprzednią instancję i czyści ref-y — bez tego
-  // YT.Player trzyma oderwany iframe po zmianie piosenki i ostrzega
-  // o braku połączenia z DOM przy każdym kolejnym wywołaniu.
   useEffect(() => {
     if (!ytReady || typeof window === "undefined") return;
     if (source !== "youtube") return;
@@ -355,15 +300,9 @@ export function DanceTrainer() {
       const el = document.getElementById("yt-player-iframe");
       if (!el || !window.YT?.Player) return;
 
-      // Bezpiecznie zwolnij ewentualną poprzednią instancję (zgorjony timer
-      // lub wyścig mount/unmount wywołany zmianą `speed` / `muted` przed
-      // pierwszym `onReady`).
       teardownPlayer();
       setYtLoading(true);
 
-      // Tryb prywatności YouTube: `host` MUSI odpowiadać domenie `iframe src`
-      // i origin w `sendYtIframeCommand` — w przeciwnym razie YT API nie
-      // dostarcza onStateChange i psuje synchronizację START ↔ PLAY.
       player = new window.YT.Player("yt-player-iframe", {
         host: ytIframeOrigin,
         events: {
@@ -378,6 +317,7 @@ export function DanceTrainer() {
               if (mutedRef.current) event.target.mute();
               else event.target.unMute();
               event.target.setPlaybackRate(speedRef.current);
+              sendYtIframeCommand("setPlaybackRate", [speedRef.current]);
 
               const intendedAction = pendingYtIntentRef.current;
               if (intendedAction === "play" || playingRef.current) {
@@ -387,14 +327,10 @@ export function DanceTrainer() {
                 event.target.pauseVideo();
                 sendYtIframeCommand("pauseVideo");
               }
-            } catch {
-              // onReady handler nie powinien rzucać, ale YT API potrafi
-              // wywołać błędy w starszych przeglądarkach — ignorujemy.
-            }
+            } catch {}
           },
           onStateChange: (event) => {
             if (!isSubscribed) return;
-            // 1 = PLAYING, 2 = PAUSED, 0 = ENDED, 3 = BUFFERING
             if (event.data === 1) {
               pendingYtIntentRef.current = null;
               unlockAudio();
@@ -424,14 +360,10 @@ export function DanceTrainer() {
       isSubscribed = false;
       clearTimeout(timer);
       teardownPlayer();
-      // Jawne czyszczenie lokalnego ref `player` — nie jest potrzebny,
-      // ale pomaga GC zwolnić uchwyt natychmiast po unmount.
       player = null;
     };
   }, [ytReady, song.youtubeId, source, sendYtIframeCommand, teardownPlayer]);
 
-  // Synchronizacja wyciszenia — reaguje wyłącznie na zmianę `muted`,
-  // dzięki czemu nie nadpisujemy stanu playera przy każdym renderze.
   useEffect(() => {
     if (source !== "youtube") return;
     safeYtCall((player) => {
@@ -440,20 +372,19 @@ export function DanceTrainer() {
     });
   }, [muted, source, safeYtCall]);
 
-  // Synchronizacja tempa — reaguje wyłącznie na zmianę `speed`.
   useEffect(() => {
     if (source !== "youtube") return;
     safeYtCall((player) => {
-      player.setPlaybackRate(speed);
+      try {
+        player.setPlaybackRate(speed);
+      } catch {}
     });
-  }, [speed, source, safeYtCall]);
+    sendYtIframeCommand("setPlaybackRate", [speed]);
+  }, [speed, source, safeYtCall, sendYtIframeCommand]);
 
   const effectiveBar = role === "follower" ? cycle + 1 : cycle;
   const phase = PHASES[beat];
 
-  // Memoizacja wyliczeń `direction`/`moving`/`weight` jest zbędna — to
-  // prymitywy/numery, renderowane inline. Nie ma child component
-  // zależącego od stabilności referencji.
   const direction = directionFor(effectiveBar);
   const { moving, weight } = rolesFor(phase, effectiveBar);
 
@@ -463,10 +394,6 @@ export function DanceTrainer() {
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
 
-  // Handlery przekazywane do child components muszą mieć stabilne
-  // referencje, inaczej SiteHeader / DanceControls rerenderują się
-  // niepotrzebnie przy każdym renderze rodzica. Wszystkie owijamy
-  // w useCallback z dokładnymi zależnościami.
   const handleThemeToggle = useCallback(() => {
     setTheme((prev) => {
       const nextTheme = prev === "dark" ? "light" : "dark";
@@ -522,9 +449,6 @@ export function DanceTrainer() {
     setCookieBannerOpen(true);
   }, []);
 
-  // Pełna synchronizacja przycisku START ze stopami i z wideo.
-  // useCallback — handler współdzielony z useEffect słuchającym klawiatury,
-  // aby ten sam handler miał stabilną referencję.
   const togglePlay = useCallback(() => {
     unlockAudio();
 
@@ -538,14 +462,11 @@ export function DanceTrainer() {
         else player.pauseVideo();
       });
 
-      // Fallback przez postMessage — YT.Player może nie być jeszcze gotowy
-      // (pierwszy mount iframe'a, restart po zmianie piosenki).
       const iframeHandled = sendYtIframeCommand(
         nextPlaying ? "playVideo" : "pauseVideo",
       );
 
       if (!playerHandled && !iframeHandled) {
-        // Pokaż użytkownikowi, że coś się ładuje — bez fałszywego „playing".
         setYtLoading(true);
       }
       return;
@@ -568,10 +489,6 @@ export function DanceTrainer() {
     }
   }, [reset, source, safeYtCall, sendYtIframeCommand]);
 
-  // Skróty klawiaturowe — jeden globalny listener keydown, keydown jest
-  // domyślnie passive:false w starszych przeglądarkach (potrzebujemy
-  // e.preventDefault dla spacji). Rejestrujemy listener tylko raz,
-  // z pasywnym immediate-handlerem na togglePlay/restart.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -600,9 +517,6 @@ export function DanceTrainer() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [togglePlay, restart, handleToggleBaby]);
 
-  // Memoizacja props dla DanceControls i DanceFloor — eliminuje
-  // zbędne rerendery tych child componentów, które z kolei mogłyby
-  // przebudowywać swoje drzewo SVG / iframe.
   const danceFloorProps = useMemo(
     () => ({
       phase,
