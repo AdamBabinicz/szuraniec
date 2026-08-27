@@ -72,19 +72,6 @@ export function DanceControls({
 }: Props) {
   const t = translations[lang];
 
-  // Adres URL generowany deterministycznie — bez odwołań do `window`,
-  // `Date.now()` czy `Math.random()`, aby SSR i klient renderowały
-  // identyczny atrybut `src` elementu <iframe> (hydration mismatch).
-  //
-  // Domena `youtube-nocookie.com` zapobiega ładowaniu cookie śledzących
-  // (wykorzystywanych przez googleads.g.doubleclick.net) przed interakcją
-  // użytkownika z playerem. W połączeniu z `host` i `ytIframeOrigin` w
-  // `dance-trainer.tsx` eliminuje komunikaty CORS:
-  //   "Access to fetch at 'googleads.g.doubleclick.net/...' has been blocked
-  //    by CORS policy: No 'Access-Control-Allow-Origin'"
-  //
-  // UWAGA: domeny `iframe src`, skryptu API i `postMessage` origin MUSZĄ
-  // być zgodne — patrz komentarz w `dance-trainer.tsx` przy `ytIframeOrigin`.
   const ytEmbedUrl = useMemo(() => {
     if (!song.youtubeId) return null;
 
@@ -115,12 +102,12 @@ export function DanceControls({
       <div className="grid gap-2">
         <label
           htmlFor="song"
-          className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground"
+          className="text-xs font-black uppercase tracking-[0.2em] text-foreground"
         >
           {t.SONG_LABEL}
         </label>
         <div className="relative group">
-          <Music4 className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-primary transition-transform group-focus-within:scale-110" />
+          <Music4 className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-foreground/70 transition-transform group-focus-within:scale-110" />
           <select
             id="song"
             value={song.id}
@@ -137,7 +124,7 @@ export function DanceControls({
               </option>
             ))}
           </select>
-          <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 font-mono text-[11px] sm:text-xs font-bold text-muted-foreground">
+          <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 font-mono text-xs font-bold text-foreground/80">
             <span>{song.bpm}</span>
             <span>{t.BPM_LABEL}</span>
           </div>
@@ -147,10 +134,10 @@ export function DanceControls({
       {/* Wybór tempa */}
       <div className="grid gap-2.5 sm:gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground">
+          <span className="text-xs font-black uppercase tracking-[0.2em] text-foreground">
             {t.TEMPO_LABEL}
           </span>
-          <span className="font-mono text-[11px] sm:text-xs font-black text-primary uppercase">
+          <span className="font-mono text-xs font-black text-foreground uppercase">
             {Math.round(song.bpm * speed)} {t.BPM_LABEL} · {t.EFFECTIVE_BPM}
           </span>
         </div>
@@ -201,7 +188,7 @@ export function DanceControls({
           onClick={onRestart}
           title={t.RESTART as string}
           aria-label={t.RESTART as string}
-          className="flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-all hover:border-primary hover:text-primary active:rotate-[-45deg]"
+          className="flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-all hover:border-primary active:rotate-[-45deg]"
         >
           <RotateCcw className="size-4 sm:size-5" />
           <span className="sr-only">{t.RESTART as string}</span>
@@ -214,8 +201,8 @@ export function DanceControls({
           className={cn(
             "flex h-12 sm:h-14 shrink-0 items-center gap-2 rounded-xl border px-3.5 sm:px-4 text-xs font-black uppercase tracking-tighter transition-all",
             muted
-              ? "border-border bg-muted/60 text-muted-foreground"
-              : "border-primary bg-primary/10 text-primary",
+              ? "border-border bg-muted/60 text-foreground/80"
+              : "border-primary bg-primary text-primary-foreground",
           )}
         >
           {muted ? (
@@ -234,7 +221,7 @@ export function DanceControls({
 
       {/* Wybór źródła dźwięku */}
       <div className="grid gap-2.5 sm:gap-3 border-t border-border pt-4 sm:pt-5">
-        <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-foreground">
+        <span className="text-xs font-black uppercase tracking-[0.2em] text-foreground">
           {t.AUDIO_LABEL}
         </span>
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -269,7 +256,7 @@ export function DanceControls({
           </button>
         </div>
 
-        {/* Natywna ramka iframe z poprawnym, niezmiennym adresem URL */}
+        {/* Natywna ramka iframe z poprawnym adresem URL */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
@@ -278,11 +265,11 @@ export function DanceControls({
           data-yt-container
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-black uppercase tracking-wider text-foreground/80">
               {t.YOUTUBE_PLAYER_LABEL}
             </span>
             {!ytErrorMessage && ytLoading && (
-              <span className="font-mono text-[10px] font-bold text-primary animate-pulse">
+              <span className="font-mono text-xs font-black text-foreground animate-pulse">
                 {t.YOUTUBE_LOADING}
               </span>
             )}
@@ -291,10 +278,10 @@ export function DanceControls({
           <div className="relative w-full aspect-video max-h-48 sm:max-h-60 rounded-xl overflow-hidden border border-border bg-black shadow-inner">
             {ytErrorMessage ? (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 p-4 text-center text-white bg-black/85 backdrop-blur-sm">
-                <p className="text-[11px] font-black uppercase tracking-widest text-rose-300">
+                <p className="text-xs font-black uppercase tracking-widest text-rose-300">
                   {ytErrorMessage.title}
                 </p>
-                <p className="text-xs font-semibold leading-snug text-white/80 max-w-xs">
+                <p className="text-xs font-semibold leading-snug text-white/90 max-w-xs">
                   {ytErrorMessage.desc}
                 </p>
                 {ytWatchUrl && (
@@ -319,8 +306,6 @@ export function DanceControls({
                 referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
                 loading="lazy"
-                // aria-busy informuje AT, że player się ładuje; bez tego
-                // SC pomija kontrolki yt podczas initializacji.
                 aria-busy={ytLoading}
                 className="absolute inset-0 size-full border-0"
               />
