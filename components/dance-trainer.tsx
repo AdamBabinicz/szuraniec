@@ -138,9 +138,9 @@ export function DanceTrainer() {
         document.documentElement.style.colorScheme = savedTheme;
       }
 
-      const savedLang = localStorage.getItem("dwa_na_jeden_lang") as
-        | Lang
-        | null;
+      const savedLang = localStorage.getItem(
+        "dwa_na_jeden_lang",
+      ) as Lang | null;
       if (savedLang === "pl" || savedLang === "en") {
         setLang(savedLang);
         document.documentElement.lang = savedLang;
@@ -173,17 +173,13 @@ export function DanceTrainer() {
       setFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () =>
-      document.removeEventListener(
-        "fullscreenchange",
-        handleFullscreenChange,
-      );
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   // Ładowanie biblioteki YouTube IFrame API.
-  // Tryb prywatności jest aktywny — adres skryptu IFrame API musi być
-  // z tej samej domeny co `src` <iframe> w dance-controls.tsx i origin
-  // w postMessage w `sendYtIframeCommand`. Wszystkie trzy ustawione są
-  // na youtube-nocookie.com; mieszanie domen powoduje brak onStateChange.
+  // Pobierane bezpośrednio z https://www.youtube.com/iframe_api, co eliminuje
+  // błędy 404 w konsoli. Konfiguracja `host: ytIframeOrigin` w YT.Player
+  // zapewnia pełną obsługę trybu nocookie dla ramki odtwarzacza.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -204,17 +200,7 @@ export function DanceTrainer() {
           const tag = document.createElement("script");
           tag.id = "yt-iframe-api";
           tag.async = true;
-          tag.src = "https://www.youtube-nocookie.com/iframe_api";
-          tag.onerror = () => {
-            // Fallback do klasycznej domeny, jeśli private mode blokuje
-            // nocookie. Nadal kompatybilny z <iframe src> ustawionym na
-            // youtube-nocookie.com — patrz uwaga „Uwaga o domenach" w ytEmbedUrl.
-            const fallback = document.createElement("script");
-            fallback.id = "yt-iframe-api";
-            fallback.async = true;
-            fallback.src = "https://www.youtube.com/iframe_api";
-            document.body.appendChild(fallback);
-          };
+          tag.src = "https://www.youtube.com/iframe_api";
           document.body.appendChild(tag);
         }
         // YT IFrame API zawsze woła onYouTubeIframeAPIReady po załadowaniu,
@@ -243,7 +229,7 @@ export function DanceTrainer() {
   // Rok w stopce raz na mount — unikamy Date.now() w renderze (które
   // spowodowałoby hydration mismatch) i niepotrzebnego setInterval.
   const currentYear = 2026;
-  const [copyrightYear, setCopyrightYear] = useState<string>(String(currentYear));
+  const [copyrightYear] = useState<string>(String(currentYear));
 
   const song = useMemo(
     () => SONGS.find((item) => item.id === songId) ?? SONGS[0],
@@ -643,7 +629,17 @@ export function DanceTrainer() {
       ytReady,
       ytErrorCode,
     }),
-    [lang, song, speed, playing, muted, source, ytLoading, ytReady, ytErrorCode],
+    [
+      lang,
+      song,
+      speed,
+      playing,
+      muted,
+      source,
+      ytLoading,
+      ytReady,
+      ytErrorCode,
+    ],
   );
 
   return (
@@ -667,8 +663,6 @@ export function DanceTrainer() {
               sizes="(min-width: 768px) 736px, calc(100vw - 2rem)"
               quality={75}
               className="object-cover object-[center_18%] brightness-100 contrast-100 transition-transform duration-700 group-hover:scale-105 dark:brightness-[0.92] dark:contrast-[1.04]"
-              // Decoding async pozwala przeglądarce nie blokować renderowania
-              // pierwszego layoutu na dekodowaniu obrazka tła.
               decoding="async"
             />
 
@@ -676,8 +670,8 @@ export function DanceTrainer() {
             <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/80 dark:from-black/60 dark:via-transparent dark:to-black/60" />
 
             <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2.5 p-6 sm:p-8">
-              <div className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-background/90 px-3.5 py-1 text-[11px] font-black uppercase tracking-widest text-primary backdrop-blur-md shadow-sm dark:border-pink-500/50 dark:bg-black/80 dark:text-pink-400">
-                <Sparkles className="size-3 text-primary dark:text-pink-400" />
+              <div className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-background/90 px-3.5 py-1 text-xs font-black uppercase tracking-widest text-foreground backdrop-blur-md shadow-sm dark:border-pink-500/50 dark:bg-black/80 dark:text-pink-400">
+                <Sparkles className="size-3 text-foreground dark:text-pink-400" />
                 <span>{t.STYLE_SUBTITLE}</span>
               </div>
               <h1 className="text-3xl font-black uppercase tracking-tight text-foreground sm:text-5xl dark:text-white dark:drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)]">
@@ -693,9 +687,9 @@ export function DanceTrainer() {
             onClick={handleRoleToggle}
             className="group inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-3.5 py-2 text-xs font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Users className="size-3.5 text-primary transition-transform duration-200 group-hover:scale-110" />
+            <Users className="size-3.5 text-foreground transition-transform duration-200 group-hover:scale-110" />
             <span>{t.ROLE_LABEL}:</span>
-            <span className="text-primary font-black underline underline-offset-2">
+            <span className="text-foreground font-black underline underline-offset-2">
               {role === "leader" ? t.ROLE_LEADER : t.ROLE_FOLLOWER}
             </span>
           </button>
@@ -710,7 +704,7 @@ export function DanceTrainer() {
               className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 vibrate
                   ? "border-primary bg-primary text-primary-foreground shadow-md"
-                  : "border-border bg-secondary text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary"
+                  : "border-border bg-secondary text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-foreground"
               }`}
             >
               <Vibrate className="size-3.5" />
@@ -723,7 +717,7 @@ export function DanceTrainer() {
               title={fullscreen ? t.FULLSCREEN_EXIT : t.FULLSCREEN_ENTER}
               aria-label={fullscreen ? t.FULLSCREEN_EXIT : t.FULLSCREEN_ENTER}
               aria-pressed={fullscreen}
-              className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary p-2 text-foreground transition-all hover:bg-primary/10 hover:border-primary/40 hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary p-2 text-foreground transition-all hover:bg-primary/10 hover:border-primary/40 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {fullscreen ? (
                 <Minimize2 className="size-4" />
@@ -742,7 +736,7 @@ export function DanceTrainer() {
               <h2 className="text-sm font-bold uppercase tracking-tight text-foreground">
                 {t.BABY_STEPS_LABEL}
               </h2>
-              <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
+              <p className="text-xs text-foreground/80 font-semibold leading-relaxed">
                 {t.BABY_STEPS_HINT}
               </p>
             </div>
@@ -753,7 +747,7 @@ export function DanceTrainer() {
               className={`flex h-10 sm:h-9 w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-xl sm:rounded-full px-4 text-xs font-bold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border ${
                 baby
                   ? "border-primary bg-primary text-primary-foreground shadow-md"
-                  : "border-border bg-secondary text-secondary-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary"
+                  : "border-border bg-secondary text-secondary-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-foreground"
               }`}
             >
               <MousePointerClick className="size-3.5 shrink-0" />
@@ -802,7 +796,7 @@ export function DanceTrainer() {
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 1.5, opacity: 0 }}
-                className="relative font-mono text-2xl sm:text-3xl font-black text-primary drop-shadow-[0_0_12px_rgba(236,72,153,0.4)]"
+                className="relative font-mono text-2xl sm:text-3xl font-black text-foreground drop-shadow-[0_0_12px_rgba(236,72,153,0.4)]"
               >
                 {t[phase.counterKey] as string}
               </motion.span>
@@ -810,7 +804,7 @@ export function DanceTrainer() {
           </div>
 
           <div className="grid gap-1 sm:gap-2 min-w-0">
-            <p className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-primary truncate">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground truncate">
               {t.INSTRUCTION_LABEL} · {t.CYCLE_LABEL} {cycle}
             </p>
             <div className="min-h-[5rem] sm:min-h-[3.25rem] flex items-center">
@@ -822,7 +816,7 @@ export function DanceTrainer() {
                 }
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs font-bold uppercase tracking-wider text-foreground/80">
               <span>
                 {t.WEIGHT_LABEL}:{" "}
                 <span className="text-foreground font-black underline underline-offset-2">
@@ -851,7 +845,7 @@ export function DanceTrainer() {
 
         <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
           <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-foreground">
-            <Footprints className="size-4 text-primary" />
+            <Footprints className="size-4 text-foreground" />
             {t.BREAKDOWN_TITLE}
           </h2>
           <ol className="grid gap-3 sm:grid-cols-2">
@@ -864,10 +858,10 @@ export function DanceTrainer() {
                     : "border-border bg-muted/40 hover:border-border"
                 }`}
               >
-                <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">
+                <p className="text-xs font-black uppercase tracking-widest text-foreground mb-1">
                   {item.title}
                 </p>
-                <p className="text-xs font-semibold leading-relaxed text-muted-foreground">
+                <p className="text-xs font-semibold leading-relaxed text-foreground/80">
                   {item.body}
                 </p>
               </li>
@@ -877,7 +871,7 @@ export function DanceTrainer() {
 
         <section className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/5 transition-all">
           <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-foreground">
-            <AlertTriangle className="size-4 text-amber-500" />
+            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
             <span>{t.MISTAKES_TITLE}</span>
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -886,13 +880,13 @@ export function DanceTrainer() {
                 key={item.title}
                 className="flex flex-col gap-2 rounded-xl border border-border bg-muted/40 p-4 transition-all hover:border-border"
               >
-                <span className="self-start rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-950 dark:bg-amber-950/80 dark:border-amber-700/60 dark:text-amber-200">
+                <span className="self-start rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-xs font-black uppercase tracking-wider text-amber-950 dark:bg-amber-950/80 dark:border-amber-700/60 dark:text-amber-200">
                   {item.badge}
                 </span>
                 <h3 className="text-xs font-black uppercase tracking-tight text-foreground">
                   {item.title}
                 </h3>
-                <p className="text-xs font-semibold leading-relaxed text-muted-foreground">
+                <p className="text-xs font-semibold leading-relaxed text-foreground/80">
                   {item.desc}
                 </p>
               </div>
@@ -900,7 +894,7 @@ export function DanceTrainer() {
           </div>
         </section>
 
-        <div className="hidden sm:flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="hidden sm:flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-foreground/80">
           <Keyboard className="size-3.5" />
           <span>{t.KEYBOARD_HINT}</span>
         </div>
@@ -909,30 +903,30 @@ export function DanceTrainer() {
           <nav className="flex flex-wrap justify-center gap-x-8 gap-y-2">
             <Link
               href={`/${t.PRIVACY_SLUG}`}
-              className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+              className="text-xs font-black uppercase tracking-[0.2em] text-foreground/80 hover:text-foreground transition-colors"
             >
               {t.FOOTER_PRIVACY as string}
             </Link>
             <Link
               href={`/${t.TERMS_SLUG}`}
-              className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+              className="text-xs font-black uppercase tracking-[0.2em] text-foreground/80 hover:text-foreground transition-colors"
             >
               {t.FOOTER_TERMS as string}
             </Link>
             <button
               type="button"
               onClick={handleOpenCookieSettings}
-              className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+              className="text-xs font-black uppercase tracking-[0.2em] text-foreground/80 hover:text-foreground transition-colors"
             >
               {t.COOKIE_SETTINGS_BTN as string}
             </button>
           </nav>
 
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-xs font-bold uppercase tracking-widest text-foreground/80">
               {t.FOOTER_TEXT}
             </p>
-            <p className="text-xs font-semibold tracking-wider text-muted-foreground">
+            <p className="text-xs font-semibold tracking-wider text-foreground/80">
               © {copyrightYear} {t.APP_LEGAL_NAME}. {t.COPYRIGHT_RESERVED}
             </p>
           </div>
