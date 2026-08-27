@@ -186,21 +186,45 @@ export function DanceTrainer() {
     vibrate,
   });
 
+  // Bezpiecznie niszczy instancję YT.Player i czyści nasze referencje.
+  // Wywoływany przy każdej zmianie piosenki / źródła / zamknięciu komponentu,
+  // aby uniknąć ostrzeżenia "The YouTube player is not attached to the DOM".
+  // Wynika ono z faktu, że <iframe id="yt-player-iframe"> w dance-controls.tsx
+  // jest remountowany po `key={song.youtubeId}` — stara instancja YT.Player
+  // traci swój kontener DOM i każda kolejna metoda API/postMessage emituje
+  // ten sam warning.
+  const teardownPlayer = useCallback(() => {
+    try {
+      ytPlayerRef.current?.destroy();
+    } catch {
+      // Instancja mogła już być zwolniona wewnętrznie przez YT API — ignorujemy.
+    }
+    ytPlayerRef.current = null;
+    isPlayerReadyRef.current = false;
+  }, []);
+
   const safeYtCall = useCallback(
     (action: (player: YTPlayerInstance) => void) => {
       if (!isPlayerReadyRef.current || !ytPlayerRef.current) return false;
+      const player = ytPlayerRef.current;
       try {
-        const iframe = ytPlayerRef.current.getIframe?.();
-        if (iframe && iframe.isConnected) {
-          action(ytPlayerRef.current);
-          return true;
+        const iframe = player.getIframe?.();
+        // Iframe musi nadal być w drzewie DOM — w przeciwnym razie YT.Player
+        // wyrzuca "not attached to the DOM" przy pierwszym wywołaniu metody.
+        if (!iframe || !iframe.isConnected) {
+          teardownPlayer();
+          return false;
         }
+        action(player);
+        return true;
       } catch {
-        // noop
+        // Player mógł zostać zniszczony zewnętrznie — porzucamy uchwyt.
+        ytPlayerRef.current = null;
+        isPlayerReadyRef.current = false;
+        return false;
       }
-      return false;
     },
-    [],
+    [teardownPlayer],
   );
 
   const sendYtIframeCommand = useCallback(
@@ -235,7 +259,10 @@ export function DanceTrainer() {
     pendingYtIntentRef.current = null;
   }, [songId, source]);
 
-  // Podpięcie YouTube API pod istniejącą ramkę iframe
+  // Podpięcie YouTube API pod istniejącą ramkę iframe.
+  // Cleanup niszczy poprzednią instancję i czyści ref-y — bez tego
+  // YT.Player trzyma oderwany iframe po zmianie piosenki i ostrzega
+  // o braku połączenia z DOM przy każdym kolejnym wywołaniu.
   useEffect(() => {
     if (!ytReady || typeof window === "undefined") return;
     if (source !== "youtube") return;
@@ -243,18 +270,19 @@ export function DanceTrainer() {
     let isSubscribed = true;
 
     const timer = setTimeout(() => {
+      if (!isSubscribed) return;
+
       const el = document.getElementById("yt-player-iframe");
       if (!el || !window.YT?.Player) return;
 
-      try {
-        ytPlayerRef.current?.destroy();
-      } catch {}
-
+      // Bezpiecznie zwolnij ewentualną poprzednią instancję (zgorjony timer
+      // lub wyścig mount/unmount wywołany zmianą `speed` / `muted` przed
+      // pierwszym `onReady`).
+      teardownPlayer();
       setYtLoading(true);
-      isPlayerReadyRef.current = false;
 
       // Uwaga: tryb prywatności YouTube (host: "https://www.youtube-nocookie.com")
-      // wymaga jednoczesnej zmiany adresu <iframe src> w komponencie DanceFloor
+      // wymaga jednoczesnej zmiany adresu <iframe src> w komponencie DanceControls
       // na https://www.youtube-nocookie.com/embed/<ID> ORAZ załadowania
       // skryptu API z https://www.youtube-nocookie.com/iframe_api.
       // Bez spójności domen API nie dostarcza onStateChange/onReady i psuje
@@ -312,8 +340,9 @@ export function DanceTrainer() {
     return () => {
       isSubscribed = false;
       clearTimeout(timer);
+      teardownPlayer();
     };
-  }, [ytReady, song.youtubeId, source, muted, speed]);
+  }, [ytReady, song.youtubeId, source, muted, speed, sendYtIframeCommand, teardownPlayer]);
 
   // Synchronizacja wyciszenia
   useEffect(() => {
