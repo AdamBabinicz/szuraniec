@@ -39,6 +39,8 @@ declare global {
       Player: new (
         elementId: string | HTMLElement,
         config: {
+          // Tryb prywatności YouTube (youtube-nocookie.com) — brak cookie śledzących
+          host?: string;
           events?: {
             onReady?: (event: { target: YTPlayerInstance }) => void;
             onStateChange?: (event: {
@@ -221,6 +223,8 @@ export function DanceTrainer() {
       isPlayerReadyRef.current = false;
 
       ytPlayerRef.current = new window.YT.Player("yt-player-iframe", {
+        // Tryb prywatności YouTube: nie ustawia cookie śledzących (Issues/3rd-party cookies)
+        host: "https://www.youtube-nocookie.com",
         events: {
           onReady: (event) => {
             if (!isSubscribed) return;
