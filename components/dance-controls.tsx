@@ -72,6 +72,22 @@ export function DanceControls({
 }: Props) {
   const t = translations[lang];
 
+<<<<<<< HEAD
+=======
+  // Adres URL generowany deterministycznie — bez odwołań do `window`,
+  // `Date.now()` czy `Math.random()`, aby SSR i klient renderowały
+  // identyczny atrybut `src` elementu <iframe> (hydration mismatch).
+  //
+  // Domena `youtube-nocookie.com` zapobiega ładowaniu cookie śledzących
+  // (wykorzystywanych przez googleads.g.doubleclick.net) przed interakcją
+  // użytkownika z playerem. W połączeniu z `host` i `ytIframeOrigin` w
+  // `dance-trainer.tsx` eliminuje komunikaty CORS:
+  //   "Access to fetch at 'googleads.g.doubleclick.net/...' has been blocked
+  //    by CORS policy: No 'Access-Control-Allow-Origin'"
+  //
+  // UWAGA: domeny `iframe src`, skryptu API i `postMessage` origin MUSZĄ
+  // być zgodne — patrz komentarz w `dance-trainer.tsx` przy `ytIframeOrigin`.
+>>>>>>> 7fecb2758d75bca2727358b1d791613a02012ec0
   const ytEmbedUrl = useMemo(() => {
     if (!song.youtubeId) return null;
 
@@ -306,6 +322,11 @@ export function DanceControls({
                 referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
                 loading="lazy"
+<<<<<<< HEAD
+=======
+                // aria-busy informuje AT, że player się ładuje; bez tego
+                // SC pomija kontrolki yt podczas initializacji.
+>>>>>>> 7fecb2758d75bca2727358b1d791613a02012ec0
                 aria-busy={ytLoading}
                 className="absolute inset-0 size-full border-0"
               />
