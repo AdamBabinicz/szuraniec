@@ -6,14 +6,17 @@ import "./globals.css";
 
 const GTM_ID = "GTM-N74LH3ML";
 
+// display: "swap" zapobiega blokowaniu renderowania przez czcionki
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
+  display: "swap",
 });
 
 const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+  display: "swap",
 });
 
 // Stałe SEO - Tytuł: 50 znaków, Opis: 150 znaków
@@ -114,7 +117,13 @@ export default function RootLayout({
   return (
     <html lang="pl" suppressHydrationWarning className="bg-background">
       <head>
-        {/* Preload obrazu LCP - natychmiastowe pobieranie o wysokim priorytecie od 0 ms */}
+        {/* Wstępne połączenia (preconnect) do domen YouTube zoptymalizowane pod LCP */}
+        <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+        <link rel="preconnect" href="https://www.youtube.com" />
+        <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+        <link rel="dns-prefetch" href="https://www.youtube.com" />
+
+        {/* Natychmiastowe ładowanie głównego obrazu LCP */}
         <link
           rel="preload"
           as="image"
