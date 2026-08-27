@@ -21,7 +21,7 @@ const nextConfig = {
           {
             key: "Permissions-Policy",
             value:
-              'camera=(), microphone=(), geolocation=(), autoplay=(self "https://www.youtube.com"), encrypted-media=(self "https://www.youtube.com"), picture-in-picture=(self "https://www.youtube.com"), fullscreen=(self "https://www.youtube.com")',
+              'camera=(), microphone=(), geolocation=(), autoplay=(self "https://www.youtube.com" "https://www.youtube-nocookie.com"), encrypted-media=(self "https://www.youtube.com" "https://www.youtube-nocookie.com"), picture-in-picture=(self "https://www.youtube.com" "https://www.youtube-nocookie.com"), fullscreen=(self "https://www.youtube.com" "https://www.youtube-nocookie.com")',
           },
         ],
       },
