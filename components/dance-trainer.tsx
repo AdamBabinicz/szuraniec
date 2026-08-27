@@ -84,7 +84,7 @@ export function DanceTrainer() {
   const [speed, setSpeed] = useState<Speed>(1);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [source, setSource] = useState<AudioSource>("click");
+  const [source, setSource] = useState<AudioSource>("youtube");
   const [baby, setBaby] = useState(false);
   const [role, setRole] = useState<"leader" | "follower">("leader");
   const [vibrate, setVibrate] = useState(false);
