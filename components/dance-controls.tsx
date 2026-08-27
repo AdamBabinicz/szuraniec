@@ -7,7 +7,6 @@ import {
   Pause,
   Play,
   RotateCcw,
-  Video,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -75,7 +74,7 @@ export function DanceControls({
 
   const ytEmbedUrl = useMemo(() => {
     if (!song.youtubeId) return null;
-    return `https://www.youtube-nocookie.com/embed/${song.youtubeId}?enablejsapi=1&autoplay=0&controls=1&rel=0&playsinline=1&modestbranding=1`;
+    return `https://www.youtube.com/embed/${song.youtubeId}?enablejsapi=1&autoplay=0&controls=1&rel=0&playsinline=1&modestbranding=1`;
   }, [song.youtubeId]);
 
   const ytWatchUrl = song.youtubeId
