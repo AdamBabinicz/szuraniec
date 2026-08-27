@@ -72,8 +72,15 @@ export function DanceControls({
 }: Props) {
   const t = translations[lang];
 
+  // Adres URL generowany deterministycznie — bez odwołań do `window`,
+  // `Date.now()` czy `Math.random()`, aby SSR i klient renderowały
+  // identyczny atrybut `src` elementu <iframe> (hydration mismatch).
+  // Parametr `origin` został usunięty; YouTube IFrame API z `enablejsapi=1`
+  // działa bez niego, a nadawca postMessage jest i tak podany jawnie
+  // (`"https://www.youtube.com"`) w komponencie DanceTrainer.
   const ytEmbedUrl = useMemo(() => {
     if (!song.youtubeId) return null;
+
     return `https://www.youtube.com/embed/${song.youtubeId}?enablejsapi=1&autoplay=0&controls=1&rel=0&playsinline=1&modestbranding=1`;
   }, [song.youtubeId]);
 

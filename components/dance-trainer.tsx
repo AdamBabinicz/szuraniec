@@ -99,6 +99,7 @@ export function DanceTrainer() {
 
   const ytPlayerRef = useRef<YTPlayerInstance | null>(null);
   const isPlayerReadyRef = useRef(false);
+  const pendingYtIntentRef = useRef<"play" | "pause" | null>(null);
 
   const playingRef = useRef(playing);
   playingRef.current = playing;
@@ -187,14 +188,43 @@ export function DanceTrainer() {
 
   const safeYtCall = useCallback(
     (action: (player: YTPlayerInstance) => void) => {
-      if (!isPlayerReadyRef.current || !ytPlayerRef.current) return;
+      if (!isPlayerReadyRef.current || !ytPlayerRef.current) return false;
       try {
         const iframe = ytPlayerRef.current.getIframe?.();
         if (iframe && iframe.isConnected) {
           action(ytPlayerRef.current);
+          return true;
         }
       } catch {
         // noop
+      }
+      return false;
+    },
+    [],
+  );
+
+  const sendYtIframeCommand = useCallback(
+    (func: "playVideo" | "pauseVideo" | "seekTo", args: unknown[] = []) => {
+      if (typeof window === "undefined") return false;
+
+      const iframe = document.getElementById(
+        "yt-player-iframe",
+      ) as HTMLIFrameElement | null;
+
+      if (!iframe?.contentWindow) return false;
+
+      try {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: "command",
+            func,
+            args,
+          }),
+          "https://www.youtube.com",
+        );
+        return true;
+      } catch {
+        return false;
       }
     },
     [],
@@ -202,6 +232,7 @@ export function DanceTrainer() {
 
   useEffect(() => {
     setYtErrorCode(null);
+    pendingYtIntentRef.current = null;
   }, [songId, source]);
 
   // Podpięcie YouTube API pod istniejącą ramkę iframe
@@ -240,10 +271,14 @@ export function DanceTrainer() {
               if (muted) event.target.mute();
               else event.target.unMute();
               event.target.setPlaybackRate(speed);
-              if (playingRef.current) {
+
+              const intendedAction = pendingYtIntentRef.current;
+              if (intendedAction === "play" || playingRef.current) {
                 event.target.playVideo();
+                sendYtIframeCommand("playVideo");
               } else {
                 event.target.pauseVideo();
+                sendYtIframeCommand("pauseVideo");
               }
             } catch {}
           },
@@ -251,10 +286,12 @@ export function DanceTrainer() {
             if (!isSubscribed) return;
             // 1 = PLAYING, 2 = PAUSED, 0 = ENDED, 3 = BUFFERING
             if (event.data === 1) {
+              pendingYtIntentRef.current = null;
               unlockAudio();
               setPlaying(true);
               setYtLoading(false);
             } else if (event.data === 2 || event.data === 0) {
+              pendingYtIntentRef.current = null;
               setPlaying(false);
               setYtLoading(false);
             } else if (event.data === 3) {
@@ -339,26 +376,33 @@ export function DanceTrainer() {
     unlockAudio();
 
     if (source === "youtube") {
-      safeYtCall((player) => {
-        const state = player.getPlayerState();
-        if (state === 1) {
-          player.pauseVideo();
-          setPlaying(false);
-        } else {
+      const nextPlaying = !playingRef.current;
+      pendingYtIntentRef.current = nextPlaying ? "play" : "pause";
+      setPlaying(nextPlaying);
+
+      const playerHandled = safeYtCall((player) => {
+        if (nextPlaying) {
           player.playVideo();
-          setPlaying(true);
+        } else {
+          player.pauseVideo();
         }
       });
-      if (!isPlayerReadyRef.current) {
-        setPlaying((value) => !value);
+
+      const iframeHandled = sendYtIframeCommand(
+        nextPlaying ? "playVideo" : "pauseVideo",
+      );
+
+      if (!playerHandled && !iframeHandled) {
+        setYtLoading(true);
       }
       return;
     }
 
     setPlaying((value) => !value);
-  }, [source, safeYtCall]);
+  }, [source, safeYtCall, sendYtIframeCommand]);
 
   const restart = useCallback(() => {
+    pendingYtIntentRef.current = "pause";
     setPlaying(false);
     reset();
     if (source === "youtube") {
@@ -366,8 +410,10 @@ export function DanceTrainer() {
         player.pauseVideo();
         player.seekTo(0, true);
       });
+      sendYtIframeCommand("pauseVideo");
+      sendYtIframeCommand("seekTo", [0, true]);
     }
-  }, [reset, source, safeYtCall]);
+  }, [reset, source, safeYtCall, sendYtIframeCommand]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
