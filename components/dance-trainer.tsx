@@ -218,9 +218,6 @@ export function DanceTrainer() {
     vibrate,
   });
 
-  // Bezpieczne czyszczenie odtwarzacza — pauzujemy i czyścimy referencje
-  // bez wywoływania destrukcyjnego player.destroy(), co zapobiega błędowi
-  // NotFoundError: Failed to execute 'removeChild' on 'Node'.
   const teardownPlayer = useCallback(() => {
     try {
       ytPlayerRef.current?.pauseVideo?.();
@@ -289,7 +286,10 @@ export function DanceTrainer() {
 
   useEffect(() => {
     if (!ytReady || typeof window === "undefined") return;
-    if (source !== "youtube") return;
+    if (source !== "youtube") {
+      teardownPlayer();
+      return;
+    }
 
     let isSubscribed = true;
     let player: YTPlayerInstance | null = null;

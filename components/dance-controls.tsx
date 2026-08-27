@@ -269,7 +269,7 @@ export function DanceControls({
           </button>
         </div>
 
-        {/* Natywna ramka iframe z poprawnym adresem URL */}
+        {/* Natywna ramka iframe z dynamicznym kluczem odświeżania */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
@@ -312,7 +312,7 @@ export function DanceControls({
             ) : ytEmbedUrl ? (
               <iframe
                 id="yt-player-iframe"
-                key={song.youtubeId}
+                key={`${song.youtubeId}-${source}`}
                 src={ytEmbedUrl}
                 title={t.YOUTUBE_PLAYER_LABEL as string}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
