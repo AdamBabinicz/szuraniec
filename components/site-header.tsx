@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Disc3, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,13 @@ export function SiteHeader({
   onThemeToggle,
   spinning,
 }: Props) {
+  const [mounted, setMounted] = useState(false);
   const t = translations[lang];
+
+  // Zapobiega błędom hydracji i błędnemu wyświetlaniu ikony przy pierwszym ładowaniu
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const themeLabel =
     theme === "dark"
@@ -90,7 +97,7 @@ export function SiteHeader({
             ))}
           </div>
 
-          {/* Przełącznik motywu Light / Dark z idealnym kontrastem */}
+          {/* Przełącznik motywu Light / Dark */}
           <button
             type="button"
             onClick={onThemeToggle}
@@ -98,7 +105,10 @@ export function SiteHeader({
             title={themeLabel}
             className="group flex size-9 items-center justify-center rounded-full border border-border bg-secondary text-secondary-foreground transition-all hover:bg-primary/10 hover:border-primary/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {theme === "dark" ? (
+            {!mounted ? (
+              // Pusty placeholder o tym samym rozmiarze na czas pierwszego renderu
+              <span className="size-4" />
+            ) : theme === "dark" ? (
               <Sun className="size-4 text-amber-400 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" />
             ) : (
               <Moon className="size-4 text-primary transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-12" />

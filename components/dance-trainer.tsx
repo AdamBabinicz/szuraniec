@@ -80,7 +80,7 @@ interface YTPlayerInstance {
 
 export function DanceTrainer() {
   const [lang, setLang] = useState<Lang>("pl");
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [songId, setSongId] = useState<Song["id"]>("szalona");
   const [speed, setSpeed] = useState<Speed>(1);
   const [playing, setPlaying] = useState(false);
