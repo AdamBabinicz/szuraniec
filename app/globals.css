@@ -1,25 +1,10 @@
 @import "tailwindcss";
-/* @import "tw-animate-css"; */
-@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark, .dark *));
 
 @theme inline {
   --font-sans: "Outfit", "Outfit Fallback", ui-sans-serif, system-ui;
   --font-mono: "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -73,25 +58,10 @@
   --ring: oklch(0.42 0.25 348);
   --floor: oklch(0.95 0.015 270);
   --floor-line: oklch(0.75 0.04 270);
-  --chart-1: oklch(0.42 0.25 348);
-  --chart-2: oklch(0.44 0.2 240);
-  --chart-3: oklch(0.6 0.16 200);
-  --chart-4: oklch(0.55 0.19 300);
-  --chart-5: oklch(0.3 0.04 265);
-  --sidebar: oklch(0.98 0.01 270);
-  --sidebar-foreground: oklch(0.14 0.04 265);
-  --sidebar-primary: oklch(0.42 0.25 348);
-  --sidebar-primary-foreground: oklch(0.99 0.005 340);
-  --sidebar-accent: oklch(0.93 0.02 270);
-  --sidebar-accent-foreground: oklch(0.14 0.04 265);
-  --sidebar-border: oklch(0.85 0.03 270);
-  --sidebar-ring: oklch(0.42 0.25 348);
 }
 
 /* Tryb Ciemny: "Wedding Night" - Wzmocniony kontrast WCAG AA/AAA */
-.dark,
-:root.dark,
-html.dark {
+.dark {
   color-scheme: dark;
   --background: oklch(0.24 0.08 265);
   --foreground: oklch(0.99 0.01 280);
@@ -113,19 +83,6 @@ html.dark {
   --ring: oklch(0.78 0.26 345);
   --floor: oklch(0.28 0.09 265);
   --floor-line: oklch(0.84 0.18 215 / 50%);
-  --chart-1: oklch(0.78 0.26 345);
-  --chart-2: oklch(0.84 0.18 215);
-  --chart-3: oklch(0.84 0.15 190);
-  --chart-4: oklch(0.74 0.22 310);
-  --chart-5: oklch(0.9 0.03 265);
-  --sidebar: oklch(0.24 0.08 265);
-  --sidebar-foreground: oklch(0.99 0.01 280);
-  --sidebar-primary: oklch(0.78 0.26 345);
-  --sidebar-primary-foreground: oklch(0.12 0.05 265);
-  --sidebar-accent: oklch(0.38 0.1 265);
-  --sidebar-accent-foreground: oklch(0.99 0.01 280);
-  --sidebar-border: oklch(0.55 0.14 265 / 50%);
-  --sidebar-ring: oklch(0.78 0.26 345);
 }
 
 @layer base {
@@ -156,7 +113,6 @@ html.dark {
     background-attachment: fixed;
   }
 
-  /* Globalny kursor 'rączka' dla wszystkich elementów klikalnych w projekcie */
   a,
   button,
   select,
@@ -168,14 +124,12 @@ html.dark {
     cursor: pointer;
   }
 
-  /* Kursor dla elementów nieaktywnych (disabled) */
   button:disabled,
   [disabled],
   [aria-disabled="true"] {
     cursor: not-allowed;
   }
 
-  /* CAŁKOWITA BLOKADA WIDŻETÓW I ZNACZNIKÓW NETLIFY */
   netlify-drawer,
   [data-netlify-drawer],
   #netlify-drawer,
@@ -209,7 +163,6 @@ html.dark {
     box-shadow: 0 0 24px -2px oklch(0.82 0.18 215 / 50%);
   }
 
-  /* Bezpieczna dla dostępności (WCAG) animacja pulsowania */
   .animate-pulse {
     animation: a11y-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
