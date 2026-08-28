@@ -7,13 +7,13 @@ import "./globals.css";
 const GTM_ID = "GTM-N74LH3ML";
 
 const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-sans",
   display: "swap",
 });
 
 const jetBrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   variable: "--font-mono",
   display: "swap",
 });
@@ -97,7 +97,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Pełna struktura danych Schema.org (Organization + WebApplication)
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -131,7 +130,11 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="pl" suppressHydrationWarning className="bg-background">
+    <html
+      lang="pl"
+      suppressHydrationWarning
+      className={`${outfit.variable} ${jetBrainsMono.variable} bg-background font-sans`}
+    >
       <head>
         {/* Preconnect pod YouTube */}
         <link rel="preconnect" href="https://www.youtube-nocookie.com" />
@@ -148,9 +151,7 @@ export default function RootLayout({
           fetchPriority="high"
         />
       </head>
-      <body
-        className={`${outfit.className} ${jetBrainsMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         {/* Domyślny stan Google Consent Mode v2 */}
         <Script
           id="google-consent-default"
@@ -183,7 +184,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           }}
         />
 
-        {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
             src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
@@ -192,7 +192,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         </noscript>
 
-        {/* Znacznik Schema.org zawierający tożsamość Organization */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
