@@ -136,9 +136,12 @@ export default function RootLayout({
       className={`${outfit.variable} ${jetBrainsMono.variable} bg-background font-sans`}
     >
       <head>
-        {/* Preconnect pod YouTube */}
-        <link rel="preconnect" href="https://www.youtube-nocookie.com" />
-        <link rel="preconnect" href="https://www.youtube.com" />
+        {/* Poprawny preconnect z atrybutem crossOrigin */}
+        <link
+          rel="preconnect"
+          href="https://www.youtube-nocookie.com"
+          crossOrigin="anonymous"
+        />
         <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
         <link rel="dns-prefetch" href="https://www.youtube.com" />
 
@@ -171,7 +174,7 @@ export default function RootLayout({
           }}
         />
 
-        {/* Google Tag Manager */}
+        {/* Google Tag Manager ładowany w bezczynności procesora */}
         <Script
           id="google-tag-manager"
           strategy="lazyOnload"
