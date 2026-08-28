@@ -7,6 +7,9 @@ const nextConfig = {
     unoptimized: true,
     qualities: [75, 85],
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
   async headers() {
     return [
       {

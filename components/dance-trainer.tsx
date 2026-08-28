@@ -121,6 +121,37 @@ function FacebookIcon({ className }: { className?: string }) {
   );
 }
 
+function loadYtApiPromise(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+
+  type WindowWithYt = Window & { __ytApiReady?: Promise<void> };
+  const w = window as WindowWithYt;
+
+  if (window.YT?.Player) {
+    return Promise.resolve();
+  }
+
+  if (!w.__ytApiReady) {
+    w.__ytApiReady = new Promise<void>((resolve) => {
+      const existingScript = document.getElementById("yt-iframe-api");
+      if (!existingScript) {
+        const tag = document.createElement("script");
+        tag.id = "yt-iframe-api";
+        tag.async = true;
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.body.appendChild(tag);
+      }
+      const previousReady = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        previousReady?.();
+        resolve();
+      };
+    });
+  }
+
+  return w.__ytApiReady;
+}
+
 export function DanceTrainer() {
   const [lang, setLang] = useState<Lang>("pl");
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -201,40 +232,34 @@ export function DanceTrainer() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    type WindowWithYt = Window & { __ytApiReady?: Promise<void> };
-    const w = window as WindowWithYt;
-
     if (window.YT?.Player) {
       setYtReady(true);
       return;
     }
 
-    if (!w.__ytApiReady) {
-      w.__ytApiReady = new Promise<void>((resolve) => {
-        const existingScript = document.getElementById("yt-iframe-api");
-        if (!existingScript) {
-          const tag = document.createElement("script");
-          tag.id = "yt-iframe-api";
-          tag.async = true;
-          tag.src = "https://www.youtube.com/iframe_api";
-          document.body.appendChild(tag);
-        }
-        const previousReady = window.onYouTubeIframeAPIReady;
-        window.onYouTubeIframeAPIReady = () => {
-          previousReady?.();
-          resolve();
-        };
-      });
-    }
-
     let cancelled = false;
-    w.__ytApiReady.then(() => {
-      if (!cancelled) setYtReady(true);
-    });
 
-    return () => {
-      cancelled = true;
+    const startLoading = () => {
+      loadYtApiPromise().then(() => {
+        if (!cancelled) setYtReady(true);
+      });
     };
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(startLoading, {
+        timeout: 1500,
+      });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback(idleId);
+      };
+    } else {
+      const timer = setTimeout(startLoading, 800);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
+    }
   }, []);
 
   const t = translations[lang];
@@ -526,6 +551,10 @@ export function DanceTrainer() {
     unlockAudio();
 
     if (source === "youtube") {
+      if (!ytReady) {
+        loadYtApiPromise().then(() => setYtReady(true));
+      }
+
       const nextPlaying = !playingRef.current;
       pendingYtIntentRef.current = nextPlaying ? "play" : "pause";
       setPlaying(nextPlaying);
@@ -546,7 +575,7 @@ export function DanceTrainer() {
     }
 
     setPlaying((value) => !value);
-  }, [source, safeYtCall, sendYtIframeCommand]);
+  }, [source, ytReady, safeYtCall, sendYtIframeCommand]);
 
   const restart = useCallback(() => {
     pendingYtIntentRef.current = "pause";
