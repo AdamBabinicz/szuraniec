@@ -2,10 +2,10 @@
   "APP_NAME": "Dwa na Jeden",
   "APP_TAGLINE": "Szkoła disco polo dla weselnych nóg",
   "APP_LEGAL_NAME": "Dwa na Jeden — Szkoła Weselnego Kroku",
-  "STEP_NAME": "Szuraniec",
-  "STYLE_SUBTITLE": "Rytmiczny krok weselny 2 na 1",
+  "STEP_NAME": "Szuraniec — Krok Dwa na Jeden",
+  "STYLE_SUBTITLE": "Kroki taneczne disco polo na wesele",
   "FLOOR_TITLE": "Cyfrowy Parkiet",
-  "FLOOR_HINT": "Szuraj, nie podnoś nóg. Rusza się tylko jedna stopa — druga trzyma ciężar.",
+  "FLOOR_HINT": "Szuraj, nie podnoś stóp. Poznaj weselne kroki taneczne dwa na jeden — jedna stopa szura, druga trzyma ciężar.",
   "PLAY": "Start",
   "PAUSE": "Stop",
   "RESTART": "Od nowa",
@@ -37,10 +37,10 @@
   "COUNTER_2": "2",
   "COUNTER_3": "3",
   "COUNTER_AND": "I",
-  "BABY_STEPS_LABEL": "Tryb: Małe Kroczki",
+  "BABY_STEPS_LABEL": "Tryb: Małe Kroki Taneczne",
   "BABY_STEPS_ON": "Małe kroczki włączone",
   "BABY_STEPS_OFF": "Pełne kroki",
-  "BABY_STEPS_HINT": "Trzymaj kroki pod biodrami — mniejszy krok, lepsza równowaga.",
+  "BABY_STEPS_HINT": "Trzymaj kroki taneczne pod biodrami — mały krok weselny zapewnia idealną równowagę.",
   "ROLE_LABEL": "Rola w tańcu",
   "ROLE_LEADER": "On (Prowadzący)",
   "ROLE_FOLLOWER": "Ona (Partnerka)",
@@ -56,20 +56,20 @@
   "COOKIE_DECLINE": "Tylko niezbędne",
   "COOKIE_SETTINGS_BTN": "Ustawienia cookies",
   "COPYRIGHT_RESERVED": "Wszelkie prawa zastrzeżone.",
-  "MISTAKES_TITLE": "3 Grzechy Główne Szurańca",
+  "MISTAKES_TITLE": "3 Główne błędy w tańcu weselnym",
   "MISTAKES": [
     {
-      "badge": "Grzech 1",
+      "badge": "Błąd 1",
       "title": "Bocian na łące",
       "desc": "Podnoszenie stóp wysoko nad parkiet. Pamiętaj: szuramy podeszwą po ziemi, stopy nie tracą kontaktu z podłogą!"
     },
     {
-      "badge": "Grzech 2",
+      "badge": "Błąd 2",
       "title": "Siedmiomilowe buty",
       "desc": "Zbyt duże kroki. Szeroki rozkrok niszczy równowagę i szybko męczy. Małe kroczki pod biodrami to klucz do sukcesu."
     },
     {
-      "badge": "Grzech 3",
+      "badge": "Błąd 3",
       "title": "Kij od szczotki",
       "desc": "Zablokowane, proste kolana. Cały luz i sprężystość Szurańca bierze się z miękko ugiętych nóg!"
     }
@@ -79,8 +79,8 @@
   "MOVING_LABEL": "Szura",
   "LEFT_FOOT": "Lewa stopa",
   "RIGHT_FOOT": "Prawa stopa",
-  "BREAKDOWN_TITLE": "Rozbiór kroku",
-  "FOOTER_TEXT": "Ćwicz przed weselem, nie na weselu.",
+  "BREAKDOWN_TITLE": "Nauka tańca krok po kroku: Szuraniec",
+  "FOOTER_TEXT": "Interaktywny kurs disco polo. Ćwicz szurańca przed weselem, nie na weselu.",
   "FOOTER_PRIVACY": "Polityka prywatności",
   "FOOTER_TERMS": "Regulamin",
   "BACK_TO_APP": "Wróć do nauki",
