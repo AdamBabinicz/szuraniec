@@ -56,37 +56,52 @@ The **Baby Steps** mode reduces the size of the movements, allowing beginners to
 
 ---
 
-# 🌐 Why WebMCP Is a Natural Fit
+# 🎵 13 Polish Wedding Songs
 
-WebMCP is not just an add-on here. Dance coaching is intent-based. Without WebMCP, an agent would have to rely on scraping the UI or giving generic advice. With WebMCP, the agent accesses explicitly defined application capabilities:
-
-*   **Contextual Assistance:** "I'm a beginner — what should I practice?"
-*   **Precise Data:** "What is the exact timing for the syncopation?"
-*   **Direct Control:** The agent uses structured tools to recommend songs and explain methodology based on real-time app data.
-
----
-
-# 🤖 WebMCP Integration
-
-The application exposes structured capabilities that agents can use directly.
-
-### Available tools:
-*   **`get_wedding_songs`**: Returns the collection of 13 wedding songs (BPM, YouTube ID).
-*   **`get_step_instructions`**: Returns the structured 4-phase methodology.
-*   **`recommend_song_by_bpm`**: Recommends a song based on level (beginner/intermediate/advanced).
-
-### Discovery Manifest:
-The manifest describes the tools and exposes the methodology as a resource:
-`dance://methodology/szuraniec`
+|  # | Artist — Song                                  | BPM |
+| -: | ---------------------------------------------- | --: |
+|  1 | Akcent — Życie To Są Chwile                    | 120 |
+|  2 | Boys — Najpiękniejsza Dziewczyno               | 124 |
+|  3 | Akcent — Prawdziwa Miłość to Ty (Cudowna jest) | 124 |
+|  4 | Masters — Żono moja                            | 125 |
+|  5 | MIG — Miód Malina                              | 126 |
+|  6 | Boys — Jesteś Szalona                          | 128 |
+|  7 | Boys — Moja kochana                            | 128 |
+|  8 | Daj to głośniej — Mama ostrzegała              | 128 |
+|  9 | Boys — Wolność                                 | 130 |
+| 10 | Weekend — Ona Tańczy Dla Mnie                  | 130 |
+| 11 | Czadoman — Ruda tańczy jak szalona             | 132 |
+| 12 | Akcent — Przez Twe Oczy Zielone                | 135 |
+| 13 | Piękni i Młodzi — Niewiara                     | 138 |
 
 ---
 
-# 🧠 Human + Agent + Application
+# 🎚️ Adaptive Practice
 
-WebMCP creates a collaboration layer: The human remains in control of the dancing, while the agent helps navigate the application's knowledge and capabilities.
-
+The application supports three practice speeds:
 ```text
-             ┌─────────────────┐
+0.5×   → slow learning
+1.0×   → normal speed
+1.25×  → challenge mode
+🤖 WebMCP Integration
+The application exposes structured capabilities that agents can use directly.
+Available tools
+get_wedding_songs
+Returns the collection of 13 wedding songs, including song identifier, BPM, and YouTube ID.
+get_step_instructions
+Returns the structured methodology for the four phases of the dance (timing, weight distribution, and direction).
+recommend_song_by_bpm
+Recommends a song based on the dancer's skill level (beginner, intermediate, advanced).
+🌐 Why WebMCP Is a Natural Fit
+Dance coaching is intent-based. Without WebMCP, an agent would have to rely on scraping the UI or giving generic advice. With WebMCP, the agent accesses explicitly defined application capabilities:
+Contextual Assistance: "I'm a beginner — what should I practice?"
+Precise Data: "What is the exact timing for the syncopation?"
+Direct Control: The agent uses structured tools to recommend songs and explain methodology based on real-time app data.
+🧠 Human + Agent + Application
+WebMCP creates a collaboration layer:
+code
+Text
+┌─────────────────┐
              │      Human      │
              │   “Help me      │
              │    practice”    │
@@ -108,3 +123,20 @@ WebMCP creates a collaboration layer: The human remains in control of the dancin
              │ Dwa na Jeden    │
              │ Dance Coach     │
              └─────────────────┘
+🔊 Tech Stack
+Framework: Next.js, React, TypeScript.
+Protocol: WebMCP / Model Context Protocol.
+Audio: Web Audio API (Precision rhythm guidance).
+Feedback: Web Vibration API (Haptic feedback).
+Integration: YouTube IFrame API.
+Deployment: Netlify.
+🚀 Running Locally
+pnpm install
+pnpm dev
+Open http://localhost:3000
+📜 License
+This project is licensed under the MIT License. (Required for the WebMCP Challenge).
+🏆 The WebMCP Challenge
+Dwa na Jeden — Wedding Dance AI Coach was created for The WebMCP Challenge. It explores what happens when a normal website becomes something an AI agent can actively use to solve real-world human problems.
+💃🕺 Learn the step. Pick the music. Let the agent help.
+Dwa na Jeden — Wedding Dance AI Coach
