@@ -6,70 +6,114 @@
 🎥 **Demo video:** https://www.youtube.com/watch?v=6MDFggcT04g
 📡 **WebMCP manifest:** https://dwanajeden.netlify.app/.well-known/mcp.json
 
-Dwa na Jeden is a web application that helps people learn, practice, and improve a popular Polish wedding dance step through rhythm-based guidance, visual instructions, and interactive audio cues. It exposes structured tools through **WebMCP**, allowing AI agents to interact with the application directly.
+Dwa na Jeden is a web application that helps people learn, practice, and improve a popular Polish wedding dance step through **rhythm-based guidance, visual footwork instructions, interactive audio cues, adjustable practice speed, and real wedding music**.
+
+The project also exposes structured capabilities through **WebMCP (Model Context Protocol for the Web)**, allowing AI agents to interact with the application using tools instead of simply describing what the user should click.
 
 ---
 
 ## 🎥 Demo Video
+
+The following video demonstrates the application and its core functionality:
+
 **▶️ [Dwa na Jeden — Wedding Dance AI Coach Demo](https://www.youtube.com/watch?v=6MDFggcT04g)**
-The demo showcases the interactive dance-learning experience, music integration, and the WebMCP integration workflow.
+
+The demo showcases the interactive dance-learning experience, including the visual step guidance, rhythm-based practice, music integration, and the overall application workflow.
 
 ---
 
 # 🎯 The Problem
-Learning a wedding dance is a multi-tasking challenge. A beginner must understand footwork, weight distribution, and syncopation simultaneously. Traditional tutorials are static. **Dwa na Jeden** provides a real-time practice environment and makes the app's knowledge available to AI agents via WebMCP.
+
+Learning a wedding dance is often harder than it looks. A beginner has to simultaneously understand which foot moves, where the body weight goes, when the movement happens, and how to keep the rhythm.
+
+**Dwa na Jeden** combines these into one interactive practice environment and makes the application's knowledge available to AI agents through WebMCP.
 
 ---
 
 # 🕺 The Dance: “Dwa na Jeden”
-The movement consists of four phases (1 + 1 + 0.5 + 0.5 = 3 beats):
 
-| Phase | Timing | Movement |
-| :--- | :--- | :--- |
-| **1 — One** | 1 beat | Left foot moves sideways; weight on the right. |
-| **2 — Two** | 1 beat | Right foot closes in and takes the weight. |
-| **3 — Three** | 0.5 beat | Quick movement of the leading foot. |
-| **and** | 0.5 beat | Syncopated closing movement. |
+The basic movement consists of four phases (1 + 1 + 0.5 + 0.5 = 3 beats):
 
----
+| Phase         |   Timing | Movement                                                        |
+| ------------- | -------: | --------------------------------------------------------------- |
+| **1 — One**   |   1 beat | Left foot moves sideways while weight remains on the right foot |
+| **2 — Two**   |   1 beat | Right foot closes in and takes the weight                       |
+| **3 — Three** | 0.5 beat | Quick movement of the leading foot                              |
+| **and**       | 0.5 beat | Syncopated closing movement                                     |
 
-# 🌐 Why WebMCP Is a Natural Fit
-WebMCP allows an agent to act as a personal coach. Instead of scraping the UI, the agent accesses:
-* **`get_wedding_songs`**: Database of 13 wedding hits (BPM, YouTube ID).
-* **`get_step_instructions`**: Structured 4-phase methodology.
-* **`recommend_song_by_bpm`**: Level-based recommendations (beginner, intermediate, advanced).
+The direction alternates between bars, creating a continuous mirrored movement.
+
+### Baby Steps Mode
+The **Baby Steps** mode reduces the size of the movements, pozwalając początkującym skupić się na rytmie i przenoszeniu ciężaru ciała.
 
 ---
 
-# 🧠 Human + Agent + Application Model
+# 🎵 13 Polish Wedding Songs
+
+|  # | Artist — Song                                  | BPM |
+| -: | ---------------------------------------------- | --: |
+|  1 | Akcent — Życie To Są Chwile                    | 120 |
+|  2 | Boys — Najpiękniejsza Dziewczyno               | 124 |
+|  3 | Akcent — Prawdziwa Miłość to Ty (Cudowna jest) | 124 |
+|  4 | Masters — Żono moja                            | 125 |
+|  5 | MIG — Miód Malina                              | 126 |
+|  6 | Boys — Jesteś Szalona                          | 128 |
+|  7 | Boys — Moja kochana                            | 128 |
+|  8 | Daj to głośniej — Mama ostrzegała              | 128 |
+|  9 | Boys — Wolność                                 | 130 |
+| 10 | Weekend — Ona Tańczy Dla Mnie                  | 130 |
+| 11 | Czadoman — Ruda tańczy jak szalona             | 132 |
+| 12 | Akcent — Przez Twe Oczy Zielone                | 135 |
+| 13 | Piękni i Młodzi — Niewiara                     | 138 |
+
+---
+
+# 🎚️ Adaptive Practice
+
+The application supports three practice speeds:
 ```text
-Human (“Help me practice”) -> AI Agent -> WebMCP -> Dwa na Jeden App
-🎵 13 Polish Wedding Songs
-#	Artist — Song	BPM
-1	Akcent — Życie To Są Chwile	120
-2	Boys — Najpiękniejsza Dziewczyno	124
-3	Akcent — Prawdziwa Miłość to Ty	124
-4	Masters — Żono moja	125
-5	MIG — Miód Malina	126
-6	Boys — Jesteś Szalona	128
-7	Boys — Moja kochana	128
-8	Daj to głośniej — Mama ostrzegała	128
-9	Boys — Wolność	130
-10	Weekend — Ona Tańczy Dla Mnie	130
-11	Czadoman — Ruda tańczy jak szalona	132
-12	Akcent — Przez Twe Oczy Zielone	135
-13	Piękni i Młodzi — Niewiara	138
-🔊 Tech Stack
-Framework: Next.js, React, TypeScript.
-Protocol: WebMCP (Model Context Protocol).
-APIs: Web Audio API, Web Vibration API, YouTube IFrame API.
-Hosting: Netlify.
-🚀 Running Locally
-pnpm install
-pnpm dev
-Open http://localhost:3000
-📜 License
-Licensed under the MIT License. (Requirement for The WebMCP Challenge).
-🏆 The WebMCP Challenge
-Created for The WebMCP Challenge. It demonstrates how WebMCP turns a traditional website into a set of tools that both people and AI agents can interact with to solve real-world problems.
-Dwa na Jeden — Wedding Dance AI Coach
+0.5×   → slow learning
+1.0×   → normal speed
+1.25×  → challenge mode┌─────────────────┐
+             │      Human      │
+             │   “Help me      │
+             │    practice”    │
+             └────────┬────────┘
+                      ↓
+             ┌─────────────────┐
+             │    AI Agent     │
+             │ understands     │
+             │ the request     │
+             └────────┬────────┘
+                      ↓
+             ┌─────────────────┐
+             │     WebMCP      │
+             │ structured      │
+             │ capabilities   │
+             └────────┬────────┘
+                      ↓
+             ┌─────────────────┐
+             │ Dwa na Jeden    │
+             │ Dance Coach     │
+             └─────────────────┘┌─────────────────┐
+             │      Human      │
+             │   “Help me      │
+             │    practice”    │
+             └────────┬────────┘
+                      ↓
+             ┌─────────────────┐
+             │    AI Agent     │
+             │ understands     │
+             │ the request     │
+             └────────┬────────┘
+                      ↓
+             ┌─────────────────┐
+             │     WebMCP      │
+             │ structured      │
+             │ capabilities   │
+             └────────┬────────┘
+                      ↓
+             ┌─────────────────┐
+             │ Dwa na Jeden    │
+             │ Dance Coach     │
+             └─────────────────┘
