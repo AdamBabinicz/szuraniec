@@ -3,6 +3,7 @@
 const readline = require("readline");
 
 const APP_URL = "https://dwanajeden.netlify.app";
+const PROTOCOL_VERSION = "2024-11-05";
 
 const SONGS = [
   {
@@ -134,6 +135,34 @@ const INSTRUCTIONS = {
   ],
   timing:
     "The complete pattern lasts 3 beats: 1 + 1 + 0.5 + 0.5. The direction alternates every bar.",
+  babySteps:
+    "Baby Steps mode reduces movement size so beginners can focus on rhythm and weight transfer before increasing amplitude.",
+};
+
+const LEVEL_RANGES = {
+  beginner: {
+    min: 120,
+    max: 124,
+    explanation:
+      "A slower tempo is recommended for learning the basic movement and weight transfer.",
+  },
+  intermediate: {
+    min: 125,
+    max: 130,
+    explanation:
+      "A medium tempo is suitable for dancers who already know the basic pattern.",
+  },
+  advanced: {
+    min: 132,
+    max: 138,
+    explanation:
+      "A faster tempo provides a more energetic wedding-dance challenge.",
+  },
+};
+
+const RESOURCE_URIS = {
+  methodology: "dance://methodology/szuraniec",
+  songs: "dance://songs/wedding-hits",
 };
 
 function getSongUrl(song) {
@@ -148,46 +177,147 @@ function serializeSong(song) {
   };
 }
 
-function recommendSong(level) {
-  const ranges = {
-    beginner: {
-      min: 120,
-      max: 124,
-      explanation:
-        "A slower tempo is recommended for learning the basic movement and weight transfer.",
-    },
-    intermediate: {
-      min: 125,
-      max: 130,
-      explanation:
-        "A medium tempo is suitable for dancers who already know the basic pattern.",
-    },
-    advanced: {
-      min: 132,
-      max: 138,
-      explanation:
-        "A faster tempo provides a more energetic wedding-dance challenge.",
-    },
+function getWeddingSongsPayload() {
+  return {
+    count: SONGS.length,
+    description:
+      "13 Polish wedding songs selected for practicing the Szuraniec / Disco Fox 2-on-1 step.",
+    songs: SONGS.map(serializeSong),
   };
+}
 
-  const selectedRange = ranges[level] || ranges.beginner;
+function getMethodologyPayload() {
+  return {
+    ...INSTRUCTIONS,
+    appUrl: APP_URL,
+  };
+}
+
+function recommendSong(level) {
+  const normalizedLevel = LEVEL_RANGES[level] ? level : "beginner";
+  const selectedRange = LEVEL_RANGES[normalizedLevel];
 
   const candidates = SONGS.filter(
     (song) => song.bpm >= selectedRange.min && song.bpm <= selectedRange.max,
   );
 
   const song =
-    level === "beginner"
+    normalizedLevel === "beginner"
       ? candidates[0]
-      : level === "intermediate"
+      : normalizedLevel === "intermediate"
         ? candidates[Math.floor(candidates.length / 2)]
         : candidates[candidates.length - 1];
 
   return {
-    level: level || "beginner",
+    level: normalizedLevel,
     recommendedSong: serializeSong(song),
+    bpmRange: {
+      min: selectedRange.min,
+      max: selectedRange.max,
+    },
     reason: selectedRange.explanation,
   };
+}
+
+function jsonRpcResult(id, result) {
+  return {
+    jsonrpc: "2.0",
+    id,
+    result,
+  };
+}
+
+function jsonRpcError(id, code, message) {
+  return {
+    jsonrpc: "2.0",
+    id,
+    error: {
+      code,
+      message,
+    },
+  };
+}
+
+function stringifyTextContent(payload) {
+  return JSON.stringify(payload, null, 2);
+}
+
+function listTools() {
+  return [
+    {
+      name: "get_wedding_songs",
+      description:
+        "Returns the complete library of 13 verified Polish wedding songs, including artist, BPM, YouTube ID, YouTube URL, and a direct training URL.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "get_step_instructions",
+      description:
+        "Returns the complete English instructions and timing for the four phases of the Szuraniec / Disco Fox 2-on-1 wedding dance step.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "recommend_song_by_bpm",
+      description:
+        "Recommends a wedding song from the 13-song training library based on the dancer's level: beginner, intermediate, or advanced.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          level: {
+            type: "string",
+            enum: ["beginner", "intermediate", "advanced"],
+            description: "The dancer's experience level.",
+          },
+        },
+        required: ["level"],
+      },
+    },
+  ];
+}
+
+function listResources() {
+  return [
+    {
+      uri: RESOURCE_URIS.methodology,
+      name: "Szuraniec dance methodology",
+      description:
+        "Machine-readable methodology, timing, and four movement phases for the Szuraniec / Disco Fox 2-on-1 wedding dance step.",
+      mimeType: "application/json",
+    },
+    {
+      uri: RESOURCE_URIS.songs,
+      name: "Polish wedding hits library",
+      description:
+        "Machine-readable library of 13 verified Polish wedding songs with BPM, YouTube URLs, and direct training URLs.",
+      mimeType: "application/json",
+    },
+  ];
+}
+
+function readResource(uri) {
+  if (uri === RESOURCE_URIS.methodology) {
+    return {
+      uri,
+      mimeType: "application/json",
+      text: stringifyTextContent(getMethodologyPayload()),
+    };
+  }
+
+  if (uri === RESOURCE_URIS.songs) {
+    return {
+      uri,
+      mimeType: "application/json",
+      text: stringifyTextContent(getWeddingSongsPayload()),
+    };
+  }
+
+  return null;
 }
 
 const rl = readline.createInterface({
@@ -220,68 +350,38 @@ rl.on("line", (line) => {
 });
 
 function handleRpc(req) {
-  const { id, method, params } = req;
+  const { id, method, params } = req || {};
+
+  if (!method) {
+    return jsonRpcError(id ?? null, -32600, "Missing method.");
+  }
+
+  if (method === "notifications/initialized") {
+    return null;
+  }
+
+  if (method === "ping") {
+    return jsonRpcResult(id, {});
+  }
 
   if (method === "initialize") {
-    return {
-      jsonrpc: "2.0",
-      id,
-      result: {
-        protocolVersion: "2024-11-05",
-        capabilities: {
-          tools: {},
-        },
-        serverInfo: {
-          name: "dwa-na-jeden-trainer",
-          version: "2.0.0",
-        },
+    return jsonRpcResult(id, {
+      protocolVersion: PROTOCOL_VERSION,
+      capabilities: {
+        tools: {},
+        resources: {},
       },
-    };
+      serverInfo: {
+        name: "dwa-na-jeden-trainer",
+        version: "2.0.0",
+      },
+    });
   }
 
   if (method === "tools/list") {
-    return {
-      jsonrpc: "2.0",
-      id,
-      result: {
-        tools: [
-          {
-            name: "get_wedding_songs",
-            description:
-              "Returns the complete library of 13 verified Polish wedding songs, including artist, BPM, YouTube ID, YouTube URL, and a direct training URL.",
-            inputSchema: {
-              type: "object",
-              properties: {},
-            },
-          },
-          {
-            name: "get_step_instructions",
-            description:
-              "Returns the complete English instructions and timing for the four phases of the Szuraniec / Disco Fox 2-on-1 wedding dance step.",
-            inputSchema: {
-              type: "object",
-              properties: {},
-            },
-          },
-          {
-            name: "recommend_song_by_bpm",
-            description:
-              "Recommends a wedding song from the 13-song training library based on the dancer's level: beginner, intermediate, or advanced.",
-            inputSchema: {
-              type: "object",
-              properties: {
-                level: {
-                  type: "string",
-                  enum: ["beginner", "intermediate", "advanced"],
-                  description: "The dancer's experience level.",
-                },
-              },
-              required: ["level"],
-            },
-          },
-        ],
-      },
-    };
+    return jsonRpcResult(id, {
+      tools: listTools(),
+    });
   }
 
   if (method === "tools/call") {
@@ -289,80 +389,61 @@ function handleRpc(req) {
     const args = params?.arguments || {};
 
     if (name === "get_wedding_songs") {
-      return {
-        jsonrpc: "2.0",
-        id,
-        result: {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(
-                {
-                  count: SONGS.length,
-                  description:
-                    "13 Polish wedding songs selected for practicing the Szuraniec / Disco Fox 2-on-1 step.",
-                  songs: SONGS.map(serializeSong),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        },
-      };
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent(getWeddingSongsPayload()),
+          },
+        ],
+      });
     }
 
     if (name === "get_step_instructions") {
-      return {
-        jsonrpc: "2.0",
-        id,
-        result: {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(INSTRUCTIONS, null, 2),
-            },
-          ],
-        },
-      };
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent(getMethodologyPayload()),
+          },
+        ],
+      });
     }
 
     if (name === "recommend_song_by_bpm") {
-      const level = ["beginner", "intermediate", "advanced"].includes(
-        args.level,
-      )
-        ? args.level
-        : "beginner";
+      const recommendation = recommendSong(args.level);
 
-      const recommendation = recommendSong(level);
-
-      return {
-        jsonrpc: "2.0",
-        id,
-        result: {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(recommendation, null, 2),
-            },
-          ],
-        },
-      };
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent(recommendation),
+          },
+        ],
+      });
     }
 
-    return {
-      jsonrpc: "2.0",
-      id,
-      error: {
-        code: -32601,
-        message: `Unknown tool: ${name}`,
-      },
-    };
+    return jsonRpcError(id, -32601, `Unknown tool: ${name}`);
   }
 
-  return {
-    jsonrpc: "2.0",
-    id,
-    result: {},
-  };
+  if (method === "resources/list") {
+    return jsonRpcResult(id, {
+      resources: listResources(),
+    });
+  }
+
+  if (method === "resources/read") {
+    const uri = params?.uri;
+    const resource = readResource(uri);
+
+    if (!resource) {
+      return jsonRpcError(id, -32602, `Unknown resource URI: ${uri}`);
+    }
+
+    return jsonRpcResult(id, {
+      contents: [resource],
+    });
+  }
+
+  return jsonRpcError(id, -32601, `Unknown method: ${method}`);
 }

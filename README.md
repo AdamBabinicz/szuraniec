@@ -1,6 +1,6 @@
 # Dwa na Jeden — Wedding Dance AI Coach 💃🕺
 
-**An AI-powered interactive coach for learning the Polish wedding dance step “Dwa na Jeden” (Szuraniec / Disco Fox 2-to-1).**
+**An AI-powered interactive coach for learning the Polish wedding dance step “Dwa na Jeden” (Szuraniec / Disco Fox 2-on-1).**
 
 🌐 **Live demo:** https://dwanajeden.netlify.app/
 
@@ -78,7 +78,7 @@ The **Baby Steps** mode reduces the size of the movements, allowing beginners to
 
 ## 🎵 13 Polish Wedding Songs
 
-The application includes **13 real Polish wedding hits**, each represented by a song identifier, BPM value, and YouTube video ID.
+The application includes **13 real Polish wedding hits**, each represented by a song identifier, BPM value, YouTube ID, YouTube URL, and a direct training URL.
 
 |  # | Artist — Song                                  | BPM |
 | -: | ---------------------------------------------- | --: |
@@ -104,19 +104,19 @@ The range from **120 to 138 BPM** makes it possible to progress naturally from s
 
 ## 🎚️ Adaptive Practice
 
-The songs are grouped by difficulty:
+The songs are grouped by difficulty. The same BPM ranges drive the `recommend_song_by_bpm` tool:
 
-### 🟢 Beginner — 120–126 BPM
+### 🟢 Beginner — 120–124 BPM
 
-Designed for learning the basic timing, footwork, and weight transfer.
+A slower tempo, designed for learning the basic timing, footwork, and weight transfer.
 
-### 🟡 Intermediate — 128–132 BPM
+### 🟡 Intermediate — 125–130 BPM
 
-Designed for developing smoothness and maintaining the pattern at a more realistic dance-floor tempo.
+A medium tempo, designed for developing smoothness and maintaining the pattern at a more realistic dance-floor tempo.
 
-### 🔴 Advanced — 135–138 BPM
+### 🔴 Advanced — 132–138 BPM
 
-Designed for experienced dancers who want to maintain the pattern at a fast tempo.
+A faster tempo, designed for experienced dancers who want to maintain the pattern at a fast, energetic wedding-floor pace.
 
 The application also supports three practice speeds:
 
@@ -155,8 +155,11 @@ Structured dance & music data
 Returns the application's complete collection of 13 wedding songs, including:
 
 * song identifier,
+* artist and title,
 * BPM,
-* YouTube ID.
+* YouTube ID,
+* YouTube URL,
+* direct training URL (`https://dwanajeden.netlify.app/?song=<id>`).
 
 An agent can use this information to recommend appropriate music without guessing.
 
@@ -171,16 +174,16 @@ THREE → 0.5 beat
 AND   → 0.5 beat
 ```
 
-The response also contains information about movement direction, weight distribution, timing, and the Baby Steps methodology.
+The response also contains the step name (“Szuraniec”), the alternative name (“Disco Fox 2-on-1”), the overall timing, and the Baby Steps methodology.
 
 #### `recommend_song_by_bpm`
 
 Recommends a song based on the dancer's skill level:
 
 ```text
-beginner
-intermediate
-advanced
+beginner      → 120–124 BPM
+intermediate  → 125–130 BPM
+advanced      → 132–138 BPM
 ```
 
 For example, an agent can handle a request such as:
@@ -188,26 +191,6 @@ For example, an agent can handle a request such as:
 > “I'm a beginner. Which song should I practice with?”
 
 and use the application's structured song data to make the recommendation.
-
-**Note — keep BPM ranges consistent with the live manifest.** The level ranges in this README (120–126 / 128–132 / 135–138 BPM) match the 13-song database exactly. The live manifest (`.well-known/mcp.json`) currently describes `recommend_song_by_bpm` with different ranges (120–124 / 125–130 / 132–138 BPM). To keep both sources in sync, update the tool's description in the manifest to:
-
-```json
-{
-  "name": "recommend_song_by_bpm",
-  "description": "Rekomenduje utwór weselny dopasowany do poziomu zaawansowania (początkujący: 120-126 BPM, średniozaawansowany: 128-132 BPM, weselny ogień: 135-138 BPM).",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "level": {
-        "type": "string",
-        "enum": ["beginner", "intermediate", "advanced"],
-        "description": "Poziom zaawansowania tancerza."
-      }
-    },
-    "required": ["level"]
-  }
-}
-```
 
 ---
 
@@ -225,15 +208,16 @@ Production URL:
 https://dwanajeden.netlify.app/.well-known/mcp.json
 ```
 
-The manifest describes the available tools and exposes the dance methodology as a structured resource.
+The manifest describes the available tools and exposes the dance methodology and the song library as structured resources.
 
-One of the available resources is:
+The available resources are:
 
 ```text
 dance://methodology/szuraniec
+dance://songs/wedding-hits
 ```
 
-This provides machine-readable information about the basic dance pattern.
+The first provides machine-readable information about the basic dance pattern; the second exposes the full 13-song training library (artist, BPM, YouTube URL, training URL).
 
 ---
 
@@ -327,6 +311,8 @@ export type Song = {
 };
 ```
 
+At runtime each song is enriched with a **YouTube URL** and a **direct training URL** pointing at the practice view for that song.
+
 The current database contains 13 songs, ranging from 120 to 138 BPM.
 
 Each song entry connects the application's structured music data with a corresponding YouTube video through its YouTube ID.
@@ -360,10 +346,10 @@ AND   → 0.5 beat
 
 Each phase contains information about:
 
+* the step number and name,
+* duration,
 * movement direction,
 * weight-bearing foot,
-* duration,
-* audio cue,
 * syncopation.
 
 The engine automatically mirrors the movement direction between bars.
@@ -482,7 +468,7 @@ The project combines a real-world human problem with an agent-friendly web inter
 * 🎥 YouTube music integration
 * 🎬 Application demo video
 * 🤖 WebMCP tools for AI agents
-* 📡 `.well-known/mcp.json` discovery manifest
+* 📡 `.well-known/mcp.json` discovery manifest (tools + structured resources)
 * 🌍 Polish and English interfaces
 * ⚡ Browser-native APIs
 * ☁️ Deployed on Netlify
