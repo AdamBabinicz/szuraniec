@@ -3,8 +3,8 @@
 **An AI-powered interactive coach for learning the Polish wedding dance step “Dwa na Jeden” (Szuraniec / Disco Fox 2-to-1).**
 
 🌐 **Live demo:** https://dwanajeden.netlify.app/
+
 🎥 **Demo video:** https://www.youtube.com/watch?v=6MDFggcT04g
-📡 **WebMCP manifest:** https://dwanajeden.netlify.app/.well-known/mcp.json
 
 Dwa na Jeden is a web application that helps people learn, practice, and improve a popular Polish wedding dance step through **rhythm-based guidance, visual footwork instructions, interactive audio cues, adjustable practice speed, and real wedding music**.
 
@@ -24,15 +24,26 @@ The demo showcases the interactive dance-learning experience, including the visu
 
 # 🎯 The Problem
 
-Learning a wedding dance is often harder than it looks. A beginner has to simultaneously understand which foot moves, where the body weight goes, when the movement happens, and how to keep the rhythm.
+Learning a wedding dance is often harder than it looks.
 
-**Dwa na Jeden** combines these into one interactive practice environment and makes the application's knowledge available to AI agents through WebMCP.
+A beginner has to simultaneously understand:
+
+* which foot moves,
+* where the body weight goes,
+* when the movement happens,
+* how the syncopation works,
+* which direction to move,
+* and how to keep the rhythm when real music starts playing.
+
+Traditional dance tutorials usually explain these elements separately.
+
+**Dwa na Jeden combines them into one interactive practice environment — and makes the application's knowledge available to AI agents through WebMCP.**
 
 ---
 
 # 🕺 The Dance: “Dwa na Jeden”
 
-The basic movement consists of four phases (1 + 1 + 0.5 + 0.5 = 3 beats):
+The basic movement consists of four phases:
 
 | Phase         |   Timing | Movement                                                        |
 | ------------- | -------: | --------------------------------------------------------------- |
@@ -41,14 +52,33 @@ The basic movement consists of four phases (1 + 1 + 0.5 + 0.5 = 3 beats):
 | **3 — Three** | 0.5 beat | Quick movement of the leading foot                              |
 | **and**       | 0.5 beat | Syncopated closing movement                                     |
 
+The complete pattern lasts:
+
+**1 + 1 + 0.5 + 0.5 = 3 beats**
+
 The direction alternates between bars, creating a continuous mirrored movement.
 
-### Baby Steps Mode
-The **Baby Steps** mode reduces the size of the movements, pozwalając początkującym skupić się na rytmie i przenoszeniu ciężaru ciała.
+### Practice methodology
+
+The application follows a beginner-friendly approach based on:
+
+* bent knees,
+* no jumping,
+* sliding the feet across the floor,
+* small controlled movements,
+* conscious weight transfer,
+* gradual speed progression,
+* mirrored left/right movement.
+
+### Baby Steps
+
+The **Baby Steps** mode reduces the size of the movements, allowing beginners to focus on rhythm and weight transfer before increasing the amplitude of their steps.
 
 ---
 
 # 🎵 13 Polish Wedding Songs
+
+The application includes **13 real Polish wedding hits**, each represented by a song identifier, BPM value, and YouTube video ID.
 
 |  # | Artist — Song                                  | BPM |
 | -: | ---------------------------------------------- | --: |
@@ -66,54 +96,37 @@ The **Baby Steps** mode reduces the size of the movements, pozwalając początku
 | 12 | Akcent — Przez Twe Oczy Zielone                | 135 |
 | 13 | Piękni i Młodzi — Niewiara                     | 138 |
 
+The range from **120 to 138 BPM** makes it possible to progress naturally from slower practice songs to faster wedding-floor tempos.
+
+> **Note:** The demo video linked above is the project's application demonstration video. It is separate from the 13-song music database.
+
 ---
 
 # 🎚️ Adaptive Practice
 
-The application supports three practice speeds:
+The songs are grouped by difficulty:
+
+### 🟢 Beginner
+
+Approximately **120–126 BPM**
+
+Designed for learning the basic timing, footwork, and weight transfer.
+
+### 🟡 Intermediate
+
+Approximately **128–132 BPM**
+
+Designed for developing smoothness and maintaining the pattern at a more realistic dance-floor tempo.
+
+### 🔴 Advanced
+
+Approximately **135–138 BPM**
+
+Designed for experienced dancers who want to maintain the pattern at a fast tempo.
+
+The application also supports three practice speeds:
+
 ```text
 0.5×   → slow learning
 1.0×   → normal speed
-1.25×  → challenge mode┌─────────────────┐
-             │      Human      │
-             │   “Help me      │
-             │    practice”    │
-             └────────┬────────┘
-                      ↓
-             ┌─────────────────┐
-             │    AI Agent     │
-             │ understands     │
-             │ the request     │
-             └────────┬────────┘
-                      ↓
-             ┌─────────────────┐
-             │     WebMCP      │
-             │ structured      │
-             │ capabilities   │
-             └────────┬────────┘
-                      ↓
-             ┌─────────────────┐
-             │ Dwa na Jeden    │
-             │ Dance Coach     │
-             └─────────────────┘┌─────────────────┐
-             │      Human      │
-             │   “Help me      │
-             │    practice”    │
-             └────────┬────────┘
-                      ↓
-             ┌─────────────────┐
-             │    AI Agent     │
-             │ understands     │
-             │ the request     │
-             └────────┬────────┘
-                      ↓
-             ┌─────────────────┐
-             │     WebMCP      │
-             │ structured      │
-             │ capabilities   │
-             └────────┬────────┘
-                      ↓
-             ┌─────────────────┐
-             │ Dwa na Jeden    │
-             │ Dance Coach     │
-             └─────────────────┘
+1.25×  → challenge mode
