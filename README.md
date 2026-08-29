@@ -130,3 +130,233 @@ The application also supports three practice speeds:
 0.5×   → slow learning
 1.0×   → normal speed
 1.25×  → challenge mode
+🤖 WebMCP Integration
+WebMCP is a core part of this project.
+Instead of forcing an AI agent to interpret the application's UI, the application exposes structured tools and resources that an agent can use directly.
+This creates a simple interaction model:
+code
+Text
+User
+  ↓
+AI Agent
+  ↓
+WebMCP
+  ↓
+Dwa na Jeden tools
+  ↓
+Structured dance & music data
+Available tools
+get_wedding_songs
+Returns the application's complete collection of 13 wedding songs, including:
+song identifier,
+BPM,
+YouTube ID.
+An agent can use this information to recommend appropriate music without guessing.
+get_step_instructions
+Returns the structured methodology for the four phases of the dance:
+code
+Text
+ONE   → 1 beat
+TWO   → 1 beat
+THREE → 0.5 beat
+AND   → 0.5 beat
+The response also contains information about movement direction, weight distribution, timing, and the Baby Steps methodology.
+recommend_song_by_bpm
+Recommends a song based on the dancer's skill level:
+code
+Text
+beginner
+intermediate
+advanced
+For example, an agent can handle a request such as:
+“I'm a beginner. Which song should I practice with?”
+and use the application's structured song data to make the recommendation.
+📡 WebMCP Discovery Manifest
+The application publishes a WebMCP discovery manifest at:
+code
+Text
+/.well-known/mcp.json
+Production URL:
+code
+Text
+https://dwanajeden.netlify.app/.well-known/mcp.json
+The manifest describes the available tools and exposes the dance methodology as a structured resource.
+One of the available resources is:
+code
+Text
+dance://methodology/szuraniec
+This provides machine-readable information about the basic dance pattern.
+🌐 Why WebMCP Is a Natural Fit
+This project is not using WebMCP simply as an add-on.
+Dance coaching is an example of a task where users naturally ask contextual questions:
+“I'm a beginner — what should I practice?”
+“Give me a slower song.”
+“What is the correct timing?”
+“Which foot takes the weight?”
+“Can I practice this at half speed?”
+An AI agent can understand these requests and use the application's structured capabilities to provide answers based on the actual application data.
+Without WebMCP, an agent would have to rely on:
+scraping the UI,
+interpreting page content,
+guessing available functionality,
+or giving generic dance advice.
+With WebMCP, the agent can access explicitly defined application capabilities.
+🧠 Human + Agent + Application
+The goal is not to replace the dancer or the application.
+Instead, WebMCP creates a collaboration layer:
+code
+Text
+┌─────────────────┐
+             │      Human      │
+             │   “Help me      │
+             │    practice”    │
+             └────────┬────────┘
+                      ↓
+             ┌─────────────────┐
+             │    AI Agent     │
+             │ understands     │
+             │ the request     │
+             └────────┬────────┘
+                      ↓
+             ┌─────────────────┐
+             │     WebMCP      │
+             │ structured      │
+             │ capabilities   │
+             └────────┬────────┘
+                      ↓
+             ┌─────────────────┐
+             │ Dwa na Jeden    │
+             │ Dance Coach     │
+             └─────────────────┘
+The human remains in control of the actual dancing, while the agent can help navigate the application's knowledge and capabilities.
+🔊 Browser Technologies
+The application combines several browser-native and web technologies:
+Next.js
+React
+TypeScript
+WebMCP / Model Context Protocol
+Web Audio API
+Web Vibration API
+YouTube IFrame API
+Netlify
+PL / EN internationalization
+The result is a browser-based dance coach that combines visual, audio, and AI-agent interaction.
+🎧 Music Integration
+Songs are represented in the application as structured data:
+code
+Ts
+export type Song = {
+  id: keyof typeof pl.SONG_NAMES;
+  bpm: number;
+  youtubeId: string;
+};
+The current database contains 13 songs, ranging from 120 to 138 BPM.
+Each song entry connects the application's structured music data with a corresponding YouTube video through its YouTube ID.
+This allows the application to combine:
+code
+Text
+Song
+ ↓
+BPM
+ ↓
+Practice difficulty
+ ↓
+YouTube music
+ ↓
+Dance practice
+🧩 Step Engine
+The dance pattern is represented programmatically as four phases:
+code
+Ts
+ONE   → 1 beat
+TWO   → 1 beat
+THREE → 0.5 beat
+AND   → 0.5 beat
+Each phase contains information about:
+movement direction,
+weight-bearing foot,
+duration,
+audio cue,
+syncopation.
+The engine automatically mirrors the movement direction between bars.
+This allows the same underlying model to drive both the visual footwork instructions and the rhythm guidance.
+🌍 Internationalization
+The application supports:
+code
+Text
+Polish 🇵🇱
+English 🇬🇧
+Translations are stored separately:
+code
+Text
+locales/
+├── pl.json
+└── en.json
+The application interface can therefore be presented to both Polish users and an international audience.
+🚀 Running Locally
+Requirements
+Node.js
+pnpm
+a modern browser
+Install
+code
+Bash
+pnpm install
+Development
+code
+Bash
+pnpm dev
+The application will be available at the local development URL provided by Next.js, normally:
+code
+Text
+http://localhost:3000
+Production build
+code
+Bash
+pnpm build
+📜 License
+This project is licensed under the MIT License. (Required by The WebMCP Challenge).
+🧪 Testing WebMCP
+The production application is available at:
+code
+Text
+https://dwanajeden.netlify.app/
+The WebMCP discovery manifest is available at:
+code
+Text
+https://dwanajeden.netlify.app/.well-known/mcp.json
+The application should be tested in a WebMCP-capable browser/environment.
+For Chrome-based testing, use a version supporting WebMCP and enable the appropriate experimental WebMCP functionality if required by the current browser release.
+🏆 The WebMCP Challenge
+Dwa na Jeden — Wedding Dance AI Coach was created as a project for The WebMCP Challenge.
+The project explores a simple question:
+What happens when a normal website becomes something an AI agent can actively use?
+The answer here is a dance coach where the agent can understand the application's structured knowledge about:
+dance steps,
+timing,
+movement,
+music,
+BPM,
+and difficulty levels.
+The project combines a real-world human problem with an agent-friendly web interface, demonstrating how WebMCP can turn a traditional web application into something that both people and AI agents can interact with.
+💡 Project Highlights
+🎵 13 Polish wedding songs
+🕺 Structured Dwa na Jeden / Szuraniec dance methodology
+🎚️ 0.5× / 1× / 1.25× practice speeds
+👣 Baby Steps beginner mode
+🔊 Real-time audio rhythm guidance
+🎥 YouTube music integration
+🎬 Application demo video
+🤖 WebMCP tools for AI agents
+📡 .well-known/mcp.json discovery manifest
+🌍 Polish and English interfaces
+⚡ Browser-native APIs
+☁️ Deployed on Netlify
+🌐 Live Demo
+https://dwanajeden.netlify.app/
+🎥 Demo Video
+https://www.youtube.com/watch?v=6MDFggcT04g
+WebMCP Manifest
+https://dwanajeden.netlify.app/.well-known/mcp.json
+💃🕺 Learn the step. Pick the music. Let the agent help.
+Dwa na Jeden — Wedding Dance AI Coach
