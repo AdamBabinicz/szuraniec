@@ -1,7 +1,7 @@
 {
   "name": "dwa-na-jeden-trainer",
-  "version": "1.0.0",
-  "description": "Interaktywny asystent i trener weselnego kroku tanecznego Dwa na Jeden (Szuraniec / Disco Fox).",
+  "version": "2.0.0",
+  "description": "Interactive AI-assisted wedding dance coach for the Szuraniec / Disco Fox 2-on-1 step, with a library of 13 Polish wedding songs.",
   "schema_version": "2024-11-05",
   "capabilities": {
     "tools": true,
@@ -10,7 +10,7 @@
   "tools": [
     {
       "name": "get_wedding_songs",
-      "description": "Zwraca pełną bazę 13 zweryfikowanych polskich hitów weselnych z przypisanym tempem BPM i identyfikatorem YouTube.",
+      "description": "Returns the complete library of 13 Polish wedding songs selected for practicing the Szuraniec / Disco Fox 2-on-1 step. Each song includes its artist, BPM, YouTube ID, YouTube URL, and direct training URL.",
       "parameters": {
         "type": "object",
         "properties": {}
@@ -18,7 +18,7 @@
     },
     {
       "name": "get_step_instructions",
-      "description": "Zwraca metodykę i timing 4 faz kroku Szurańca (Baby Steps, ugięte kolana, synkopa 1, 2, 3 i).",
+      "description": "Returns the complete methodology and timing for the four phases of the Szuraniec wedding dance step: One, Two, Three and And.",
       "parameters": {
         "type": "object",
         "properties": {}
@@ -26,14 +26,14 @@
     },
     {
       "name": "recommend_song_by_bpm",
-      "description": "Rekomenduje utwór weselny dopasowany do poziomu zaawansowania (początkujący: 120-124 BPM, średniozaawansowany: 125-130 BPM, weselny ogień: 132-138 BPM).",
+      "description": "Recommends a song from the 13-song library according to dancer level: beginner, intermediate, or advanced.",
       "parameters": {
         "type": "object",
         "properties": {
           "level": {
             "type": "string",
             "enum": ["beginner", "intermediate", "advanced"],
-            "description": "Poziom zaawansowania tancerza."
+            "description": "The dancer's experience level."
           }
         },
         "required": ["level"]
@@ -43,9 +43,167 @@
   "resources": [
     {
       "uri": "dance://methodology/szuraniec",
-      "name": "Metodyka Szurańca",
+      "name": "Szuraniec Dance Methodology",
       "mimeType": "application/json",
-      "text": "Krok podstawowy: 1. Lewa noga w bok (1.0 bita), 2. Prawa noga dostawna (1.0 bita), 3. Lewa noga w bok (0.5 bita), i. Prawa noga dotknięcie parkietu bez obciążenia (0.5 bita). Całość w pętli lustrzanej."
+      "text": {
+        "stepName": "Szuraniec",
+        "alternativeName": "Disco Fox 2-on-1",
+        "timing": "3 beats total: 1 + 1 + 0.5 + 0.5",
+        "methodology": "Bent knees, no jumping, smooth sole-to-floor movement, controlled weight transfer, and optional Baby Steps for beginners.",
+        "phases": [
+          {
+            "step": 1,
+            "name": "One",
+            "duration": "1 beat",
+            "action": "The left foot slides to the left while body weight remains on the right foot."
+          },
+          {
+            "step": 2,
+            "name": "Two",
+            "duration": "1 beat",
+            "action": "The right foot closes toward the left foot and the body weight transfers to the moving foot."
+          },
+          {
+            "step": 3,
+            "name": "Three",
+            "duration": "0.5 beat",
+            "action": "A quick half-beat sliding movement with the leading foot."
+          },
+          {
+            "step": 4,
+            "name": "And",
+            "duration": "0.5 beat",
+            "action": "The other foot closes on the syncopation without creating a heavy step. The next bar mirrors the direction."
+          }
+        ]
+      }
+    },
+    {
+      "uri": "dance://songs/wedding-hits",
+      "name": "Polish Wedding Song Library",
+      "mimeType": "application/json",
+      "text": {
+        "count": 13,
+        "songs": [
+          {
+            "id": "chwile",
+            "title": "Życie To Są Chwile",
+            "artist": "Akcent",
+            "bpm": 120,
+            "youtubeId": "VkvRbfYeXLo",
+            "youtubeUrl": "https://www.youtube.com/watch?v=VkvRbfYeXLo",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=chwile"
+          },
+          {
+            "id": "dziewczyno",
+            "title": "Najpiękniejsza Dziewczyno",
+            "artist": "Boys",
+            "bpm": 124,
+            "youtubeId": "qOYuvB_pxIM",
+            "youtubeUrl": "https://www.youtube.com/watch?v=qOYuvB_pxIM",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=dziewczyno"
+          },
+          {
+            "id": "cudowna",
+            "title": "Prawdziwa Miłość to Ty",
+            "artist": "Akcent",
+            "bpm": 124,
+            "youtubeId": "k96jS1vurg4",
+            "youtubeUrl": "https://www.youtube.com/watch?v=k96jS1vurg4",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=cudowna"
+          },
+          {
+            "id": "zono",
+            "title": "Żono moja",
+            "artist": "Masters",
+            "bpm": 125,
+            "youtubeId": "J8t9d4TIVHQ",
+            "youtubeUrl": "https://www.youtube.com/watch?v=J8t9d4TIVHQ",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=zono"
+          },
+          {
+            "id": "miod",
+            "title": "Miód Malina",
+            "artist": "MIG",
+            "bpm": 126,
+            "youtubeId": "vwCWwZetRaI",
+            "youtubeUrl": "https://www.youtube.com/watch?v=vwCWwZetRaI",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=miod"
+          },
+          {
+            "id": "szalona",
+            "title": "Jesteś Szalona",
+            "artist": "Boys",
+            "bpm": 128,
+            "youtubeId": "c2i4h7Q-8sA",
+            "youtubeUrl": "https://www.youtube.com/watch?v=c2i4h7Q-8sA",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=szalona"
+          },
+          {
+            "id": "kochana",
+            "title": "Moja kochana",
+            "artist": "Boys",
+            "bpm": 128,
+            "youtubeId": "YIPQ6pPBX7w",
+            "youtubeUrl": "https://www.youtube.com/watch?v=YIPQ6pPBX7w",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=kochana"
+          },
+          {
+            "id": "mama",
+            "title": "Mama ostrzegała",
+            "artist": "Daj to głośniej",
+            "bpm": 128,
+            "youtubeId": "D0o6GsYoMak",
+            "youtubeUrl": "https://www.youtube.com/watch?v=D0o6GsYoMak",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=mama"
+          },
+          {
+            "id": "wolnosc",
+            "title": "Wolność",
+            "artist": "Boys",
+            "bpm": 130,
+            "youtubeId": "jO3DvsPzMww",
+            "youtubeUrl": "https://www.youtube.com/watch?v=jO3DvsPzMww",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=wolnosc"
+          },
+          {
+            "id": "ona_tanczy",
+            "title": "Ona Tańczy Dla Mnie",
+            "artist": "Weekend",
+            "bpm": 130,
+            "youtubeId": "JvxG3zl_WhU",
+            "youtubeUrl": "https://www.youtube.com/watch?v=JvxG3zl_WhU",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=ona_tanczy"
+          },
+          {
+            "id": "ruda",
+            "title": "Ruda tańczy jak szalona",
+            "artist": "Czadoman",
+            "bpm": 132,
+            "youtubeId": "tgw1yEcWpTU",
+            "youtubeUrl": "https://www.youtube.com/watch?v=tgw1yEcWpTU",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=ruda"
+          },
+          {
+            "id": "zielone",
+            "title": "Przez Twe Oczy Zielone",
+            "artist": "Akcent",
+            "bpm": 135,
+            "youtubeId": "cxtnot8lY4U",
+            "youtubeUrl": "https://www.youtube.com/watch?v=cxtnot8lY4U",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=zielone"
+          },
+          {
+            "id": "niewiara",
+            "title": "Niewiara",
+            "artist": "Piękni i Młodzi",
+            "bpm": 138,
+            "youtubeId": "FnqHOeqK7jQ",
+            "youtubeUrl": "https://www.youtube.com/watch?v=FnqHOeqK7jQ",
+            "trainingUrl": "https://dwanajeden.netlify.app/?song=niewiara"
+          }
+        ]
+      }
     }
   ]
 }
