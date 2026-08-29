@@ -215,3 +215,37 @@ WebMCP creates a collaboration layer: The human remains in control of the dancin
              │ Dwa na Jeden    │
              │ Dance Coach     │
              └─────────────────┘
+🎵 13 Polish Wedding Songs
+#	Artist — Song	BPM
+1	Akcent — Życie To Są Chwile	120
+2	Boys — Najpiękniejsza Dziewczyno	124
+3	Akcent — Prawdziwa Miłość to Ty (Cudowna jest)	124
+4	Masters — Żono moja	125
+5	MIG — Miód Malina	126
+6	Boys — Jesteś Szalona	128
+7	Boys — Moja kochana	128
+8	Daj to głośniej — Mama ostrzegała	128
+9	Boys — Wolność	130
+10	Weekend — Ona Tańczy Dla Mnie	130
+11	Czadoman — Ruda tańczy jak szalona	132
+12	Akcent — Przez Twe Oczy Zielone	135
+13	Piękni i Młodzi — Niewiara	138
+🔊 Browser Technologies & Tech Stack
+Next.js, React, TypeScript
+WebMCP / Model Context Protocol
+Web Audio API (Precision rhythm guidance)
+Web Vibration API (Haptic feedback)
+YouTube IFrame API (Music integration)
+Netlify (Deployment)
+🚀 Running Locally
+pnpm install
+pnpm dev
+Open http://localhost:3000
+📜 License
+This project is licensed under the MIT License. (Required for the WebMCP Challenge).
+🏆 The WebMCP Challenge
+Dwa na Jeden — Wedding Dance AI Coach was created as a project for The WebMCP Challenge. It explores what happens when a normal website becomes something an AI agent can actively use to solve real-world human problems.
+💃🕺 Learn the step. Pick the music. Let the agent help.
+Dwa na Jeden — Wedding Dance AI Coach
+code
+Code
