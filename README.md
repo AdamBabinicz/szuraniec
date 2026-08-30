@@ -28,12 +28,12 @@ Learning a wedding dance is often harder than it looks.
 
 A beginner has to simultaneously understand:
 
-* which foot moves,
-* where the body weight goes,
-* when the movement happens,
-* how the syncopation works,
-* which direction to move,
-* and how to keep the rhythm when real music starts playing.
+- which foot moves,
+- where the body weight goes,
+- when the movement happens,
+- how the syncopation works,
+- which direction to move,
+- and how to keep the rhythm when real music starts playing.
 
 Traditional dance tutorials usually explain these elements separately.
 
@@ -62,13 +62,13 @@ The direction alternates between bars, creating a continuous mirrored movement.
 
 The application follows a beginner-friendly approach based on:
 
-* bent knees,
-* no jumping,
-* sliding the feet across the floor,
-* small controlled movements,
-* conscious weight transfer,
-* gradual speed progression,
-* mirrored left/right movement.
+- bent knees,
+- no jumping,
+- sliding the feet across the floor,
+- small controlled movements,
+- conscious weight transfer,
+- gradual speed progression,
+- mirrored left/right movement.
 
 ### Baby Steps
 
@@ -80,21 +80,21 @@ The **Baby Steps** mode reduces the size of the movements, allowing beginners to
 
 The application includes **13 real Polish wedding hits**, each represented by a song identifier, BPM value, YouTube ID, YouTube URL, and a direct training URL.
 
-|  # | Artist — Song                                  | BPM |
-| -: | ---------------------------------------------- | --: |
-|  1 | Akcent — Życie To Są Chwile                    | 120 |
-|  2 | Boys — Najpiękniejsza Dziewczyno               | 124 |
-|  3 | Akcent — Prawdziwa Miłość to Ty (Cudowna jest) | 124 |
-|  4 | Masters — Żono moja                            | 125 |
-|  5 | MIG — Miód Malina                              | 126 |
-|  6 | Boys — Jesteś Szalona                          | 128 |
-|  7 | Boys — Moja kochana                            | 128 |
-|  8 | Daj to głośniej — Mama ostrzegała              | 128 |
-|  9 | Boys — Wolność                                 | 130 |
-| 10 | Weekend — Ona Tańczy Dla Mnie                  | 130 |
-| 11 | Czadoman — Ruda tańczy jak szalona             | 132 |
-| 12 | Akcent — Przez Twe Oczy Zielone                | 135 |
-| 13 | Piękni i Młodzi — Niewiara                     | 138 |
+|   # | Artist — Song                                  | BPM |
+| --: | ---------------------------------------------- | --: |
+|   1 | Akcent — Życie To Są Chwile                    | 120 |
+|   2 | Boys — Najpiękniejsza Dziewczyno               | 124 |
+|   3 | Akcent — Prawdziwa Miłość to Ty (Cudowna jest) | 124 |
+|   4 | Masters — Żono moja                            | 125 |
+|   5 | MIG — Miód Malina                              | 126 |
+|   6 | Boys — Jesteś Szalona                          | 128 |
+|   7 | Boys — Moja kochana                            | 128 |
+|   8 | Daj to głośniej — Mama ostrzegała              | 128 |
+|   9 | Boys — Wolność                                 | 130 |
+|  10 | Weekend — Ona Tańczy Dla Mnie                  | 130 |
+|  11 | Czadoman — Ruda tańczy jak szalona             | 132 |
+|  12 | Akcent — Przez Twe Oczy Zielone                | 135 |
+|  13 | Piękni i Młodzi — Niewiara                     | 138 |
 
 The range from **120 to 138 BPM** makes it possible to progress naturally from slower practice songs to faster wedding-floor tempos.
 
@@ -154,12 +154,12 @@ Structured dance & music data
 
 Returns the application's complete collection of 13 wedding songs, including:
 
-* song identifier,
-* artist and title,
-* BPM,
-* YouTube ID,
-* YouTube URL,
-* direct training URL (`https://dwanajeden.netlify.app/?song=<id>`).
+- song identifier,
+- artist and title,
+- BPM,
+- YouTube ID,
+- YouTube URL,
+- direct training URL (`https://dwanajeden.netlify.app/?song=<id>`).
 
 An agent can use this information to recommend appropriate music without guessing.
 
@@ -227,20 +227,20 @@ This project is not using WebMCP simply as an add-on.
 
 Dance coaching is an example of a task where users naturally ask contextual questions:
 
-* “I'm a beginner — what should I practice?”
-* “Give me a slower song.”
-* “What is the correct timing?”
-* “Which foot takes the weight?”
-* “Can I practice this at half speed?”
+- “I'm a beginner — what should I practice?”
+- “Give me a slower song.”
+- “What is the correct timing?”
+- “Which foot takes the weight?”
+- “Can I practice this at half speed?”
 
 An AI agent can understand these requests and use the application's structured capabilities to provide answers based on the actual application data.
 
 Without WebMCP, an agent would have to rely on:
 
-* scraping the UI,
-* interpreting page content,
-* guessing available functionality,
-* or giving generic dance advice.
+- scraping the UI,
+- interpreting page content,
+- guessing available functionality,
+- or giving generic dance advice.
 
 With WebMCP, the agent can access explicitly defined application capabilities.
 
@@ -285,15 +285,15 @@ The human remains in control of the actual dancing, while the agent can help nav
 
 The application combines several browser-native and web technologies:
 
-* Next.js
-* React
-* TypeScript
-* WebMCP / Model Context Protocol
-* Web Audio API
-* Web Vibration API
-* YouTube IFrame API
-* Netlify
-* PL / EN internationalization
+- Next.js
+- React
+- TypeScript
+- WebMCP / Model Context Protocol
+- Web Audio API
+- Web Vibration API
+- YouTube IFrame API
+- Netlify
+- PL / EN internationalization
 
 The result is a browser-based dance coach that combines visual, audio, and AI-agent interaction.
 
@@ -346,11 +346,11 @@ AND   → 0.5 beat
 
 Each phase contains information about:
 
-* the step number and name,
-* duration,
-* movement direction,
-* weight-bearing foot,
-* syncopation.
+- the step number and name,
+- duration,
+- movement direction,
+- weight-bearing foot,
+- syncopation.
 
 The engine automatically mirrors the movement direction between bars.
 
@@ -362,8 +362,8 @@ This allows the same underlying model to drive both the visual footwork instruct
 
 The application supports:
 
-* Polish 🇵🇱
-* English 🇬🇧
+- Polish 🇵🇱
+- English 🇬🇧
 
 Translations are stored separately:
 
@@ -381,9 +381,9 @@ The application interface can therefore be presented to both Polish users and an
 
 ### Requirements
 
-* Node.js
-* pnpm
-* a modern browser
+- Node.js
+- pnpm
+- a modern browser
 
 ### Install
 
@@ -408,6 +408,15 @@ http://localhost:3000
 ```bash
 pnpm build
 ```
+
+### ⏱️ Built During The WebMCP Challenge (Aug 25 – Sep 3, 2026)
+
+In accordance with the hackathon guidelines, the following core WebMCP systems and AI agent integrations were designed, implemented, and deployed during the official submission window:
+
+- **Native In-Browser WebMCP Integration**: Client-side registration using `document.modelContext.registerTool` (`lib/webmcp-client.ts`, `components/webmcp-provider.tsx`).
+- **Autonomous MCP Server & Discovery Manifest**: Standalone JSON-RPC server (`mcp-server.js`) and `.well-known/mcp.json` v2.0.0 endpoint.
+- **Pedagogical AI Tool Schemas**: Structured methodology engines (`get_step_instructions`, `get_wedding_songs`, `recommend_song_by_bpm`).
+- **Real-Time Agent Orchestration**: Connecting Web Audio/Vibration sync engine to agent-driven parameters.
 
 ---
 
@@ -443,16 +452,16 @@ Dwa na Jeden — Wedding Dance AI Coach was created as a project for The WebMCP 
 
 The project explores a simple question:
 
-*What happens when a normal website becomes something an AI agent can actively use?*
+_What happens when a normal website becomes something an AI agent can actively use?_
 
 The answer here is a dance coach where the agent can understand the application's structured knowledge about:
 
-* dance steps,
-* timing,
-* movement,
-* music,
-* BPM,
-* and difficulty levels.
+- dance steps,
+- timing,
+- movement,
+- music,
+- BPM,
+- and difficulty levels.
 
 The project combines a real-world human problem with an agent-friendly web interface, demonstrating how WebMCP can turn a traditional web application into something that both people and AI agents can interact with.
 
@@ -460,18 +469,18 @@ The project combines a real-world human problem with an agent-friendly web inter
 
 ## 💡 Project Highlights
 
-* 🎵 13 Polish wedding songs
-* 🕺 Structured Dwa na Jeden / Szuraniec dance methodology
-* 🎚️ 0.5× / 1× / 1.25× practice speeds
-* 👣 Baby Steps beginner mode
-* 🔊 Real-time audio rhythm guidance
-* 🎥 YouTube music integration
-* 🎬 Application demo video
-* 🤖 WebMCP tools for AI agents
-* 📡 `.well-known/mcp.json` discovery manifest (tools + structured resources)
-* 🌍 Polish and English interfaces
-* ⚡ Browser-native APIs
-* ☁️ Deployed on Netlify
+- 🎵 13 Polish wedding songs
+- 🕺 Structured Dwa na Jeden / Szuraniec dance methodology
+- 🎚️ 0.5× / 1× / 1.25× practice speeds
+- 👣 Baby Steps beginner mode
+- 🔊 Real-time audio rhythm guidance
+- 🎥 YouTube music integration
+- 🎬 Application demo video
+- 🤖 WebMCP tools for AI agents
+- 📡 `.well-known/mcp.json` discovery manifest (tools + structured resources)
+- 🌍 Polish and English interfaces
+- ⚡ Browser-native APIs
+- ☁️ Deployed on Netlify
 
 ---
 
