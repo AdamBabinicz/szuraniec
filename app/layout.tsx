@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { JetBrains_Mono, Outfit } from "next/font/google";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { WebMCPTools } from "@/components/webmcp-provider";
 import "./globals.css";
 
 const GTM_ID = "GTM-N74LH3ML";
@@ -201,6 +202,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         />
 
         {children}
+        <WebMCPTools />
         <ScrollToTop />
       </body>
     </html>
