@@ -1,5 +1,6 @@
 import pl from "./locales/pl.json";
 import en from "./locales/en.json";
+import { SONGS_DATA } from "./songs-data";
 
 export type Lang = "pl" | "en";
 export type PhaseId = "one" | "two" | "three" | "and";
@@ -8,11 +9,11 @@ export type ClickVoice = "accent" | "beat" | "tick";
 
 // Klucze, które muszą istnieć w obu plikach językowych
 type TranslationKey = keyof typeof pl & keyof typeof en;
-type SongId = keyof typeof pl.SONG_NAMES & keyof typeof en.SONG_NAMES;
+export type SongId = keyof typeof pl.SONG_NAMES & keyof typeof en.SONG_NAMES;
 
 export type Phase = {
   id: PhaseId;
-  counterKey: TranslationKey; // Zmienione z keyof typeof pl
+  counterKey: TranslationKey;
   beats: number;
   moving: "left" | "right";
   weight: "left" | "right";
@@ -125,28 +126,18 @@ export function rolesFor(
   };
 }
 
-// Baza 13 kulturalnych, weselnych hitów ze zweryfikowanymi ID YouTube
+// Baza 13 kulturalnych, weselnych hitów powiązana z kanonicznym songs-data.ts
 export type Song = {
-  id: SongId; // Zmienione z keyof typeof pl.SONG_NAMES
+  id: SongId;
   bpm: number;
   youtubeId: string;
 };
 
-export const SONGS: Song[] = [
-  { id: "chwile", bpm: 120, youtubeId: "VkvRbfYeXLo" }, // Akcent — Życie To Są Chwile
-  { id: "dziewczyno", bpm: 124, youtubeId: "qOYuvB_pxIM" }, // Boys — Najpiękniejsza Dziewczyno
-  { id: "cudowna", bpm: 124, youtubeId: "k96jS1vurg4" }, // Akcent — Prawdziwa Miłość to Ty (Cudowna jest)
-  { id: "zono", bpm: 125, youtubeId: "J8t9d4TIVHQ" }, // Masters — Żono moja
-  { id: "miod", bpm: 126, youtubeId: "vwCWwZetRaI" }, // MIG — Miód Malina
-  { id: "szalona", bpm: 128, youtubeId: "c2i4h7Q-8sA" }, // Boys — Jesteś Szalona
-  { id: "kochana", bpm: 128, youtubeId: "YIPQ6pPBX7w" }, // Boys — Moja kochana
-  { id: "mama", bpm: 128, youtubeId: "D0o6GsYoMak" }, // Daj to głośniej — Mama ostrzegała
-  { id: "wolnosc", bpm: 130, youtubeId: "jO3DvsPzMww" }, // Boys — Wolność
-  { id: "ona_tanczy", bpm: 130, youtubeId: "JvxG3zl_WhU" }, // Weekend — Ona Tańczy Dla Mnie
-  { id: "ruda", bpm: 132, youtubeId: "tgw1yEcWpTU" }, // Czadoman — Ruda tańczy jak szalona
-  { id: "zielone", bpm: 135, youtubeId: "cxtnot8lY4U" }, // Akcent — Przez Twe Oczy Zielone
-  { id: "niewiara", bpm: 138, youtubeId: "FnqHOeqK7jQ" }, // Piękni i Młodzi — Niewiara
-];
+export const SONGS: Song[] = SONGS_DATA.map((item) => ({
+  id: item.id as SongId,
+  bpm: item.bpm,
+  youtubeId: item.youtubeId,
+}));
 
 export type AudioSource = "click" | "youtube";
 export const SPEEDS = [0.5, 1, 1.25] as const;

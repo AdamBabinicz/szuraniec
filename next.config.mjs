@@ -10,6 +10,30 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
+  async redirects() {
+    return [
+      {
+        source: "/privacy",
+        destination: "/privacy-policy",
+        permanent: true,
+      },
+      {
+        source: "/polityka",
+        destination: "/polityka-prywatnosci",
+        permanent: true,
+      },
+      {
+        source: "/terms",
+        destination: "/terms-of-service",
+        permanent: true,
+      },
+      {
+        source: "/tos",
+        destination: "/terms-of-service",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     const cspHeader = `
       default-src 'self';

@@ -1,11 +1,15 @@
 {
-  "name": "my-project",
+  "name": "dwa-na-jeden",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -27,7 +31,9 @@
     "@types/react-dom": "^19",
     "postcss": "^8.5",
     "tailwindcss": "^4.3.3",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.11"
   },
   "pnpm": {
     "overrides": {

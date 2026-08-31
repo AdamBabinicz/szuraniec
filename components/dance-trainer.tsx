@@ -21,6 +21,7 @@ import { DanceFloor } from "@/components/dance-floor";
 import { SiteHeader } from "@/components/site-header";
 import { useRhythm } from "@/hooks/use-rhythm";
 import { unlockAudio } from "@/lib/metronome";
+import { reportIssue } from "@/lib/logger";
 import {
   PHASES,
   SONGS,
@@ -132,13 +133,17 @@ function loadYtApiPromise(): Promise<void> {
   }
 
   if (!w.__ytApiReady) {
-    w.__ytApiReady = new Promise<void>((resolve) => {
+    w.__ytApiReady = new Promise<void>((resolve, reject) => {
       const existingScript = document.getElementById("yt-iframe-api");
       if (!existingScript) {
         const tag = document.createElement("script");
         tag.id = "yt-iframe-api";
         tag.async = true;
         tag.src = "https://www.youtube.com/iframe_api";
+        tag.onerror = (err) => {
+          reportIssue("yt_player", err);
+          reject(err);
+        };
         document.body.appendChild(tag);
       }
       const previousReady = window.onYouTubeIframeAPIReady;
@@ -146,6 +151,13 @@ function loadYtApiPromise(): Promise<void> {
         previousReady?.();
         resolve();
       };
+
+      // Zabezpieczenie przed brakiem odpowiedzi ze strony YouTube
+      setTimeout(() => {
+        if (window.YT?.Player) {
+          resolve();
+        }
+      }, 5000);
     });
   }
 
@@ -219,7 +231,7 @@ export function DanceTrainer() {
         setCookieBannerOpen(true);
       }
     } catch (err) {
-      console.warn("[Storage] Failed to load settings from localStorage:", err);
+      reportIssue("local_storage", err);
     }
   }, []);
 
@@ -242,9 +254,13 @@ export function DanceTrainer() {
     let cancelled = false;
 
     const startLoading = () => {
-      loadYtApiPromise().then(() => {
-        if (!cancelled) setYtReady(true);
-      });
+      loadYtApiPromise()
+        .then(() => {
+          if (!cancelled) setYtReady(true);
+        })
+        .catch((err) => {
+          reportIssue("yt_player", err);
+        });
     };
 
     if ("requestIdleCallback" in window) {
@@ -321,7 +337,7 @@ export function DanceTrainer() {
     try {
       ytPlayerRef.current?.pauseVideo?.();
     } catch (err) {
-      console.warn("[YT Player] Error during teardown:", err);
+      reportIssue("yt_player", err);
     }
     ytPlayerRef.current = null;
     isPlayerReadyRef.current = false;
@@ -340,7 +356,7 @@ export function DanceTrainer() {
         action(player);
         return true;
       } catch (err) {
-        console.error("[YT Player] Safe call failed:", err);
+        reportIssue("yt_player", err);
         ytPlayerRef.current = null;
         isPlayerReadyRef.current = false;
         return false;
@@ -375,7 +391,7 @@ export function DanceTrainer() {
         );
         return true;
       } catch (err) {
-        console.warn("[YT IFrame] Failed to postMessage command:", err);
+        reportIssue("yt_player", err);
         return false;
       }
     },
@@ -431,7 +447,7 @@ export function DanceTrainer() {
                 sendYtIframeCommand("pauseVideo");
               }
             } catch (err) {
-              console.warn("[YT Player] Initialization action failed:", err);
+              reportIssue("yt_player", err);
             }
           },
           onStateChange: (event) => {
@@ -456,6 +472,7 @@ export function DanceTrainer() {
             setPlaying(false);
             setYtLoading(false);
             setYtErrorCode(event.data);
+            reportIssue("yt_player", `YouTube Error Code: ${event.data}`);
           },
         },
       });
@@ -483,10 +500,7 @@ export function DanceTrainer() {
       try {
         player.setPlaybackRate(speed);
       } catch (err) {
-        console.warn(
-          "[YT Player] Could not set playback rate on instance:",
-          err,
-        );
+        reportIssue("yt_player", err);
       }
     });
     sendYtIframeCommand("setPlaybackRate", [speed]);
@@ -512,7 +526,7 @@ export function DanceTrainer() {
       try {
         localStorage.setItem("dwa_na_jeden_theme", nextTheme);
       } catch (err) {
-        console.warn("[Storage] Failed to save theme:", err);
+        reportIssue("local_storage", err);
       }
       return nextTheme;
     });
@@ -524,7 +538,7 @@ export function DanceTrainer() {
     try {
       localStorage.setItem("dwa_na_jeden_lang", nextLang);
     } catch (err) {
-      console.warn("[Storage] Failed to save language:", err);
+      reportIssue("local_storage", err);
     }
   }, []);
 
@@ -534,7 +548,7 @@ export function DanceTrainer() {
       try {
         localStorage.setItem("dwa_na_jeden_role", nextRole);
       } catch (err) {
-        console.warn("[Storage] Failed to save role:", err);
+        reportIssue("local_storage", err);
       }
       return nextRole;
     });
@@ -543,9 +557,13 @@ export function DanceTrainer() {
   const handleFullscreenToggle = useCallback(() => {
     if (typeof document === "undefined") return;
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => undefined);
+      document.documentElement.requestFullscreen().catch((err) => {
+        reportIssue("local_storage", err);
+      });
     } else {
-      document.exitFullscreen().catch(() => undefined);
+      document.exitFullscreen().catch((err) => {
+        reportIssue("local_storage", err);
+      });
     }
   }, []);
 
@@ -570,7 +588,9 @@ export function DanceTrainer() {
 
     if (source === "youtube") {
       if (!ytReady) {
-        loadYtApiPromise().then(() => setYtReady(true));
+        loadYtApiPromise()
+          .then(() => setYtReady(true))
+          .catch((err) => reportIssue("yt_player", err));
       }
 
       const nextPlaying = !playingRef.current;

@@ -1,103 +1,21 @@
 #!/usr/bin/env node
 
 const readline = require("readline");
+const path = require("path");
 
 const APP_URL = "https://dwanajeden.netlify.app";
 const PROTOCOL_VERSION = "2024-11-05";
 
-const SONGS = [
-  {
-    id: "chwile",
-    title: "Życie To Są Chwile",
-    artist: "Akcent",
-    bpm: 120,
-    youtubeId: "VkvRbfYeXLo",
-  },
-  {
-    id: "dziewczyno",
-    title: "Najpiękniejsza Dziewczyno",
-    artist: "Boys",
-    bpm: 124,
-    youtubeId: "qOYuvB_pxIM",
-  },
-  {
-    id: "cudowna",
-    title: "Prawdziwa Miłość to Ty",
-    artist: "Akcent",
-    bpm: 124,
-    youtubeId: "k96jS1vurg4",
-  },
-  {
-    id: "zono",
-    title: "Żono moja",
-    artist: "Masters",
-    bpm: 125,
-    youtubeId: "J8t9d4TIVHQ",
-  },
-  {
-    id: "miod",
-    title: "Miód Malina",
-    artist: "MIG",
-    bpm: 126,
-    youtubeId: "vwCWwZetRaI",
-  },
-  {
-    id: "szalona",
-    title: "Jesteś Szalona",
-    artist: "Boys",
-    bpm: 128,
-    youtubeId: "c2i4h7Q-8sA",
-  },
-  {
-    id: "kochana",
-    title: "Moja kochana",
-    artist: "Boys",
-    bpm: 128,
-    youtubeId: "YIPQ6pPBX7w",
-  },
-  {
-    id: "mama",
-    title: "Mama ostrzegała",
-    artist: "Daj to głośniej",
-    bpm: 128,
-    youtubeId: "D0o6GsYoMak",
-  },
-  {
-    id: "wolnosc",
-    title: "Wolność",
-    artist: "Boys",
-    bpm: 130,
-    youtubeId: "jO3DvsPzMww",
-  },
-  {
-    id: "ona_tanczy",
-    title: "Ona Tańczy Dla Mnie",
-    artist: "Weekend",
-    bpm: 130,
-    youtubeId: "JvxG3zl_WhU",
-  },
-  {
-    id: "ruda",
-    title: "Ruda tańczy jak szalona",
-    artist: "Czadoman",
-    bpm: 132,
-    youtubeId: "tgw1yEcWpTU",
-  },
-  {
-    id: "zielone",
-    title: "Przez Twe Oczy Zielone",
-    artist: "Akcent",
-    bpm: 135,
-    youtubeId: "cxtnot8lY4U",
-  },
-  {
-    id: "niewiara",
-    title: "Niewiara",
-    artist: "Piękni i Młodzi",
-    bpm: 138,
-    youtubeId: "FnqHOeqK7jQ",
-  },
-];
+// Pobieranie danych z kanonicznego pliku lib/songs.json
+const rawSongs = require(path.join(__dirname, "lib", "songs.json"));
+
+const SONGS = rawSongs.map((s) => ({
+  id: s.id,
+  title: s.title.pl,
+  artist: s.artist,
+  bpm: s.bpm,
+  youtubeId: s.youtubeId,
+}));
 
 const INSTRUCTIONS = {
   stepName: "Szuraniec",
