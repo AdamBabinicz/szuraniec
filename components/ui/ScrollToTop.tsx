@@ -3,19 +3,30 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import pl from "@/lib/locales/pl.json";
+import en from "@/lib/locales/en.json";
 
 interface ScrollToTopProps {
   label?: string;
   threshold?: number;
+  lang?: "pl" | "en";
 }
 
-export const ScrollToTop = ({ label, threshold = 350 }: ScrollToTopProps) => {
+export const ScrollToTop = ({
+  label,
+  threshold = 350,
+  lang = "pl",
+}: ScrollToTopProps) => {
   const [isVisible, setIsVisible] = useState(false);
 
-  // Bezpieczny odczyt ze słownika (zgodny z konwencją UPPER_SNAKE_CASE projektu)
-  const dict = pl as Record<string, any>;
+  // Wybór słownika na podstawie języka
+  const dict = (lang === "en" ? en : pl) as Record<string, any>;
+
+  // Ustalenie etykiety: prop > słownik > tekst domyślny zależny od języka
   const buttonLabel =
-    label || dict.SCROLL_TO_TOP || dict.SCROLL_TOP || "Do góry";
+    label ||
+    dict.SCROLL_TO_TOP ||
+    dict.SCROLL_TOP ||
+    (lang === "en" ? "Back to top" : "Do góry");
 
   useEffect(() => {
     const handleScroll = () => {

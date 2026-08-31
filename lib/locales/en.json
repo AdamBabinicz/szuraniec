@@ -36,7 +36,7 @@
   "COUNTER_1": "1",
   "COUNTER_2": "2",
   "COUNTER_3": "3",
-  "COUNTER_AND": "&",
+  "COUNTER_AND": "And",
   "BABY_STEPS_LABEL": "Baby Steps Mode: Small Dance Steps",
   "BABY_STEPS_ON": "Baby steps on",
   "BABY_STEPS_OFF": "Full steps",
@@ -56,21 +56,22 @@
   "COOKIE_DECLINE": "Essential only",
   "COOKIE_SETTINGS_BTN": "Cookie Settings",
   "COPYRIGHT_RESERVED": "All rights reserved.",
+  "SCROLL_TO_TOP": "Back to top",
   "MISTAKES_TITLE": "3 Common Mistakes in Wedding Dancing",
   "MISTAKES": [
     {
-      "badge": "Sin 1",
-      "title": "Stork in the Grass",
+      "badge": "Mistake 1",
+      "title": "Stork in the field",
       "desc": "Lifting your feet high off the floor. Remember: slide the soles along the floor, never lose floor contact!"
     },
     {
-      "badge": "Sin 2",
-      "title": "Seven-League Boots",
+      "badge": "Mistake 2",
+      "title": "Seven-league boots",
       "desc": "Taking overly wide steps. Giant steps ruin balance and drain your stamina. Keep small steps under your hips."
     },
     {
-      "badge": "Sin 3",
-      "title": "Broomstick Legs",
+      "badge": "Mistake 3",
+      "title": "Broomstick legs",
       "desc": "Locked, stiff knees. All the bounce, groove, and glide in Szuraniec comes from soft, flexing knees!"
     }
   ],
@@ -92,13 +93,13 @@
       "one": "Left foot slides to the left. Weight stays on the right.",
       "two": "Right foot closes in. Weight transfers to the left.",
       "three": "Left foot slides again — quick, half a beat.",
-      "and": "Right foot closes on the '&'. Weight stays on the left leg."
+      "and": "Right foot closes on the 'and'. Weight stays on the left leg."
     },
     "RIGHT": {
       "one": "Right foot slides to the right. Weight stays on the left.",
       "two": "Left foot closes in. Weight transfers to the right.",
       "three": "Right foot slides again — quick, half a beat.",
-      "and": "Left foot closes on the '&'. Weight stays on the right leg."
+      "and": "Left foot closes on the 'and'. Weight stays on the right leg."
     }
   },
   "SONG_NAMES": {
@@ -130,7 +131,7 @@
       "body": "Quick slide of the leading foot — half a beat."
     },
     {
-      "title": "&",
+      "title": "And",
       "body": "Closing slide on the syncopation. The next bar mirrors it all."
     }
   ],

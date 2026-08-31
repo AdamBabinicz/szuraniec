@@ -218,7 +218,9 @@ export function DanceTrainer() {
       if (!savedConsent) {
         setCookieBannerOpen(true);
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[Storage] Failed to load settings from localStorage:", err);
+    }
   }, []);
 
   useEffect(() => {
@@ -263,8 +265,7 @@ export function DanceTrainer() {
   }, []);
 
   const t = translations[lang];
-  const currentYear = 2026;
-  const [copyrightYear] = useState<string>(String(currentYear));
+  const currentYear = new Date().getFullYear();
 
   const socialLinks = useMemo(
     () => [
@@ -319,7 +320,9 @@ export function DanceTrainer() {
   const teardownPlayer = useCallback(() => {
     try {
       ytPlayerRef.current?.pauseVideo?.();
-    } catch {}
+    } catch (err) {
+      console.warn("[YT Player] Error during teardown:", err);
+    }
     ytPlayerRef.current = null;
     isPlayerReadyRef.current = false;
   }, []);
@@ -336,7 +339,8 @@ export function DanceTrainer() {
         }
         action(player);
         return true;
-      } catch {
+      } catch (err) {
+        console.error("[YT Player] Safe call failed:", err);
         ytPlayerRef.current = null;
         isPlayerReadyRef.current = false;
         return false;
@@ -370,7 +374,8 @@ export function DanceTrainer() {
           ytIframeOrigin,
         );
         return true;
-      } catch {
+      } catch (err) {
+        console.warn("[YT IFrame] Failed to postMessage command:", err);
         return false;
       }
     },
@@ -425,7 +430,9 @@ export function DanceTrainer() {
                 event.target.pauseVideo();
                 sendYtIframeCommand("pauseVideo");
               }
-            } catch {}
+            } catch (err) {
+              console.warn("[YT Player] Initialization action failed:", err);
+            }
           },
           onStateChange: (event) => {
             if (!isSubscribed) return;
@@ -475,7 +482,12 @@ export function DanceTrainer() {
     safeYtCall((player) => {
       try {
         player.setPlaybackRate(speed);
-      } catch {}
+      } catch (err) {
+        console.warn(
+          "[YT Player] Could not set playback rate on instance:",
+          err,
+        );
+      }
     });
     sendYtIframeCommand("setPlaybackRate", [speed]);
   }, [speed, source, safeYtCall, sendYtIframeCommand]);
@@ -499,7 +511,9 @@ export function DanceTrainer() {
       document.documentElement.style.colorScheme = nextTheme;
       try {
         localStorage.setItem("dwa_na_jeden_theme", nextTheme);
-      } catch {}
+      } catch (err) {
+        console.warn("[Storage] Failed to save theme:", err);
+      }
       return nextTheme;
     });
   }, []);
@@ -509,7 +523,9 @@ export function DanceTrainer() {
     document.documentElement.lang = nextLang;
     try {
       localStorage.setItem("dwa_na_jeden_lang", nextLang);
-    } catch {}
+    } catch (err) {
+      console.warn("[Storage] Failed to save language:", err);
+    }
   }, []);
 
   const handleRoleToggle = useCallback(() => {
@@ -517,7 +533,9 @@ export function DanceTrainer() {
       const nextRole = prev === "leader" ? "follower" : "leader";
       try {
         localStorage.setItem("dwa_na_jeden_role", nextRole);
-      } catch {}
+      } catch (err) {
+        console.warn("[Storage] Failed to save role:", err);
+      }
       return nextRole;
     });
   }, []);
@@ -867,7 +885,7 @@ export function DanceTrainer() {
           <ol className="grid gap-3 sm:grid-cols-2">
             {t.BREAKDOWN.map((item, index) => (
               <li
-                key={item.title}
+                key={`${item.title}-${index}`}
                 className={`rounded-xl border p-4 transition-all duration-300 ${
                   index === beat
                     ? "border-primary bg-primary/10 shadow-lg ring-1 ring-primary"
@@ -962,7 +980,7 @@ export function DanceTrainer() {
               {t.FOOTER_TEXT}
             </p>
             <p className="text-xs font-semibold tracking-wider text-foreground/80">
-              © {copyrightYear} {t.APP_LEGAL_NAME}. {t.COPYRIGHT_RESERVED}
+              © {currentYear} {t.APP_LEGAL_NAME}. {t.COPYRIGHT_RESERVED}
             </p>
           </div>
         </footer>

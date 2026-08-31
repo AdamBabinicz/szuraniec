@@ -6,9 +6,13 @@ export type PhaseId = "one" | "two" | "three" | "and";
 export type Direction = "left" | "right";
 export type ClickVoice = "accent" | "beat" | "tick";
 
+// Klucze, które muszą istnieć w obu plikach językowych
+type TranslationKey = keyof typeof pl & keyof typeof en;
+type SongId = keyof typeof pl.SONG_NAMES & keyof typeof en.SONG_NAMES;
+
 export type Phase = {
   id: PhaseId;
-  counterKey: keyof typeof pl;
+  counterKey: TranslationKey; // Zmienione z keyof typeof pl
   beats: number;
   moving: "left" | "right";
   weight: "left" | "right";
@@ -123,7 +127,7 @@ export function rolesFor(
 
 // Baza 13 kulturalnych, weselnych hitów ze zweryfikowanymi ID YouTube
 export type Song = {
-  id: keyof typeof pl.SONG_NAMES;
+  id: SongId; // Zmienione z keyof typeof pl.SONG_NAMES
   bpm: number;
   youtubeId: string;
 };

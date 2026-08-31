@@ -1,6 +1,12 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "Dwa na Jeden — Szkoła Weselnego Kroku",
+  "short_name": "Dwa na Jeden",
+  "description": "Naucz się weselnego kroku dwanajeden w prosty i skuteczny sposób.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111629",
+  "theme_color": "#f7f6fb",
+  "lang": "pl",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -14,8 +20,5 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
-  "display": "standalone"
+  ]
 }

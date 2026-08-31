@@ -13,6 +13,8 @@
  * Test in Chrome:      chrome://flags/#enable-webmcp-testing
  */
 
+import { reportIssue } from "@/lib/logger";
+
 export const APP_URL = "https://dwanajeden.netlify.app";
 
 export type Level = "beginner" | "intermediate" | "advanced";
@@ -402,15 +404,21 @@ export async function registerWebMCPTools(): Promise<boolean> {
       },
       options,
     );
+
+    registered = true;
+    return true;
   } catch (error) {
-    // NotAllowedError jest rzucany, gdy uprawnienie narzędzi jest wyłączone
-    // (Permissions-Policy: tools=(); brak atrybutu allow; itd.).
+    // Poprawka F-19 & F-20: Pełny reset stanu po błędzie i raportowanie
+    registered = false;
+    controller = null;
     console.warn("[webmcp-client] Failed to register WebMCP tools:", error);
+    try {
+      reportIssue("webmcp", error);
+    } catch {
+      // Ignoruj błąd raportowania w środowisku bez loggera
+    }
     return false;
   }
-
-  registered = true;
-  return true;
 }
 
 /** Wyrejestrowuje wszystkie narzędzia (przerywa sygnał rejestracji). */
