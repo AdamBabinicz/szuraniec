@@ -322,9 +322,15 @@ export async function registerWebMCPTools(): Promise<boolean> {
 
     registered = true;
     return true;
-  } catch (error) {
+  } catch (error: any) {
     registered = false;
     controller = null;
+
+    // Jeśli błąd to AbortError (spowodowany odmontowaniem komponentu w React StrictMode), nie logujemy go jako awarii
+    if (error?.name === "AbortError" || error?.message?.includes("aborted")) {
+      return false;
+    }
+
     console.warn("[webmcp-client] Failed to register WebMCP tools:", error);
     try {
       reportIssue("webmcp", error);
