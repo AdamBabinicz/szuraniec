@@ -98,6 +98,8 @@ The application includes **13 real Polish wedding hits**, each represented by a 
 
 The range from **120 to 138 BPM** makes it possible to progress naturally from slower practice songs to faster wedding-floor tempos.
 
+The complete 13-song database is managed through one canonical data source (`lib/songs.json` / `lib/songs-data.ts`) shared by React, WebMCP, and the Node.js server.
+
 > **Note:** The demo video linked above is the project's application demonstration video. It is separate from the 13-song music database.
 
 ---
@@ -294,6 +296,9 @@ The application combines several browser-native and web technologies:
 - YouTube IFrame API
 - Netlify
 - PL / EN internationalization
+- Vitest (Automated Unit Testing)
+- GitHub Actions (CI/CD Pipeline)
+- Next.js (App Router & Turbopack)
 
 The result is a browser-based dance coach that combines visual, audio, and AI-agent interaction.
 
@@ -316,6 +321,8 @@ At runtime each song is enriched with a **YouTube URL** and a **direct training 
 The current database contains 13 songs, ranging from 120 to 138 BPM.
 
 Each song entry connects the application's structured music data with a corresponding YouTube video through its YouTube ID.
+
+The complete 13-song database is managed through one canonical data source (`lib/songs.json` / `lib/songs-data.ts`) shared by React, WebMCP, and the Node.js server.
 
 This allows the application to combine:
 
@@ -409,6 +416,16 @@ http://localhost:3000
 pnpm build
 ```
 
+### Tests and type checking
+
+```bash
+# Run automated tests
+pnpm test
+
+# Run TypeScript typecheck
+pnpm typecheck
+```
+
 ### ⏱️ Built During The WebMCP Challenge (Aug 25 – Sep 3, 2026)
 
 In accordance with the hackathon guidelines, the following core WebMCP systems and AI agent integrations were designed, implemented, and deployed during the official submission window:
@@ -417,6 +434,7 @@ In accordance with the hackathon guidelines, the following core WebMCP systems a
 - **Autonomous MCP Server & Discovery Manifest**: Standalone JSON-RPC server (`mcp-server.js`) and `.well-known/mcp.json` v2.0.0 endpoint.
 - **Pedagogical AI Tool Schemas**: Structured methodology engines (`get_step_instructions`, `get_wedding_songs`, `recommend_song_by_bpm`).
 - **Real-Time Agent Orchestration**: Connecting Web Audio/Vibration sync engine to agent-driven parameters.
+- **Automated Quality & Canonical Data Architecture**: Vitest unit tests run through GitHub Actions CI, while the complete 13-song library is maintained in one canonical data source shared by React, WebMCP, and the Node.js server.
 
 ---
 
@@ -481,6 +499,8 @@ The project combines a real-world human problem with an agent-friendly web inter
 - 🌍 Polish and English interfaces
 - ⚡ Browser-native APIs
 - ☁️ Deployed on Netlify
+- 🧪 Automated unit tests with Vitest and GitHub Actions CI
+- 🗂️ Canonical song data architecture shared by React, WebMCP, and the Node.js server
 
 ---
 
