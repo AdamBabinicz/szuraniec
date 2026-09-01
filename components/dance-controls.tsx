@@ -72,19 +72,6 @@ export function DanceControls({
 }: Props) {
   const t = translations[lang];
 
-  // Adres URL generowany deterministycznie — bez odwołań do `window`,
-  // `Date.now()` czy `Math.random()`, aby SSR i klient renderowały
-  // identyczny atrybut `src` elementu <iframe> (hydration mismatch).
-  //
-  // Domena `youtube-nocookie.com` zapobiega ładowaniu cookie śledzących
-  // (wykorzystywanych przez googleads.g.doubleclick.net) przed interakcją
-  // użytkownika z playerem. W połączeniu z `host` i `ytIframeOrigin` w
-  // `dance-trainer.tsx` eliminuje komunikaty CORS:
-  //   "Access to fetch at 'googleads.g.doubleclick.net/...' has been blocked
-  //    by CORS policy: No 'Access-Control-Allow-Origin'"
-  //
-  // UWAGA: domeny `iframe src`, skryptu API i `postMessage` origin MUSZĄ
-  // być zgodne — patrz komentarz w `dance-trainer.tsx` przy `ytIframeOrigin`.
   const ytEmbedUrl = useMemo(() => {
     if (!song.youtubeId) return null;
 
@@ -269,7 +256,7 @@ export function DanceControls({
           </button>
         </div>
 
-        {/* Natywna ramka iframe z dynamicznym kluczem odświeżania */}
+        {/* Stabilna ramka iframe bez usuwania z DOM przy zmianie piosenki */}
         <div
           className={cn(
             "grid gap-2 pt-2 transition-all duration-300",
@@ -312,15 +299,12 @@ export function DanceControls({
             ) : ytEmbedUrl ? (
               <iframe
                 id="yt-player-iframe"
-                key={`${song.youtubeId}-${source}`}
                 src={ytEmbedUrl}
                 title={t.YOUTUBE_PLAYER_LABEL as string}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
-                loading="lazy"
-                // aria-busy informuje AT, że player się ładuje; bez tego
-                // SC pomija kontrolki yt podczas initializacji.
+                loading="eager"
                 aria-busy={ytLoading}
                 className="absolute inset-0 size-full border-0"
               />

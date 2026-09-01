@@ -10,89 +10,59 @@ interface VoiceCoachProps {
   lang: Lang;
 }
 
-type VoiceStatus = "idle" | "recording" | "processing" | "feedback" | "error";
+type VoiceStatus = "idle" | "listening" | "feedback" | "error";
+
+declare global {
+  interface Window {
+    SpeechRecognition?: any;
+    webkitSpeechRecognition?: any;
+  }
+}
 
 export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const isActiveHandsFreeRef = useRef<boolean>(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isListeningDesiredRef = useRef<boolean>(false);
+  const recognitionRef = useRef<any>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const loopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
-  // Pobieramy teksty ze słownika na podstawie aktywnego języka
   const t = translations[lang] || translations.pl;
 
-  const clearTimers = useCallback(() => {
-    if (recordTimeoutRef.current) {
-      clearTimeout(recordTimeoutRef.current);
-      recordTimeoutRef.current = null;
-    }
-    if (feedbackTimeoutRef.current) {
-      clearTimeout(feedbackTimeoutRef.current);
-      feedbackTimeoutRef.current = null;
-    }
-    if (loopTimerRef.current) {
-      clearTimeout(loopTimerRef.current);
-      loopTimerRef.current = null;
-    }
-  }, []);
+  const showFeedback = useCallback((text: string) => {
+    if (!isMountedRef.current) return;
+    setFeedback(text);
+    setStatus("feedback");
 
-  // ── Przejście do kolejnego cyklu nasłuchu (Continuous Loop) ────────
-  const triggerNextCycle = useCallback(() => {
-    if (!isMountedRef.current || !isActiveHandsFreeRef.current) return;
-    if (loopTimerRef.current) clearTimeout(loopTimerRef.current);
-    loopTimerRef.current = setTimeout(() => {
-      if (isMountedRef.current && isActiveHandsFreeRef.current) {
-        void startRecordingCycle();
+    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+    feedbackTimeoutRef.current = setTimeout(() => {
+      if (!isMountedRef.current) return;
+      setFeedback(null);
+      if (isListeningDesiredRef.current) {
+        setStatus("listening");
+      } else {
+        setStatus("idle");
       }
-    }, 400);
+    }, 3000);
   }, []);
 
-  const showFeedback = useCallback(
-    (text: string) => {
+  const showError = useCallback((text: string) => {
+    if (!isMountedRef.current) return;
+    setFeedback(text);
+    setStatus("error");
+
+    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+    feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
-      setFeedback(text);
-      setStatus("feedback");
-
-      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-      feedbackTimeoutRef.current = setTimeout(() => {
-        if (!isMountedRef.current) return;
-        setFeedback(null);
-        if (isActiveHandsFreeRef.current) {
-          triggerNextCycle();
-        } else {
-          setStatus("idle");
-        }
-      }, 2500);
-    },
-    [triggerNextCycle],
-  );
-
-  const showError = useCallback(
-    (text: string) => {
-      if (!isMountedRef.current) return;
-      setFeedback(text);
-      setStatus("error");
-
-      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-      feedbackTimeoutRef.current = setTimeout(() => {
-        if (!isMountedRef.current) return;
-        setFeedback(null);
-        if (isActiveHandsFreeRef.current) {
-          triggerNextCycle();
-        } else {
-          setStatus("idle");
-        }
-      }, 3000);
-    },
-    [triggerNextCycle],
-  );
+      setFeedback(null);
+      if (isListeningDesiredRef.current) {
+        setStatus("listening");
+      } else {
+        setStatus("idle");
+      }
+    }, 4000);
+  }, []);
 
   // ── Dispatcher komend głosowych do WebMCP Bridge ───────────────────
   const dispatchCommand = useCallback(
@@ -275,169 +245,140 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         }
       }
 
-      // Jeśli nie dopasowano do konkretnego wzorca komendy
-      triggerNextCycle();
+      showFeedback(
+        `${t.VOICE_COACH_UNKNOWN_PREFIX} "${rawTranscript}" ${t.VOICE_COACH_UNKNOWN_HINT}`,
+      );
     },
-    [t, showFeedback, showError, triggerNextCycle],
+    [t, showFeedback, showError],
   );
 
-  // ── Przetworzenie fragmentu audio ──────────────────────────────────
-  const processAudio = useCallback(
-    async (audioBlob: Blob) => {
-      setStatus("processing");
-      try {
-        const formData = new FormData();
-        formData.append("file", audioBlob, "audio.webm");
+  // ── Błyskawiczny start silnika rozpoznawania mowy ──────────────────
+  const startSpeechEngine = useCallback(() => {
+    const SpeechRecognition =
+      typeof window !== "undefined"
+        ? window.SpeechRecognition || window.webkitSpeechRecognition
+        : null;
 
-        const res = await fetch("/api/voice", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-        const transcript = data.transcript?.trim() || "";
-
-        if (transcript) {
-          dispatchCommand(transcript);
-        } else {
-          // Jeśli była cisza, natychmiast słuchaj dalej
-          triggerNextCycle();
-        }
-      } catch (err) {
-        console.warn("[VoiceCoach] Audio processing error", err);
-        triggerNextCycle();
-      }
-    },
-    [dispatchCommand, triggerNextCycle],
-  );
-
-  // ── Start pojedynczego cyklu nasłuchu w pętli ──────────────────────
-  const startRecordingCycle = async () => {
-    if (!isActiveHandsFreeRef.current) return;
-    clearTimers();
-    audioChunksRef.current = [];
+    if (!SpeechRecognition) {
+      showError(t.VOICE_COACH_NOT_SUPPORTED);
+      isListeningDesiredRef.current = false;
+      setStatus("idle");
+      return;
+    }
 
     try {
-      if (!streamRef.current || !streamRef.current.active) {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
       }
 
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/mp4")
-          ? "audio/mp4"
-          : "";
+      const recognition = new SpeechRecognition();
+      recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
 
-      const options = mimeType ? { mimeType } : undefined;
-      const mediaRecorder = new MediaRecorder(streamRef.current, options);
+      recognition.onstart = () => {
+        if (!isMountedRef.current) return;
+        setStatus("listening");
+      };
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      recognition.onresult = (event: any) => {
+        if (!isMountedRef.current) return;
+        const lastIndex = event.results.length - 1;
+        const transcript =
+          event.results[lastIndex]?.[0]?.transcript?.trim() || "";
+        if (transcript) {
+          dispatchCommand(transcript);
         }
       };
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: mimeType || "audio/webm",
-        });
+      recognition.onerror = (event: any) => {
+        if (!isMountedRef.current) return;
+        if (event.error === "no-speech") return;
 
-        if (audioBlob.size > 400 && isActiveHandsFreeRef.current) {
-          void processAudio(audioBlob);
-        } else if (isActiveHandsFreeRef.current) {
-          triggerNextCycle();
+        if (event.error === "not-allowed") {
+          isListeningDesiredRef.current = false;
+          showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
+        }
+      };
+
+      recognition.onend = () => {
+        if (!isMountedRef.current) return;
+        // Płynne wznawianie ciągłego nasłuchu bez zacinania
+        if (isListeningDesiredRef.current) {
+          try {
+            recognition.start();
+          } catch {
+            setTimeout(() => {
+              if (isMountedRef.current && isListeningDesiredRef.current) {
+                try {
+                  recognition.start();
+                } catch {}
+              }
+            }, 200);
+          }
         } else {
           setStatus("idle");
         }
       };
 
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
-      setStatus("recording");
-
-      // Okienko nasłuchu trwa 2.8 sekundy
-      recordTimeoutRef.current = setTimeout(() => {
-        if (
-          mediaRecorderRef.current &&
-          mediaRecorderRef.current.state !== "inactive"
-        ) {
-          try {
-            mediaRecorderRef.current.stop();
-          } catch {}
-        }
-      }, 2800);
+      recognitionRef.current = recognition;
+      recognition.start();
     } catch (err) {
-      console.warn("[VoiceCoach] Mic loop error", err);
-      isActiveHandsFreeRef.current = false;
-      showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
+      console.warn("[VoiceCoach] Error starting SpeechRecognition", err);
+      isListeningDesiredRef.current = false;
+      setStatus("idle");
     }
-  };
+  }, [dispatchCommand, lang, showError, t]);
 
-  // ── Włącz / Wyłącz ciągły nasłuch (Hands-Free) ───────────────────
-  const handleMicClick = useCallback(() => {
-    if (isActiveHandsFreeRef.current) {
-      // Wyłączenie ciągłego nasłuchu
-      isActiveHandsFreeRef.current = false;
-      clearTimers();
-      if (
-        mediaRecorderRef.current &&
-        mediaRecorderRef.current.state !== "inactive"
-      ) {
+  // ── Przełącznik mikrofonu (Włącz / Wyłącz nasłuch) ───────────────
+  const handleMicToggle = useCallback(() => {
+    if (isListeningDesiredRef.current) {
+      isListeningDesiredRef.current = false;
+      if (recognitionRef.current) {
         try {
-          mediaRecorderRef.current.stop();
+          recognitionRef.current.stop();
         } catch {}
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((trk) => trk.stop());
-        streamRef.current = null;
+        recognitionRef.current = null;
       }
       setStatus("idle");
       setFeedback(null);
     } else {
-      // Włączenie ciągłego nasłuchu
-      isActiveHandsFreeRef.current = true;
-      void startRecordingCycle();
+      isListeningDesiredRef.current = true;
+      startSpeechEngine();
     }
-  }, [clearTimers]);
+  }, [startSpeechEngine]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      isActiveHandsFreeRef.current = false;
-      clearTimers();
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((trk) => trk.stop());
+      isListeningDesiredRef.current = false;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+      }
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
       }
     };
-  }, [clearTimers]);
+  }, []);
 
-  const isHandsFreeActive = isActiveHandsFreeRef.current;
-  const isRecording = status === "recording";
-  const isProcessing = status === "processing";
+  const isListening =
+    status === "listening" ||
+    (isListeningDesiredRef.current && status !== "error");
   const hasFeedback = Boolean(feedback);
 
-  const statusBadge = isHandsFreeActive
-    ? isRecording
-      ? t.VOICE_COACH_LISTEN_START.split(" ")[0] || "🎙️"
-      : isProcessing
-        ? "..."
-        : t.VOICE_COACH_TITLE
+  const statusBadge = isListening
+    ? "🎙️"
     : status === "error"
       ? "!"
       : t.VOICE_COACH_TITLE;
 
-  const messageText = isHandsFreeActive
+  const messageText = isListening
     ? feedback || t.VOICE_COACH_LISTEN_START
     : feedback || t.VOICE_COACH_ENABLE;
 
@@ -447,7 +388,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       className="pointer-events-auto fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2.5"
     >
       <AnimatePresence>
-        {(isHandsFreeActive || hasFeedback) && (
+        {(isListening || hasFeedback) && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -467,11 +408,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               </div>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
-                  isRecording
+                  isListening
                     ? "bg-pink-500/20 text-pink-600 dark:text-pink-300 animate-pulse"
-                    : isProcessing
-                      ? "bg-primary/20 text-primary animate-pulse"
-                      : "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
                 {statusBadge}
@@ -484,21 +423,19 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       <button
         type="button"
-        onClick={handleMicClick}
-        title={isHandsFreeActive ? t.VOICE_COACH_DISABLE : t.VOICE_COACH_ENABLE}
+        onClick={handleMicToggle}
+        title={isListening ? t.VOICE_COACH_DISABLE : t.VOICE_COACH_ENABLE}
         aria-label={t.VOICE_COACH_TITLE}
         className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-transform active:scale-95 ${
-          isHandsFreeActive
+          isListening
             ? "border-pink-500 bg-pink-500 text-white shadow-pink-500/50 ring-4 ring-pink-500/30"
             : "border-border bg-card/90 text-foreground hover:border-primary/50 hover:bg-primary/10 shadow-black/10"
         }`}
       >
-        {isHandsFreeActive && (
+        {isListening && (
           <span className="absolute inset-0 animate-ping rounded-full bg-pink-500/40" />
         )}
-        {isProcessing ? (
-          <Sparkles className="size-6 animate-spin text-primary-foreground" />
-        ) : isHandsFreeActive ? (
+        {isListening ? (
           <Mic className="size-6 animate-pulse text-white" />
         ) : (
           <Mic className="size-6 text-foreground transition-colors group-hover:text-primary" />
