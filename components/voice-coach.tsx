@@ -28,6 +28,8 @@ interface ISpeechRecognition extends EventTarget {
   stop: () => void;
   abort: () => void;
   onstart: ((this: ISpeechRecognition, ev: Event) => void) | null;
+  onaudiostart: ((this: ISpeechRecognition, ev: Event) => void) | null;
+  onspeechstart: ((this: ISpeechRecognition, ev: Event) => void) | null;
   onresult:
     | ((this: ISpeechRecognition, ev: SpeechRecognitionEvent) => void)
     | null;
@@ -48,10 +50,10 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [isListening, setIsListening] = useState(false);
   const [supported, setSupported] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [liveTranscript, setLiveTranscript] = useState<string>("");
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const isListeningRef = useRef(false);
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastExecutedCommandRef = useRef<string>("");
 
   const t = translations[lang] as typeof translations.pl & {
     VOICE_COACH_TITLE?: string;
@@ -84,7 +86,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const handleVoiceCommand = useCallback(
     (rawText: string) => {
       const text = rawText.toLowerCase().trim();
-      if (!text || text === lastExecutedCommandRef.current) return;
+      if (!text) return;
+
+      setLiveTranscript(text);
 
       const bridge = getActiveTrainerBridge();
       if (!bridge) {
@@ -103,7 +107,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("odpal") ||
         text.includes("play")
       ) {
-        lastExecutedCommandRef.current = text;
         bridge.start();
         showFeedback(t.VOICE_COACH_START || "▶️ Practice started!");
         return;
@@ -118,7 +121,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("przerwij") ||
         text.includes("pause")
       ) {
-        lastExecutedCommandRef.current = text;
         bridge.pause();
         showFeedback(t.VOICE_COACH_PAUSE || "⏸️ Practice paused");
         return;
@@ -132,7 +134,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("reset") ||
         text.includes("restart")
       ) {
-        lastExecutedCommandRef.current = text;
         bridge.reset();
         showFeedback(t.VOICE_COACH_RESET || "🔄 Reset to start");
         return;
@@ -147,7 +148,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("0.5") ||
         text.includes("slow")
       ) {
-        lastExecutedCommandRef.current = text;
         const res = bridge.setTempo(0.5);
         showFeedback(
           `${t.VOICE_COACH_TEMPO_SLOW || "⏱️ Set slow tempo: 0.5×"} (${res.effectiveBpm} BPM)`,
@@ -163,7 +163,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("1x") ||
         text.includes("normal")
       ) {
-        lastExecutedCommandRef.current = text;
         const res = bridge.setTempo(1);
         showFeedback(
           `${t.VOICE_COACH_TEMPO_NORMAL || "⏱️ Set normal tempo: 1.0×"} (${res.effectiveBpm} BPM)`,
@@ -180,7 +179,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("1.25") ||
         text.includes("fast")
       ) {
-        lastExecutedCommandRef.current = text;
         const res = bridge.setTempo(1.25);
         showFeedback(
           `${t.VOICE_COACH_TEMPO_FAST || "🚀 Set fast tempo: 1.25×"} (${res.effectiveBpm} BPM)`,
@@ -195,7 +193,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("kroczki") ||
         text.includes("dla początkujących")
       ) {
-        lastExecutedCommandRef.current = text;
         bridge.setPracticeMode("baby_steps");
         showFeedback(t.VOICE_COACH_BABY_ON || "👣 Baby Steps mode activated");
         return;
@@ -209,7 +206,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("pełny krok") ||
         text.includes("full")
       ) {
-        lastExecutedCommandRef.current = text;
         bridge.setPracticeMode("full_steps");
         showFeedback(
           t.VOICE_COACH_FULL_STEPS || "🕺 Full steps mode activated",
@@ -252,7 +248,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       for (const [keyword, sId] of Object.entries(songMatches)) {
         if (text.includes(keyword)) {
-          lastExecutedCommandRef.current = text;
           const res = bridge.setSong(sId);
           if (res.success && res.song) {
             showFeedback(
@@ -283,10 +278,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const transcriptText = event.results[i][0].transcript;
-        handleVoiceCommand(transcriptText);
-      }
+      const current = event.resultIndex;
+      const transcriptText = event.results[current][0].transcript;
+      handleVoiceCommand(transcriptText);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -300,8 +294,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         setIsListening(false);
         showFeedback(
           lang === "pl"
-            ? "⚠️ Dostęp do mikrofonu zablokowany. Kliknij ikonę kłódki/suwaków w pasku adresu i zezwól na mikrofon."
-            : "⚠️ Microphone access blocked. Please allow microphone in browser address bar.",
+            ? "⚠️ Dostęp do mikrofonu zablokowany."
+            : "⚠️ Microphone access blocked.",
         );
         return;
       }
@@ -339,11 +333,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       isListeningRef.current = false;
       recognitionRef.current.stop();
       setIsListening(false);
-      lastExecutedCommandRef.current = "";
+      setLiveTranscript("");
       showFeedback(t.VOICE_COACH_OFF || "Microphone off");
     } else {
       try {
-        lastExecutedCommandRef.current = "";
+        setLiveTranscript("");
         recognitionRef.current.lang = lang === "pl" ? "pl-PL" : "en-US";
         recognitionRef.current.start();
         isListeningRef.current = true;
@@ -363,7 +357,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2.5 pointer-events-auto"
     >
       <AnimatePresence>
-        {feedback && (
+        {(feedback || (isListening && liveTranscript)) && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -374,7 +368,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               <Sparkles className="size-3.5 text-primary" />
               <span>{t.VOICE_COACH_TITLE || "Voice AI Coach"}</span>
             </div>
-            <p className="leading-snug text-foreground/90">{feedback}</p>
+            <p className="leading-snug text-foreground/90">
+              {feedback || `🎙️ Słyszę: "${liveTranscript}"`}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
