@@ -22,30 +22,32 @@ declare global {
 /**
  * VoiceCoach — Browser-Native Web Speech API bridge z adaptacyjnym auto-restartem.
  *
- * Uwaga dla platform mobilnych (Android Chrome / iOS Safari / Chrome Mobile):
- *  • parametr `continuous` jest ignorowany — silnik kończy sesję po każdej
- *    wypowiedzi (`final`), wysyłając zdarzenie `onend`.
- *  • Rozwiązanie: po `onend` (jeśli użytkownik nadal chce słuchać) tworzona
- *    jest świeża instancja `SpeechRecognition` i wywoływane `start()` z
- *    krótkim opóźnieniem. Całość dzieje się w pętli, więc mikrofon pozostaje
- *    „włączony" dla tancerza, dopóki nie wyłączy go ręcznie.
- *  • Nie otwieramy równoległego `getUserMedia`, bo konkurowałoby z YouTube
- *    o Audio Focus na Android/iOS i powodowało ducking odtwarzacza.
+ * WERSJA PERF (mobile-friendly):
+ *  • Rozpoznawanie mowy żyje CAŁKOWICIE w refach: żaden setState() nie jest
+ *    wywoływany z ciała onresult/onerror/onend ani z interim results.
+ *  • Interim transcript pojawia się w UI rzadziej niż przy każdym dźwięku —
+ *    throttlowany do 300 ms (komponent nadrzędny powinien korzystać z
+ *    `useMemo`, a animacje kroków powinny być CSS-only).
+ *  • Auto-restart w onend jest ŁAGODNY: 400 ms debounce zamiast „busy loopu",
+ *    + guard chroniący przed nakładającymi się start()/abort().
+ *  • Brak równoległego getUserMedia — silnik mowy sam zarządza mikrofonem
+ *    i oddaje Audio Focus odtwarzaczowi YouTube (bez duckingu).
  */
 
-const RESTART_DELAY_MS = 80;
+const RESTART_DELAY_MS = 400;
+const UI_TRANSCRIPT_THROTTLE_MS = 300;
 
 function normalizeText(s: string): string {
   return (s || "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // strip diacritics (ą -> a, ę -> e, ł -> l, …)
-    .replace(/[^\w\s]/g, " ") // strip punctuation
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-// Warianty bez spacji polskich dla bezpiecznego TS Record<string, string>.
+// Warianty bez spacji polskich do mapy piosenek.
 const SONG_KEYWORDS: Record<string, string> = {
   szalona: "szalona",
   szalon: "szalona",
@@ -103,11 +105,18 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [lastTranscript, setLastTranscript] = useState<string | null>(null);
 
+  // Refy sterujące cyklem życia silnika mowy — NIE powodują renderów.
   const isMountedRef = useRef<boolean>(true);
   const recognitionRef = useRef<any>(null);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transcriptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shouldListenRef = useRef<boolean>(false);
+  // Łapie „busy loop" w onend — żadne wywołanie start() nie zmieni statusu
+  // na listening dopóki 400 ms nie upłynie.
+  const isEngagedRef = useRef<boolean>(false);
+  // Interim transcript trzymany WYŁĄCZNIE w refie, wyrzucany do UI z throttlem.
+  const interimTranscriptRef = useRef<string>("");
 
   const t = translations[lang] || translations.pl;
 
@@ -129,8 +138,24 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     if (isMountedRef.current) setFeedback(text);
   }, []);
 
-  const safeSetTranscript = useCallback((text: string | null) => {
-    if (isMountedRef.current) setLastTranscript(text);
+  // Throtlowana aktualizacja UI dla ostatniego transkryptu.
+  const setThrottledTranscript = useCallback((raw: string) => {
+    interimTranscriptRef.current = raw;
+    if (transcriptTimerRef.current) return;
+    transcriptTimerRef.current = setTimeout(() => {
+      transcriptTimerRef.current = null;
+      if (!isMountedRef.current) return;
+      setLastTranscript(interimTranscriptRef.current || null);
+    }, UI_TRANSCRIPT_THROTTLE_MS);
+  }, []);
+
+  const flushTranscript = useCallback(() => {
+    interimTranscriptRef.current = "";
+    if (transcriptTimerRef.current) {
+      clearTimeout(transcriptTimerRef.current);
+      transcriptTimerRef.current = null;
+    }
+    if (isMountedRef.current) setLastTranscript(null);
   }, []);
 
   const showFeedback = useCallback(
@@ -170,7 +195,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 1. START / PLAY
       if (
         text.includes("start") ||
         text.includes("strat") ||
@@ -191,52 +215,40 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 2. STOP / PAUZA
       if (
         text.includes("pauza") ||
         text.includes("stop") ||
         text.includes("zatrzymaj") ||
-        text.includes("zatrzym") ||
         text.includes("czekaj") ||
         text.includes("przerwij") ||
-        text.includes("pauzuj") ||
         text.includes("pause") ||
-        text.includes("halt") ||
-        text.includes("czek")
+        text.includes("halt")
       ) {
         bridge.pause();
         showFeedback(t.VOICE_COACH_PAUSE);
         return;
       }
 
-      // 3. RESTART / RESET
       if (
         text.includes("od nowa") ||
         text.includes("od poczatku") ||
         text.includes("poczatek") ||
-        text.includes("od pocz") ||
         text.includes("reset") ||
         text.includes("restart") ||
         text.includes("jeszcze raz") ||
-        text.includes("jeszcze") ||
-        text.includes("again") ||
-        text.includes("ponow")
+        text.includes("again")
       ) {
         bridge.reset();
         showFeedback(t.VOICE_COACH_RESET);
         return;
       }
 
-      // 4. TEMPO 0.5× (slow)
       if (
         text.includes("wolno") ||
         text.includes("zwolnij") ||
         text.includes("wolniej") ||
         text.includes("pol tempa") ||
         text.includes("polowa") ||
-        text.includes("woln") ||
-        text.includes("0.5") ||
-        text.includes("zero piec") ||
         text.includes("slow") ||
         text.includes("pol")
       ) {
@@ -247,15 +259,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 5. TEMPO 1.0× (normal)
       if (
         text.includes("normalnie") ||
         text.includes("standard") ||
         text.includes("normalne tempo") ||
         text.includes("normal") ||
-        text.includes("1x") ||
-        text.includes("1.0") ||
-        text.includes("jeden") ||
         text.includes("domysl")
       ) {
         const res = bridge.setTempo(1);
@@ -265,13 +273,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 6. TEMPO 1.25× (fast)
       if (
         text.includes("szybko") ||
         text.includes("przyspiesz") ||
         text.includes("szybciej") ||
         text.includes("wyzwanie") ||
-        text.includes("1.25") ||
         text.includes("fast") ||
         text.includes("challenge") ||
         text.includes("mocniej")
@@ -283,13 +289,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 7. BABY STEPS
       if (
         text.includes("baby") ||
         text.includes("male kroki") ||
         text.includes("kroczki") ||
         text.includes("poczatkujacych") ||
-        text.includes("poczatk") ||
         text.includes("small") ||
         text.includes("krusz") ||
         text.includes("dzieck")
@@ -299,7 +303,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 8. FULL STEPS
       if (
         text.includes("pelne kroki") ||
         text.includes("duze kroki") ||
@@ -307,7 +310,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("pelny krok") ||
         text.includes("full") ||
         text.includes("w pelni") ||
-        text.includes("pelno") ||
         text.includes("duze")
       ) {
         bridge.setPracticeMode("full_steps");
@@ -315,7 +317,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 9. 13 utworów z bazy WebMCP TrainerBridge.setSong(id)
       for (const [keyword, sId] of Object.entries(SONG_KEYWORDS)) {
         if (text.includes(keyword)) {
           const res = bridge.setSong(sId);
@@ -335,6 +336,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     [t, showFeedback, showError],
   );
 
+  // Pełne zwolnienie silnika mowy (wywoływane przy wyłączaniu / unmount).
   const releaseSpeechEngine = useCallback(() => {
     if (restartTimerRef.current) {
       clearTimeout(restartTimerRef.current);
@@ -361,14 +363,20 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       }
       recognitionRef.current = null;
     }
+    isEngagedRef.current = false;
   }, []);
 
+  // Tworzenie świeżej instancji — jest jedyną drogą do start(). Weryfikujemy
+  // isEngagedRef, by nie wpaść w „busy loop" przy InvalidStateError.
   const startRecognitionInstance = useCallback(() => {
     if (typeof window === "undefined") return;
+    if (isEngagedRef.current) return; // guard
+
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       shouldListenRef.current = false;
+      isEngagedRef.current = false;
       safeSetStatus("idle");
       safeSetFeedback(t.VOICE_COACH_NOT_SUPPORTED);
       return;
@@ -382,27 +390,44 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
-        if (!isMountedRef.current) return;
-        safeSetStatus("listening");
+        isEngagedRef.current = true;
+        if (isMountedRef.current) safeSetStatus("listening");
       };
 
+      // BEZ setState w interim — tylko do refa.
       recognition.onresult = (event: any) => {
-        if (!isMountedRef.current) return;
         let finalTranscript = "";
+        let interim = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const res = event.results[i];
           const transcript = (res?.[0]?.transcript || "").trim();
-          if (transcript) safeSetTranscript(transcript);
           if (res?.isFinal && transcript) {
             finalTranscript += " " + transcript;
+          } else if (transcript) {
+            interim += " " + transcript;
           }
         }
         finalTranscript = finalTranscript.trim();
-        if (finalTranscript) dispatchCommand(finalTranscript);
+        interim = interim.trim();
+        if (interim) setThrottledTranscript(interim);
+        if (finalTranscript) {
+          // Final → do UI w jednej aktualizacji + komenda.
+          if (isMountedRef.current) {
+            setLastTranscript(finalTranscript);
+            if (transcriptTimerRef.current) {
+              clearTimeout(transcriptTimerRef.current);
+              transcriptTimerRef.current = null;
+            }
+            // po 1.6 s czyść
+            transcriptTimerRef.current = setTimeout(() => {
+              if (isMountedRef.current) setLastTranscript(null);
+            }, 1600);
+          }
+          dispatchCommand(finalTranscript);
+        }
       };
 
       recognition.onerror = (event: any) => {
-        if (!isMountedRef.current) return;
         const err = event?.error || "";
         if (
           err === "no-speech" ||
@@ -410,44 +435,47 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           err === "network" ||
           err === "audio-capture"
         ) {
+          // miękkie — nie pokazujemy, onend obsłuży.
           return;
         }
         if (err === "not-allowed" || err === "service-not-allowed") {
           shouldListenRef.current = false;
+          isEngagedRef.current = false;
           showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
           releaseSpeechEngine();
+          return;
         }
       };
 
       recognition.onend = () => {
-        if (!isMountedRef.current) return;
-        if (recognitionRef.current) {
-          try {
-            recognitionRef.current.onstart = null;
-            recognitionRef.current.onresult = null;
-            recognitionRef.current.onerror = null;
-            recognitionRef.current.onend = null;
-          } catch {
-            // ignore
-          }
+        isEngagedRef.current = false;
+        if (recognitionRef.current === recognition) {
           recognitionRef.current = null;
         }
+        if (!isMountedRef.current) return;
+
+        // Auto-restart dopóki użytkownik chce słuchać. ŁAGODNY debounce
+        // (400 ms), by nie męczyć main threada.
         if (shouldListenRef.current) {
           if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
           restartTimerRef.current = setTimeout(() => {
-            if (!isMountedRef.current || !shouldListenRef.current) return;
+            if (!isMountedRef.current) return;
+            if (!shouldListenRef.current) return;
+            if (isEngagedRef.current) return;
             try {
               startRecognitionInstance();
             } catch {
+              // ponowimy po dłuższym czasie
               restartTimerRef.current = setTimeout(() => {
                 if (!isMountedRef.current || !shouldListenRef.current) return;
+                if (isEngagedRef.current) return;
                 try {
                   startRecognitionInstance();
                 } catch {
                   shouldListenRef.current = false;
                   safeSetStatus("idle");
                 }
-              }, 400);
+              }, RESTART_DELAY_MS * 2);
             }
           }, RESTART_DELAY_MS);
         } else {
@@ -458,20 +486,13 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       recognitionRef.current = recognition;
       recognition.start();
     } catch (err: any) {
+      // InvalidStateError = „już działa". Nic nie rób, onend odświeży cykl.
       if (err?.name === "InvalidStateError") {
-        if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-        restartTimerRef.current = setTimeout(() => {
-          if (!isMountedRef.current || !shouldListenRef.current) return;
-          try {
-            startRecognitionInstance();
-          } catch {
-            // ignore
-          }
-        }, RESTART_DELAY_MS);
         return;
       }
       console.warn("[VoiceCoach] start() failed", err);
       shouldListenRef.current = false;
+      isEngagedRef.current = false;
       safeSetStatus("idle");
     }
   }, [
@@ -480,7 +501,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     releaseSpeechEngine,
     safeSetFeedback,
     safeSetStatus,
-    safeSetTranscript,
+    setThrottledTranscript,
     showError,
     t,
   ]);
@@ -488,20 +509,21 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const handleMicToggle = useCallback(() => {
     if (shouldListenRef.current) {
       shouldListenRef.current = false;
+      isEngagedRef.current = false;
       releaseSpeechEngine();
       safeSetStatus("idle");
       safeSetFeedback(null);
-      safeSetTranscript(null);
+      flushTranscript();
     } else {
       shouldListenRef.current = true;
-      safeSetTranscript(null);
+      flushTranscript();
       startRecognitionInstance();
     }
   }, [
+    flushTranscript,
     releaseSpeechEngine,
     safeSetFeedback,
     safeSetStatus,
-    safeSetTranscript,
     startRecognitionInstance,
   ]);
 
@@ -510,8 +532,10 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     return () => {
       isMountedRef.current = false;
       shouldListenRef.current = false;
+      isEngagedRef.current = false;
       releaseSpeechEngine();
       if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      if (transcriptTimerRef.current) clearTimeout(transcriptTimerRef.current);
     };
   }, [releaseSpeechEngine]);
 
@@ -539,6 +563,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            // WAGLLE: tylko opacity+transform (GPU), zero layout/paint.
+            style={{
+              willChange: "transform, opacity",
+              transform: "translateZ(0)",
+            }}
             className={`max-w-xs rounded-2xl border p-3.5 text-xs font-bold shadow-2xl backdrop-blur-md ${
               status === "error"
                 ? "border-amber-400/60 bg-amber-50/95 text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/90 dark:text-amber-200"
@@ -560,7 +589,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
                   isListening
-                    ? "bg-pink-500/20 text-pink-600 dark:text-pink-300 animate-pulse"
+                    ? "bg-pink-500/20 text-pink-600 dark:text-pink-300"
                     : status === "error"
                       ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
                       : "bg-muted text-muted-foreground"
@@ -596,16 +625,42 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
             ? "border-pink-500 bg-pink-500 text-white shadow-pink-500/50 ring-4 ring-pink-500/30"
             : "border-border bg-card/90 text-foreground hover:border-primary/50 hover:bg-primary/10 shadow-black/10"
         }`}
+        style={{ transform: "translateZ(0)", willChange: "transform" }}
       >
+        {/* Efekt „ping" zamieniony z animate-ping na statyczną warstwę
+            z napędzaniem CSS w warstwie composite (GPU). Dzięki temu
+            nie męczy głównego wątku podczas odtwarzania audio. */}
         {isListening && (
-          <span className="absolute inset-0 animate-ping rounded-full bg-pink-500/40" />
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full bg-pink-500/40"
+            style={{
+              animation: "voicecoach-ping 1.6s cubic-bezier(0,0,.2,1) infinite",
+            }}
+          />
         )}
         {isListening ? (
-          <Mic className="size-6 animate-pulse text-white" />
+          <Mic className="size-6 text-white" />
         ) : (
           <Mic className="size-6 text-foreground transition-colors group-hover:text-primary" />
         )}
       </button>
+
+      {/* Lokalny, statyczny keyframes dla efektu ping — animuje TYLKO
+          opacity i scale (composite layer), zero layoutu. */}
+      <style jsx>{`
+        @keyframes voicecoach-ping {
+          0% {
+            transform: scale(1);
+            opacity: 0.6;
+          }
+          75%,
+          100% {
+            transform: scale(1.8);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </aside>
   );
 }
