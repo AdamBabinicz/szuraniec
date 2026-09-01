@@ -24,42 +24,49 @@ The demo showcases the interactive dance-learning experience, including the visu
 
 ---
 
-## 🎙️ Voice AI Coach Integration (Groq Whisper Turbo)
+## 🎙️ Voice AI Coach Integration (Browser-Native Web Speech API)
 
-The application now includes a **real-time, hands-free Voice AI Coach** powered by **Groq Cloud Whisper Large v3 Turbo**, allowing dancers to control practice sessions with natural spoken commands in **Polish and English**.
+The application now includes a **real-time, hands-free Voice AI Coach** running **100% directly in the browser** through the native **Browser-Native Web Speech API** (the `SpeechRecognition` / `webkitSpeechRecognition` interface). The application **no longer requires any external recording software** — speech recognition and command execution happen entirely inside the web page, with zero install, zero server round-trip for the primary path, and zero third-party desktop tools. The dance floor is the only screen the dancer needs.
 
 This addition does not replace the existing WebMCP tool architecture — it extends it with a voice-driven control layer that maps speech directly into the same structured `TrainerBridge` actions already used by autonomous agents. In practice, this means the browser can now be controlled in three complementary ways:
 
 - **by the human through the visual UI**,
 - **by an autonomous AI agent through WebMCP tools**,
-- **and by the dancer's voice through the Voice AI Coach bridge**.
+- **and by the dancer's voice through the Voice AI Coach bridge** — purely browser-native.
 
 ### Hands-Free Voice Control Architecture
 
-#### 1. HTML5 MediaRecorder Pipeline
+#### 1. Browser-Native Web Speech API — Primary Pipeline
 
-The voice layer uses the **HTML5 MediaRecorder API** as a cross-browser audio capture standard. This avoids the reliability, permission, and sandbox limitations often associated with legacy browser speech APIs and keeps the input layer aligned with modern web platform primitives.
+The voice layer is built directly on top of the **Web Speech API**, a native browser interface provided by the platform itself. The application's `SpeechRecognition` instance performs **immediate, in-browser speech-to-text** without streaming audio to any external recorder, dashboard, or desktop utility. The result is recognized text in **real time, with no perceptible delay**, the moment the dancer finishes speaking.
 
-The result is a recording pipeline that works across:
+The native pipeline works seamlessly across:
 
-- Chrome
-- Safari
+- Chrome (desktop & Android)
 - Edge
-- Firefox
-- iOS browsers
+- Safari
+- iOS Safari (via `webkitSpeechRecognition`)
+- Firefox (progressive enhancement)
 - Android browsers
 
-This makes the Voice AI Coach suitable for realistic dance-floor practice, where the dancer may be using a phone, tablet, or laptop and cannot rely on desktop-only browser speech features.
+Because everything happens inside the browser tab the dancer is already using — no second app, no system audio routing, no permissions outside the standard microphone prompt — the Voice AI Coach is suitable for realistic dance-floor practice on phones, tablets, and laptops alike. The user clicks a single microphone button and gets fully conversational control over the trainer.
 
-#### 2. Groq Cloud Whisper Large v3 Turbo (`/api/voice`)
+#### 2. HTML5 MediaRecorder — Automatic Fallback
 
-Recorded audio is streamed to the application's **`/api/voice`** endpoint, which uses **Groq Cloud Whisper Large v3 Turbo** for ultra-fast multilingual speech-to-text inference. The system is designed for **sub-200ms turnaround** so that spoken commands can feel immediate during active practice.
+For environments where the native Web Speech API is unavailable (older browsers, hardened privacy modes, locked-down corporate browsers), the application automatically falls back to an **HTML5 MediaRecorder** capture pipeline. The recorded audio is sent to the application's `/api/voice` endpoint for server-side transcription, ensuring the trainer remains controllable by voice in every supported browser.
 
-Because Whisper Large v3 Turbo is multilingual, the application can recognize both **Polish** and **English** coaching commands without requiring the user to switch input modes or reconfigure the session.
+This dual-layer design guarantees that:
 
-#### 3. WebMCP Bridge Dispatcher
+- **Most users** get instant, sub-second, fully in-browser recognition through `SpeechRecognition`.
+- **Every user** always has a working voice path, either browser-native or via the MediaRecorder fallback.
 
-Once a spoken phrase is transcribed, the Voice AI Coach passes the interpreted command through a **WebMCP bridge dispatcher** that maps natural language onto the application's structured `TrainerBridge` actions.
+#### 3. Multilingual Polish & English Recognition (No Switching)
+
+Because the Web Speech API recognizes speech continuously with multilingual models, the application can understand both **Polish** and **English** coaching commands in the same listening session. The dancer can freely mix languages — _„Start, baby steps, zwolnij"_ — and the Voice AI Coach resolves each phrase correctly without requiring the user to switch input modes or reconfigure the session.
+
+#### 4. WebMCP Bridge Dispatcher (TrainerBridge)
+
+Once a spoken phrase is transcribed — whether by `SpeechRecognition` or by the MediaRecorder fallback — the Voice AI Coach passes the interpreted command through the same **WebMCP bridge dispatcher** that maps natural language onto the application's structured **`TrainerBridge`** actions. The trainer's control surface stays identical across voice, UI, and agent paths.
 
 Examples include:
 
@@ -68,26 +75,25 @@ Examples include:
 - **"Od nowa" / "Reset" / "Again"** → `reset_practice`
 - **"Zwolnij" / "Slow down"** → `set_tempo`
 - **"Baby steps"** → `set_practice_mode("baby_steps")`
-- **"Włącz Szaloną"** → `set_song` for *Boys — Jesteś Szalona*
+- **"Włącz Szaloną"** → `set_song` for _Boys — Jesteś Szalona_
 
 This architecture preserves the core design principle of the project: the application should expose **structured, deterministic capabilities** instead of relying on fragile UI interpretation. Voice becomes another natural-language entry point into the same action system already used by AI agents.
 
-#### 4. Continuous Hands-Free Coaching Loop
+#### 5. Continuous Hands-Free Coaching Loop (Tap Once, Train the Whole Session)
 
-The complete interaction loop is optimized for actual movement practice:
+The complete interaction loop is optimized for actual movement practice — and the dancer only ever touches the screen **once**:
 
-1. The dancer taps the microphone once.
-2. The browser begins the continuous voice-listening workflow.
-3. Speech is recorded via MediaRecorder.
-4. Audio is transcribed by Groq Whisper Turbo through `/api/voice`.
-5. The dispatcher resolves the command into a `TrainerBridge` action.
-6. The dance trainer updates song, tempo, mode, or playback in real-time.
+1. The dancer taps the microphone button **once** on the page.
+2. The browser starts the native `SpeechRecognition` engine in **continuous listening mode** with the Hands-Free flag enabled.
+3. The recognition engine stays open for the entire training session — listening, transcribing, and dispatching commands in real time, with no further clicks.
+4. Each recognized phrase is routed through the WebMCP bridge dispatcher and resolved into a `TrainerBridge` action.
+5. The dance trainer updates song, tempo, mode, or playback in real-time, and `SpeechRecognition` immediately keeps listening for the next phrase.
 
-This enables a true **continuous hands-free coaching loop**: dancers can step away from the device, practice on the dance floor, and issue commands such as **"Start"**, **"Zwolnij"**, **"Baby steps"**, **"Pauza"**, or **"Od nowa"** at any time without touching the screen.
+This is a true **Continuous Hands-Free Coaching Loop**: dancers can step away from the device, practice on the dance floor, and issue commands such as **"Start"**, **"Zwolnij"**, **"Baby steps"**, **"Pauza"**, or **"Od nowa"** as many times as they want, throughout the whole session, without ever touching the screen again. No external recorder, no second application, no extra configuration — the microphone permission granted on first tap is the only setup needed.
 
 ### Why This Matters
 
-A wedding dance trainer is especially well suited to voice interaction because practice often happens **while moving**, with limited ability to tap controls accurately. The Voice AI Coach reduces friction between instruction and action, making the system feel closer to a real dance coach standing nearby and responding instantly to spoken requests.
+A wedding dance trainer is especially well suited to voice interaction because practice often happens **while moving**, with limited ability to tap controls accurately. By moving completely onto the **native browser Web Speech API**, the Voice AI Coach now starts instantly, recognizes PL/EN with zero perceptible delay, and requires nothing more than a single tap on the microphone button. The trainer feels closer to a real dance coach standing nearby and responding instantly to spoken requests — without any external software in the loop.
 
 ---
 
@@ -207,7 +213,7 @@ Instead of forcing an AI agent to interpret the application's UI, the applicatio
 
 ### What Changed in the P1 Milestone
 
-The initial version of the application (P0 — Knowledge Layer) exposed three **read-only knowledge tools**: agents could *query* the song library, look up step instructions, and get BPM-based song recommendations. The agent was a knowledgeable observer — it could answer questions about the dance, but it could not *do* anything inside the application.
+The initial version of the application (P0 — Knowledge Layer) exposed three **read-only knowledge tools**: agents could _query_ the song library, look up step instructions, and get BPM-based song recommendations. The agent was a knowledgeable observer — it could answer questions about the dance, but it could not _do_ anything inside the application.
 
 The P1 upgrade introduces **Action & State Inspection**: seven new tools that allow an agent to **directly pilot and control the dance trainer in real-time**. The agent can now:
 
@@ -215,7 +221,7 @@ The P1 upgrade introduces **Action & State Inspection**: seven new tools that al
 - **Take action** — select a song, change the tempo, switch between Baby Steps and Full Steps, and start, pause, or reset the practice session.
 - **Orchestrate autonomously** — chain multiple tools together to set up and run a complete practice session from a single user prompt, with no human interaction in the UI.
 
-This transforms the application from a *knowledgeable reference* into a **fully agent-driven dance coach**: the human asks, the agent decides and acts, and the web browser autonomously begins playback and footwork animation.
+This transforms the application from a _knowledgeable reference_ into a **fully agent-driven dance coach**: the human asks, the agent decides and acts, and the web browser autonomously begins playback and footwork animation.
 
 The interaction model is now:
 
@@ -238,18 +244,18 @@ Structured dance & music data            Audio playback
 
 The application exposes **10 tools** through WebMCP, organized into three categories:
 
-| #   | Category          | Tool                    | Type     | Description                                      |
-| --- | ----------------- | ----------------------- | -------- | ------------------------------------------------ |
-| 1   | Knowledge         | `get_wedding_songs`     | Read     | Retrieve all 13 wedding songs with metadata      |
-| 2   | Knowledge         | `get_step_instructions` | Read     | Retrieve structured four-phase dance methodology |
-| 3   | Knowledge         | `recommend_song_by_bpm` | Read     | Recommend a song based on skill level / BPM      |
-| 4   | State Inspection  | `get_training_state`    | Read     | Inspect real-time training session state         |
-| 5   | Action & Control  | `set_song`              | Action   | Select the active practice song                  |
-| 6   | Action & Control  | `set_tempo`             | Action   | Set playback speed (0.5 / 1 / 1.25)              |
-| 7   | Action & Control  | `set_practice_mode`     | Action   | Switch Baby Steps / Full Steps                   |
-| 8   | Action & Control  | `start_practice`        | Action   | Begin playback and footwork animation            |
-| 9   | Action & Control  | `pause_practice`        | Action   | Pause playback                                   |
-| 10  | Action & Control  | `reset_practice`        | Action   | Reset the session to initial state               |
+| #   | Category         | Tool                    | Type   | Description                                      |
+| --- | ---------------- | ----------------------- | ------ | ------------------------------------------------ |
+| 1   | Knowledge        | `get_wedding_songs`     | Read   | Retrieve all 13 wedding songs with metadata      |
+| 2   | Knowledge        | `get_step_instructions` | Read   | Retrieve structured four-phase dance methodology |
+| 3   | Knowledge        | `recommend_song_by_bpm` | Read   | Recommend a song based on skill level / BPM      |
+| 4   | State Inspection | `get_training_state`    | Read   | Inspect real-time training session state         |
+| 5   | Action & Control | `set_song`              | Action | Select the active practice song                  |
+| 6   | Action & Control | `set_tempo`             | Action | Set playback speed (0.5 / 1 / 1.25)              |
+| 7   | Action & Control | `set_practice_mode`     | Action | Switch Baby Steps / Full Steps                   |
+| 8   | Action & Control | `start_practice`        | Action | Begin playback and footwork animation            |
+| 9   | Action & Control | `pause_practice`        | Action | Pause playback                                   |
+| 10  | Action & Control | `reset_practice`        | Action | Reset the session to initial state               |
 
 ---
 
@@ -309,16 +315,16 @@ Returns a complete snapshot of the current training session state in real-time. 
 
 The response includes:
 
-| Field                  | Type      | Description                                                        |
-| ---------------------- | --------- | ------------------------------------------------------------------ |
-| `activeSong`           | string    | The currently selected song (identifier, artist, title)            |
-| `effectiveBpm`         | number    | The effective BPM after applying the current tempo multiplier      |
-| `playbackStatus`       | string    | Current playback status: `"playing"`, `"paused"`, or `"stopped"`   |
-| `activeStepPhase`      | string    | The current step phase: `"One"`, `"Two"`, `"Three"`, or `"And"`    |
-| `cycleBar`             | number    | The current bar number within the repeating dance cycle            |
-| `direction`            | string    | Current movement direction: `"left"` or `"right"`                  |
-| `weightBearingFoot`    | string    | Which foot is currently bearing the dancer's weight: `"left"` or `"right"` |
-| `movingFoot`           | string    | Which foot is currently in motion: `"left"` or `"right"`           |
+| Field               | Type   | Description                                                                |
+| ------------------- | ------ | -------------------------------------------------------------------------- |
+| `activeSong`        | string | The currently selected song (identifier, artist, title)                    |
+| `effectiveBpm`      | number | The effective BPM after applying the current tempo multiplier              |
+| `playbackStatus`    | string | Current playback status: `"playing"`, `"paused"`, or `"stopped"`           |
+| `activeStepPhase`   | string | The current step phase: `"One"`, `"Two"`, `"Three"`, or `"And"`            |
+| `cycleBar`          | number | The current bar number within the repeating dance cycle                    |
+| `direction`         | string | Current movement direction: `"left"` or `"right"`                          |
+| `weightBearingFoot` | string | Which foot is currently bearing the dancer's weight: `"left"` or `"right"` |
+| `movingFoot`        | string | Which foot is currently in motion: `"left"` or `"right"`                   |
 
 Example response:
 
@@ -351,9 +357,9 @@ These tools allow an agent to **directly control the dance trainer** in the brow
 
 Selects the active practice song.
 
-| Parameter | Type   | Description                                      |
-| --------- | ------ | ------------------------------------------------ |
-| `songId`  | string | The song identifier from the 13-song database    |
+| Parameter | Type   | Description                                   |
+| --------- | ------ | --------------------------------------------- |
+| `songId`  | string | The song identifier from the 13-song database |
 
 When called, the application loads the corresponding song's BPM, YouTube metadata, and training URL. The browser UI updates to reflect the new song selection. This is the first step in most agent-orchestrated practice sessions.
 
@@ -361,9 +367,9 @@ When called, the application loads the corresponding song's BPM, YouTube metadat
 
 Sets the playback speed multiplier.
 
-| Parameter | Type                              | Description                                    |
-| --------- | --------------------------------- | ---------------------------------------------- |
-| `speed`   | `0.5 \| 1 \| 1.25`               | Half speed, normal speed, or challenge mode    |
+| Parameter | Type               | Description                                 |
+| --------- | ------------------ | ------------------------------------------- |
+| `speed`   | `0.5 \| 1 \| 1.25` | Half speed, normal speed, or challenge mode |
 
 The effective BPM is calculated as `song.bpm × speed`. For example, a 120 BPM song at `0.5×` speed results in an effective 60 BPM — ideal for beginners learning the basic pattern.
 
@@ -371,9 +377,9 @@ The effective BPM is calculated as `song.bpm × speed`. For example, a 120 BPM s
 
 Switches between Baby Steps and Full Steps practice modes.
 
-| Parameter | Type                              | Description                                              |
-| --------- | --------------------------------- | -------------------------------------------------------- |
-| `mode`    | `"baby_steps" \| "full_steps"`   | Reduced movement amplitude for beginners, or full range  |
+| Parameter | Type                           | Description                                             |
+| --------- | ------------------------------ | ------------------------------------------------------- |
+| `mode`    | `"baby_steps" \| "full_steps"` | Reduced movement amplitude for beginners, or full range |
 
 In `baby_steps` mode, the visual footwork instructions show smaller, more controlled movements — allowing beginners to focus on rhythm and weight transfer. In `full_steps` mode, the full movement amplitude is displayed.
 
@@ -628,8 +634,8 @@ The application combines several browser-native and web technologies:
 - React
 - TypeScript
 - WebMCP / Model Context Protocol
-- HTML5 MediaRecorder API
-- Groq Cloud (Whisper Large v3 Turbo)
+- **Browser-Native Web Speech API** (SpeechRecognition / webkitSpeechRecognition — primary voice pipeline)
+- HTML5 MediaRecorder API (automatic fallback for browsers without Web Speech API)
 - Web Audio API
 - Web Vibration API
 - YouTube IFrame API
@@ -778,7 +784,7 @@ In accordance with the hackathon guidelines, the following core WebMCP systems a
 - **Real-Time State Inspection**: `get_training_state` exposing live step phase, direction, weight-bearing foot, moving foot, playback status, and effective BPM.
 - **Agent-Driven Action & Control**: `set_song`, `set_tempo`, `set_practice_mode`, `start_practice`, `pause_practice`, `reset_practice` — enabling fully autonomous agent orchestration.
 - **Real-Time Agent Orchestration**: Connecting Web Audio/Vibration sync engine to agent-driven parameters — agents can chain tools to set up and launch complete practice sessions from a single user prompt.
-- **Voice AI Coach Integration**: A real-time hands-free coaching layer built with HTML5 MediaRecorder, Groq Cloud Whisper Large v3 Turbo, `/api/voice`, and the WebMCP bridge dispatcher — enabling spoken PL/EN commands to trigger live trainer actions.
+- **Voice AI Coach Integration**: A real-time hands-free coaching layer built directly on the **native Browser-Native Web Speech API** (`SpeechRecognition` with continuous / Hands-Free mode) for instant in-browser PL/EN recognition, with an **HTML5 MediaRecorder** fallback for unsupported browsers — routed through the WebMCP bridge dispatcher into `TrainerBridge` actions. No external recording software is required: one tap on the microphone starts the continuous coaching loop for the entire session.
 - **Automated Quality & Canonical Data Architecture**: Vitest unit tests (8/8 passing, 0 TypeScript errors) run through GitHub Actions CI, while the complete 13-song library is maintained in one canonical data source shared by React, WebMCP, and the Node.js server.
 
 ---
@@ -838,8 +844,11 @@ The project combines a real-world human problem with an agent-friendly web inter
 - 🔊 Real-time audio rhythm guidance
 - 🎥 YouTube music integration
 - 🎬 Application demo video
-- 🎙️ **Real-time Voice AI Coach** powered by Groq Whisper Large v3 Turbo
-- 🎤 **HTML5 MediaRecorder voice pipeline** for cross-browser hands-free control
+- 🎙️ **Real-time Voice AI Coach** running 100% in the browser via the **native Browser-Native Web Speech API**
+- 🎤 **Continuous Hands-Free Coaching Loop** — one tap on the microphone, continuous listening, train the whole session without re-clicking
+- 🗣️ **Native Polish & English recognition** with zero perceptible delay — fully in-browser, no external programs
+- 🎙️ **HTML5 MediaRecorder fallback** keeps voice control working on every supported browser
+- 🌉 **WebMCP bridge dispatcher** mapping spoken PL/EN commands directly into `TrainerBridge` actions
 - 🤖 **10 WebMCP tools for AI agents** (3 knowledge + 1 state inspection + 6 action & control)
 - 🔍 **Real-time state inspection** (`get_training_state`) — step phase, direction, feet, playback status
 - 🎮 **Agent-driven control** — set song, tempo, mode, start/pause/reset
