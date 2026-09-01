@@ -23,8 +23,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Flaga określająca czy użytkownik chce ciągłego nasłuchu (Hands-Free)
-  const isListeningDesiredRef = useRef<boolean>(false);
+  const isListeningRef = useRef<boolean>(false);
   const recognitionRef = useRef<any>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
@@ -40,8 +39,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       setFeedback(null);
-      // Jeśli nadal chcemy nasłuchiwać, wracamy do "recording", a nie "idle"
-      setStatus(isListeningDesiredRef.current ? "recording" : "idle");
+      setStatus("idle");
+      isListeningRef.current = false;
     }, 3500);
   }, []);
 
@@ -54,8 +53,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       setFeedback(null);
-      setStatus(isListeningDesiredRef.current ? "recording" : "idle");
-    }, 4500);
+      setStatus("idle");
+      isListeningRef.current = false;
+    }, 4000);
   }, []);
 
   // ── Dispatcher komend głosowych do WebMCP Bridge ───────────────────
@@ -273,8 +273,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     [lang, showFeedback, showError],
   );
 
-  // ── Bezpieczne uruchomienie silnika mowy ───────────────────────────
-  const startSpeechEngine = useCallback(() => {
+  // ── Bezpieczny start nasłuchiwania w przeglądarce ───────────────────
+  const startListening = useCallback(() => {
     const SpeechRecognition =
       typeof window !== "undefined"
         ? window.SpeechRecognition || window.webkitSpeechRecognition
@@ -283,11 +283,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     if (!SpeechRecognition) {
       showError(
         lang === "pl"
-          ? "Twoja przeglądarka nie wspiera wbudowanego rozpoznawania głosu."
-          : "Your browser does not support built-in speech recognition.",
+          ? "Twoja przeglądarka nie wspiera rozpoznawania mowy."
+          : "Your browser does not support speech recognition.",
       );
-      isListeningDesiredRef.current = false;
-      setStatus("idle");
       return;
     }
 
@@ -300,20 +298,20 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       const recognition = new SpeechRecognition();
       recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
-      recognition.continuous = true; // CIĄGŁY NASŁUCH
+      // Ustawiamy false, aby nie kradło Focusu audio na smartfonach
+      recognition.continuous = false;
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         if (!isMountedRef.current) return;
+        isListeningRef.current = true;
         setStatus("recording");
       };
 
       recognition.onresult = (event: any) => {
         if (!isMountedRef.current) return;
-        const lastResultIndex = event.results.length - 1;
-        const transcript =
-          event.results[lastResultIndex]?.[0]?.transcript?.trim() || "";
+        const transcript = event.results[0]?.[0]?.transcript?.trim() || "";
         if (transcript) {
           dispatchCommand(transcript);
         }
@@ -321,37 +319,30 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       recognition.onerror = (event: any) => {
         if (!isMountedRef.current) return;
-        // Błąd 'no-speech' jest naturalny w trybie ciągłym – ignorujemy go
-        if (event.error === "no-speech") return;
+        if (event.error === "no-speech") {
+          setStatus("idle");
+          isListeningRef.current = false;
+          return;
+        }
 
         if (event.error === "not-allowed") {
-          isListeningDesiredRef.current = false;
           showError(
             lang === "pl"
               ? "⚠️ Zezwól przeglądarce na dostęp do mikrofonu."
               : "⚠️ Please allow microphone access in your browser.",
           );
+        } else {
+          setStatus("idle");
+          isListeningRef.current = false;
         }
       };
 
-      // Jeśli przeglądarka przerwie sesję (np. po ciszy), automatycznie wznawiamy
       recognition.onend = () => {
         if (!isMountedRef.current) return;
-        if (isListeningDesiredRef.current) {
-          try {
-            recognition.start();
-          } catch {
-            // Ponowna próba za chwilę, jeśli była zajęta
-            setTimeout(() => {
-              if (isMountedRef.current && isListeningDesiredRef.current) {
-                try {
-                  recognition.start();
-                } catch {}
-              }
-            }, 300);
-          }
-        } else {
+        // Bezpieczne zakończenie bez restartów w pętli
+        if (status === "recording") {
           setStatus("idle");
+          isListeningRef.current = false;
         }
       };
 
@@ -359,38 +350,34 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       recognition.start();
     } catch (err) {
       console.warn("[VoiceCoach] Error starting SpeechRecognition", err);
-      isListeningDesiredRef.current = false;
       setStatus("idle");
+      isListeningRef.current = false;
     }
-  }, [dispatchCommand, lang, showError]);
+  }, [dispatchCommand, lang, showError, status]);
 
-  // ── Kliknięcie przycisku mikrofonu (Włącz / Wyłącz nasłuch) ───────
+  // ── Kliknięcie przycisku mikrofonu ────────────────────────────────
   const handleMicClick = useCallback(() => {
-    if (isListeningDesiredRef.current) {
-      // Wyłączenie ciągłego nasłuchu
-      isListeningDesiredRef.current = false;
+    if (status === "recording") {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
         } catch {}
-        recognitionRef.current = null;
       }
       setStatus("idle");
+      isListeningRef.current = false;
     } else {
-      // Włączenie ciągłego nasłuchu
-      isListeningDesiredRef.current = true;
-      startSpeechEngine();
+      startListening();
     }
-  }, [startSpeechEngine]);
+  }, [startListening, status]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      isListeningDesiredRef.current = false;
+      isListeningRef.current = false;
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.stop();
+          recognitionRef.current.abort();
         } catch {}
       }
       if (feedbackTimeoutRef.current) {
@@ -399,28 +386,25 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     };
   }, []);
 
-  const isRecording =
-    status === "recording" ||
-    (isListeningDesiredRef.current && status !== "error");
+  const isRecording = status === "recording";
   const hasFeedback = Boolean(feedback);
 
   const statusBadge = isRecording
     ? lang === "pl"
-      ? "Ciągły nasłuch..."
+      ? "Słucham..."
       : "Listening..."
     : status === "error"
       ? "Błąd"
       : "Voice AI Coach";
 
   const messageText = isRecording
-    ? feedback ||
-      (lang === "pl"
-        ? "🎙️ Mów w dowolnym momencie: start, pauza, zwolnij, włącz Szaloną..."
-        : "🎙️ Speak anytime: start, pause, slow down, play Szalona...")
+    ? lang === "pl"
+      ? "🎙️ Mów teraz: start, pauza, zwolnij, włącz Szaloną..."
+      : "🎙️ Speak now: start, pause, slow down, play Szalona..."
     : feedback ||
       (lang === "pl"
-        ? "Kliknij mikrofon, aby włączyć sterowanie głosem (Hands-Free)"
-        : "Tap microphone to enable hands-free voice control");
+        ? "Kliknij mikrofon, aby wydać komendę głosową"
+        : "Tap microphone to speak command");
 
   return (
     <aside
@@ -467,11 +451,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         title={
           isRecording
             ? lang === "pl"
-              ? "Wyłącz ciągły nasłuch"
-              : "Disable continuous listening"
+              ? "Zatrzymaj"
+              : "Stop"
             : lang === "pl"
-              ? "Włącz ciągły nasłuch (Hands-Free)"
-              : "Enable continuous listening"
+              ? "Kliknij i powiedz komendę"
+              : "Tap to speak command"
         }
         aria-label="Voice AI Control"
         className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-transform active:scale-95 ${
