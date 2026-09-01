@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Mic, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getActiveTrainerBridge } from "@/lib/webmcp-client";
@@ -19,68 +19,124 @@ declare global {
   }
 }
 
+/**
+ * VoiceCoach — Browser-Native Web Speech API bridge.
+ *
+ * Architektura adaptacyjna dla Audio Focus na platformach mobilnych:
+ *  • DESKTOP (Windows 11 / macOS / Linux): tryb ciągły (continuous = true)
+ *    z automatycznym restartem w onend — tancerz mówi w dowolnym momencie
+ *    bez dotykania myszki.
+ *  • MOBILE (Android / iOS / Safari Mobile / Chrome Mobile): tryb bezpieczny
+ *    Tap-to-Speak (continuous = false). Po zakończeniu wypowiedzi mikrofon
+ *    jest całkowicie zamykany, sesja recognition jest przerywana przez
+ *    stop()+abort(), a strumień MediaStream jest zwalniany (track.stop()),
+ *    aby YouTube odzyskał Audio Focus i odtwarzał płynnie, bez duckingu
+ *    i szarpania.
+ */
+
 export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const isListeningDesiredRef = useRef<boolean>(false);
+  // Refy sterujące cyklem życia silnika mowy (nie powodują renderów).
+  const isMountedRef = useRef<boolean>(true);
   const recognitionRef = useRef<any>(null);
+  const recognitionStreamRef = useRef<MediaStream | null>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isMountedRef = useRef(true);
-  const isMobileRef = useRef<boolean>(false);
+  // Niezależne flagi:
+  //  isListeningDesired = intencja użytkownika (kliknął włącz),
+  //  shouldRestart      = zgoda na auto-restart WYŁĄCZNIE na desktopie.
+  const isListeningDesiredRef = useRef<boolean>(false);
+  const shouldRestartRef = useRef<boolean>(false);
 
   const t = translations[lang] || translations.pl;
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      isMobileRef.current = /Android|iPhone|iPad|iPod|Mobile/i.test(
-        navigator.userAgent,
-      );
+  // Wykrywanie środowiska mobilnego — UA + maxTouchPoints + coarse pointer.
+  // Computed raz (useMemo) i utrwalone w refie dla handlerów asynchronicznych.
+  const isMobile = useMemo<boolean>(() => {
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
+      return false;
     }
+    const ua = navigator.userAgent || "";
+    const uaMobile =
+      /Android|iPhone|iPad|iPod|Mobile|BlackBerry|IEMobile|Opera Mini/i.test(
+        ua,
+      );
+    const touchCapable =
+      (navigator.maxTouchPoints ?? 0) > 0 ||
+      "ontouchstart" in
+        (typeof window !== "undefined" ? window : ({} as Window));
+    const coarsePointer =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(pointer: coarse)").matches;
+    return uaMobile || (touchCapable && coarsePointer);
   }, []);
 
-  const showFeedback = useCallback((text: string) => {
-    if (!isMountedRef.current) return;
-    setFeedback(text);
-    setStatus("feedback");
+  const isMobileRef = useRef<boolean>(isMobile);
+  useEffect(() => {
+    isMobileRef.current = isMobile;
+  }, [isMobile]);
 
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    feedbackTimeoutRef.current = setTimeout(() => {
-      if (!isMountedRef.current) return;
-      setFeedback(null);
-      // Na desktopie wracamy do nasłuchu, na telefonie zwalniamy audio dla YouTube
-      if (isListeningDesiredRef.current && !isMobileRef.current) {
-        setStatus("listening");
-      } else {
-        setStatus("idle");
-        isListeningDesiredRef.current = false;
-      }
-    }, 2500);
+  // Bezpieczne ustawianie stanu tylko gdy komponent jest zamontowany.
+  const safeSetStatus = useCallback((next: VoiceStatus) => {
+    if (isMountedRef.current) setStatus(next);
   }, []);
 
-  const showError = useCallback((text: string) => {
-    if (!isMountedRef.current) return;
-    setFeedback(text);
-    setStatus("error");
-
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    feedbackTimeoutRef.current = setTimeout(() => {
-      if (!isMountedRef.current) return;
-      setFeedback(null);
-      if (isListeningDesiredRef.current && !isMobileRef.current) {
-        setStatus("listening");
-      } else {
-        setStatus("idle");
-        isListeningDesiredRef.current = false;
-      }
-    }, 3500);
+  const safeSetFeedback = useCallback((text: string | null) => {
+    if (isMountedRef.current) setFeedback(text);
   }, []);
 
-  // ── Dispatcher komend głosowych do WebMCP Bridge ───────────────────
+  // ── Wyświetlanie feedbacku z automatycznym powrotem do nasłuchu ─────
+  const showFeedback = useCallback(
+    (text: string) => {
+      safeSetFeedback(text);
+      safeSetStatus("feedback");
+
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = setTimeout(() => {
+        if (!isMountedRef.current) return;
+        safeSetFeedback(null);
+        // Desktop: po 2.5 s wracamy do nasłuchu (jeśli użytkownik nadal chce słuchać).
+        // Mobile: zwalniamy Audio Focus dla YouTube i przechodzimy w idle.
+        if (isListeningDesiredRef.current && shouldRestartRef.current) {
+          safeSetStatus("listening");
+        } else {
+          safeSetStatus("idle");
+          isListeningDesiredRef.current = false;
+          shouldRestartRef.current = false;
+        }
+      }, 2500);
+    },
+    [safeSetFeedback, safeSetStatus],
+  );
+
+  const showError = useCallback(
+    (text: string) => {
+      safeSetFeedback(text);
+      safeSetStatus("error");
+
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = setTimeout(() => {
+        if (!isMountedRef.current) return;
+        safeSetFeedback(null);
+        if (isListeningDesiredRef.current && shouldRestartRef.current) {
+          safeSetStatus("listening");
+        } else {
+          safeSetStatus("idle");
+          isListeningDesiredRef.current = false;
+          shouldRestartRef.current = false;
+        }
+      }, 3500);
+    },
+    [safeSetFeedback, safeSetStatus],
+  );
+
+  // ── Dyspozytor komend głosowych → WebMCP TrainerBridge ──────────────
+  // Obsługuje 9 grup komend: Start, Pauza, Reset, Tempo (0.5×/1×/1.25×),
+  // Baby Steps, Full Steps + 13 utworów z bazy `bridge.setSong(...)`.
   const dispatchCommand = useCallback(
     (rawTranscript: string) => {
-      const text = rawTranscript.toLowerCase().trim();
-
+      const text = (rawTranscript || "").toLowerCase().trim();
       const bridge = getActiveTrainerBridge();
       if (!bridge) {
         showError(t.VOICE_COACH_NOT_READY);
@@ -209,7 +265,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 9. PIOSENKI
+      // 9. 13 utworów z bazy WebMCP TrainerBridge.setSong(id)
       const songMatches: Record<string, string> = {
         szalon: "szalona",
         crazy: "szalona",
@@ -264,38 +320,93 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     [t, showFeedback, showError],
   );
 
-  // ── Start silnika mowy ─────────────────────────────────────────────
+  // ── Całkowite zwolnienie zasobów silnika mowy ──────────────────────
+  // Wywoływane z onend (mobile), z onerror (mobile), z handleMicToggle
+  // (wyłączenie przez użytkownika) i przy unmount komponentu.
+  // Zamyka recognition, zwalnia wszystkie tracki MediaStream, zeruje refy
+  // — oddaje Audio Focus odtwarzaczowi YouTube.
+  const releaseSpeechEngine = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onstart = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onend = null;
+      } catch {
+        // ignore
+      }
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
+    }
+    if (recognitionStreamRef.current) {
+      try {
+        recognitionStreamRef.current
+          .getTracks()
+          .forEach((track) => track.stop());
+      } catch {
+        // ignore
+      }
+      recognitionStreamRef.current = null;
+    }
+  }, []);
+
+  // ── Start silnika mowy (z rozróżnieniem desktop / mobile) ───────────
   const startSpeechEngine = useCallback(() => {
+    if (typeof window === "undefined") return;
+
     const SpeechRecognition =
-      typeof window !== "undefined"
-        ? window.SpeechRecognition || window.webkitSpeechRecognition
-        : null;
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       showError(t.VOICE_COACH_NOT_SUPPORTED);
       isListeningDesiredRef.current = false;
-      setStatus("idle");
+      shouldRestartRef.current = false;
+      safeSetStatus("idle");
       return;
     }
 
-    try {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {}
-      }
+    // Sprzątamy ewentualną poprzednią sesję zanim wystartujemy nową.
+    releaseSpeechEngine();
 
+    try {
       const recognition = new SpeechRecognition();
       recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
 
-      // Na desktopie continuous = true, na telefonie continuous = false (dla ochrony YouTube)
+      // ── Najważniejsza różnica architektoniczna ─────────────────────
+      // DESKTOP: continuous = true (Hands-Free Loop, auto-restart w onend)
+      // MOBILE:  continuous = false (Tap-to-Speak, brak pętli restartów)
       recognition.continuous = !isMobileRef.current;
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
+      // Na mobile łapiemy strumień audio, by móc zwolnić go po zakończeniu
+      // sesji i oddać Audio Focus odtwarzaczowi YouTube.
+      if (isMobileRef.current && navigator.mediaDevices?.getUserMedia) {
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((stream) => {
+            recognitionStreamRef.current = stream;
+          })
+          .catch(() => {
+            recognitionStreamRef.current = null;
+          });
+      }
+
+      // shouldRestart dotyczy WYŁĄCZNIE desktopu (ciągły nasłuch).
+      shouldRestartRef.current = !isMobileRef.current;
+
       recognition.onstart = () => {
         if (!isMountedRef.current) return;
-        setStatus("listening");
+        safeSetStatus("listening");
       };
 
       recognition.onresult = (event: any) => {
@@ -310,49 +421,108 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       recognition.onerror = (event: any) => {
         if (!isMountedRef.current) return;
-        if (event.error === "no-speech") {
+
+        // Błędy "no-speech" i "aborted" na mobile to naturalne zamknięcie
+        // sesji Tap-to-Speak — nie restartujemy, nie pokazujemy błędu.
+        if (event.error === "no-speech" || event.error === "aborted") {
           if (isMobileRef.current) {
-            setStatus("idle");
             isListeningDesiredRef.current = false;
+            shouldRestartRef.current = false;
+            safeSetStatus("idle");
+            releaseSpeechEngine();
           }
           return;
         }
 
-        if (event.error === "not-allowed") {
+        if (
+          event.error === "not-allowed" ||
+          event.error === "service-not-allowed"
+        ) {
           isListeningDesiredRef.current = false;
+          shouldRestartRef.current = false;
           showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
-        } else {
-          if (isMobileRef.current) {
-            setStatus("idle");
-            isListeningDesiredRef.current = false;
-          }
+          releaseSpeechEngine();
+          return;
+        }
+
+        // Każdy inny błąd: na mobile zamykamy natychmiast,
+        // na desktopie pozwalamy na restart w onend (jeśli intencja trwa).
+        if (isMobileRef.current) {
+          isListeningDesiredRef.current = false;
+          shouldRestartRef.current = false;
+          safeSetStatus("idle");
+          releaseSpeechEngine();
         }
       };
 
       recognition.onend = () => {
         if (!isMountedRef.current) return;
 
-        // Desktop: wznawiamy ciągły nasłuch
-        if (isListeningDesiredRef.current && !isMobileRef.current) {
+        // ── KLUCZOWE: auto-restart wyłącznie na desktopie ────────────
+        if (
+          isListeningDesiredRef.current &&
+          shouldRestartRef.current &&
+          !isMobileRef.current
+        ) {
+          // Sprzątamy starą instancję i tworzymy świeżą, by uniknąć wyścigu
+          // z wewnętrznym stanem recognition (Chrome na Windows blokuje
+          // ponowne start() na tej samej instancji po onend).
+          releaseSpeechEngine();
           try {
-            recognition.start();
+            const fresh = new SpeechRecognition();
+            fresh.lang = lang === "pl" ? "pl-PL" : "en-US";
+            fresh.continuous = !isMobileRef.current;
+            fresh.interimResults = false;
+            fresh.maxAlternatives = 1;
+            fresh.onstart = () => {
+              if (isMountedRef.current) safeSetStatus("listening");
+            };
+            fresh.onresult = (e: any) => {
+              if (!isMountedRef.current) return;
+              const li = e.results.length - 1;
+              const tr = e.results[li]?.[0]?.transcript?.trim() || "";
+              if (tr) dispatchCommand(tr);
+            };
+            fresh.onerror = (e: any) => {
+              if (!isMountedRef.current) return;
+              if (
+                e.error === "not-allowed" ||
+                e.error === "service-not-allowed"
+              ) {
+                isListeningDesiredRef.current = false;
+                shouldRestartRef.current = false;
+                showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
+                releaseSpeechEngine();
+              }
+            };
+            fresh.onend = recognition.onend;
+            recognitionRef.current = fresh;
+            fresh.start();
           } catch {
             setTimeout(() => {
               if (
                 isMountedRef.current &&
                 isListeningDesiredRef.current &&
+                shouldRestartRef.current &&
                 !isMobileRef.current
               ) {
                 try {
-                  recognition.start();
-                } catch {}
+                  startSpeechEngine();
+                } catch {
+                  isListeningDesiredRef.current = false;
+                  shouldRestartRef.current = false;
+                  safeSetStatus("idle");
+                }
               }
-            }, 200);
+            }, 250);
           }
         } else {
-          // Mobile: bezpiecznie wyłączamy mikrofon, aby YouTube grał płynnie
-          setStatus("idle");
+          // MOBILE lub użytkownik wyłączył mikrofon: czyste zakończenie,
+          // brak pętli restartów, pełne zwolnienie Audio Focus.
           isListeningDesiredRef.current = false;
+          shouldRestartRef.current = false;
+          safeSetStatus("idle");
+          releaseSpeechEngine();
         }
       };
 
@@ -361,43 +531,47 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     } catch (err) {
       console.warn("[VoiceCoach] Error starting SpeechRecognition", err);
       isListeningDesiredRef.current = false;
-      setStatus("idle");
+      shouldRestartRef.current = false;
+      safeSetStatus("idle");
+      releaseSpeechEngine();
     }
-  }, [dispatchCommand, lang, showError, t]);
+  }, [dispatchCommand, lang, releaseSpeechEngine, showError, safeSetStatus, t]);
 
-  // ── Kliknięcie przycisku mikrofonu ────────────────────────────────
+  // ── Kliknięcie przycisku mikrofonu (Toggle) ─────────────────────────
   const handleMicToggle = useCallback(() => {
     if (status === "listening" || isListeningDesiredRef.current) {
+      // Wyłączanie mikrofonu przez użytkownika — pełne zwolnienie zasobów.
       isListeningDesiredRef.current = false;
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {}
-        recognitionRef.current = null;
-      }
-      setStatus("idle");
-      setFeedback(null);
+      shouldRestartRef.current = false;
+      releaseSpeechEngine();
+      safeSetStatus("idle");
+      safeSetFeedback(null);
     } else {
       isListeningDesiredRef.current = true;
       startSpeechEngine();
     }
-  }, [startSpeechEngine, status]);
+  }, [
+    releaseSpeechEngine,
+    safeSetFeedback,
+    safeSetStatus,
+    startSpeechEngine,
+    status,
+  ]);
 
+  // Cleanup przy unmount.
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
       isListeningDesiredRef.current = false;
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {}
-      }
+      shouldRestartRef.current = false;
+      releaseSpeechEngine();
       if (feedbackTimeoutRef.current) {
         clearTimeout(feedbackTimeoutRef.current);
+        feedbackTimeoutRef.current = null;
       }
     };
-  }, []);
+  }, [releaseSpeechEngine]);
 
   const isListening = status === "listening";
   const hasFeedback = Boolean(feedback);
