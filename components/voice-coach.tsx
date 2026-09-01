@@ -27,8 +27,18 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const recognitionRef = useRef<any>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const isMobileRef = useRef<boolean>(false);
 
   const t = translations[lang] || translations.pl;
+
+  // Wykrycie czy użytkownik jest na smartfonie/tablecie
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      isMobileRef.current = /Android|iPhone|iPad|iPod|Mobile/i.test(
+        navigator.userAgent,
+      );
+    }
+  }, []);
 
   const showFeedback = useCallback((text: string) => {
     if (!isMountedRef.current) return;
@@ -39,10 +49,12 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       setFeedback(null);
-      if (isListeningDesiredRef.current) {
+      // Na desktopie wracamy do ciągłego nasłuchu, na telefonie do idle (aby nie ciąć YouTube)
+      if (isListeningDesiredRef.current && !isMobileRef.current) {
         setStatus("listening");
       } else {
         setStatus("idle");
+        isListeningDesiredRef.current = false;
       }
     }, 3000);
   }, []);
@@ -56,10 +68,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       setFeedback(null);
-      if (isListeningDesiredRef.current) {
+      if (isListeningDesiredRef.current && !isMobileRef.current) {
         setStatus("listening");
       } else {
         setStatus("idle");
+        isListeningDesiredRef.current = false;
       }
     }, 4000);
   }, []);
@@ -252,7 +265,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     [t, showFeedback, showError],
   );
 
-  // ── Błyskawiczny start silnika rozpoznawania mowy ──────────────────
+  // ── Start silnika rozpoznawania mowy ───────────────────────────────
   const startSpeechEngine = useCallback(() => {
     const SpeechRecognition =
       typeof window !== "undefined"
@@ -275,7 +288,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       const recognition = new SpeechRecognition();
       recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
-      recognition.continuous = true;
+
+      // Na desktopie: ciągły nasłuch. Na telefonie: pojedyncza komenda (chroni audio YouTube)
+      recognition.continuous = !isMobileRef.current;
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
@@ -296,23 +311,39 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       recognition.onerror = (event: any) => {
         if (!isMountedRef.current) return;
-        if (event.error === "no-speech") return;
+        if (event.error === "no-speech") {
+          if (isMobileRef.current) {
+            setStatus("idle");
+            isListeningDesiredRef.current = false;
+          }
+          return;
+        }
 
         if (event.error === "not-allowed") {
           isListeningDesiredRef.current = false;
           showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
+        } else {
+          if (isMobileRef.current) {
+            setStatus("idle");
+            isListeningDesiredRef.current = false;
+          }
         }
       };
 
       recognition.onend = () => {
         if (!isMountedRef.current) return;
-        // Płynne wznawianie ciągłego nasłuchu bez zacinania
-        if (isListeningDesiredRef.current) {
+
+        // Na komputerze: automatycznie wznawiamy w tle
+        if (isListeningDesiredRef.current && !isMobileRef.current) {
           try {
             recognition.start();
           } catch {
             setTimeout(() => {
-              if (isMountedRef.current && isListeningDesiredRef.current) {
+              if (
+                isMountedRef.current &&
+                isListeningDesiredRef.current &&
+                !isMobileRef.current
+              ) {
                 try {
                   recognition.start();
                 } catch {}
@@ -320,7 +351,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
             }, 200);
           }
         } else {
+          // Na telefonie: bezpieczne wyłączenie po komendzie, aby YouTube grał płynnie
           setStatus("idle");
+          isListeningDesiredRef.current = false;
         }
       };
 
@@ -333,9 +366,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     }
   }, [dispatchCommand, lang, showError, t]);
 
-  // ── Przełącznik mikrofonu (Włącz / Wyłącz nasłuch) ───────────────
+  // ── Przełącznik mikrofonu ─────────────────────────────────────────
   const handleMicToggle = useCallback(() => {
-    if (isListeningDesiredRef.current) {
+    if (status === "listening" || isListeningDesiredRef.current) {
       isListeningDesiredRef.current = false;
       if (recognitionRef.current) {
         try {
@@ -349,7 +382,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       isListeningDesiredRef.current = true;
       startSpeechEngine();
     }
-  }, [startSpeechEngine]);
+  }, [startSpeechEngine, status]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -367,9 +400,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     };
   }, []);
 
-  const isListening =
-    status === "listening" ||
-    (isListeningDesiredRef.current && status !== "error");
+  const isListening = status === "listening";
   const hasFeedback = Boolean(feedback);
 
   const statusBadge = isListening
