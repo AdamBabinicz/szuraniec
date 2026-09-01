@@ -28,8 +28,6 @@ interface ISpeechRecognition extends EventTarget {
   stop: () => void;
   abort: () => void;
   onstart: ((this: ISpeechRecognition, ev: Event) => void) | null;
-  onaudiostart: ((this: ISpeechRecognition, ev: Event) => void) | null;
-  onspeechstart: ((this: ISpeechRecognition, ev: Event) => void) | null;
   onresult:
     | ((this: ISpeechRecognition, ev: SpeechRecognitionEvent) => void)
     | null;
@@ -326,7 +324,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     };
   }, [lang, handleVoiceCommand, showFeedback]);
 
-  const toggleListening = useCallback(() => {
+  const toggleListening = useCallback(async () => {
     if (!recognitionRef.current) return;
 
     if (isListening) {
@@ -337,14 +335,30 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       showFeedback(t.VOICE_COACH_OFF || "Microphone off");
     } else {
       try {
+        // 1. Jawne wybudzenie mikrofonu przez Web Audio Media Stream (odblokowuje Chrome)
+        if (navigator.mediaDevices?.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          stream.getTracks().forEach((track) => track.stop());
+        }
+
+        // 2. Start rozpoznawania mowy
         setLiveTranscript("");
         recognitionRef.current.lang = lang === "pl" ? "pl-PL" : "en-US";
         recognitionRef.current.start();
         isListeningRef.current = true;
         setIsListening(true);
         showFeedback(t.VOICE_COACH_LISTEN_START || "🎙️ Listening...");
-      } catch (err) {
+      } catch (err: any) {
         console.warn("[VoiceCoach] Start error:", err);
+        isListeningRef.current = false;
+        setIsListening(false);
+        showFeedback(
+          lang === "pl"
+            ? "⚠️ Nie udało się uruchomić mikrofonu. Sprawdź uprawnienia w przeglądarce."
+            : "⚠️ Could not access microphone. Check permissions.",
+        );
       }
     }
   }, [isListening, lang, t, showFeedback]);
