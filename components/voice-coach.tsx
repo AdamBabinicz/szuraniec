@@ -10,26 +10,31 @@ interface VoiceCoachProps {
   lang: Lang;
 }
 
-type VoiceStatus = "idle" | "listening" | "feedback" | "error";
-
-declare global {
-  interface Window {
-    SpeechRecognition?: any;
-    webkitSpeechRecognition?: any;
-  }
-}
+type VoiceStatus = "idle" | "recording" | "processing" | "feedback" | "error";
 
 export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const isActiveRef = useRef<boolean>(false);
-  const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
   const t = translations[lang] || translations.pl;
+
+  const clearTimers = useCallback(() => {
+    if (recordTimeoutRef.current) {
+      clearTimeout(recordTimeoutRef.current);
+      recordTimeoutRef.current = null;
+    }
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = null;
+    }
+  }, []);
 
   const showFeedback = useCallback((text: string) => {
     if (!isMountedRef.current) return;
@@ -40,13 +45,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       setFeedback(null);
-      // Po pokazaniu dymka wracamy prosto do ciągłego nasłuchu
-      if (isActiveRef.current) {
-        setStatus("listening");
-      } else {
-        setStatus("idle");
-      }
-    }, 3000);
+      setStatus("idle");
+    }, 3500);
   }, []);
 
   const showError = useCallback((text: string) => {
@@ -58,11 +58,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       setFeedback(null);
-      if (isActiveRef.current) {
-        setStatus("listening");
-      } else {
-        setStatus("idle");
-      }
+      setStatus("idle");
     }, 4000);
   }, []);
 
@@ -281,159 +277,179 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     [lang, showFeedback, showError],
   );
 
-  // ── Ciągłe uruchamianie silnika mowy ───────────────────────────────
-  const initSpeechEngine = useCallback(() => {
-    const SpeechRecognition =
-      typeof window !== "undefined"
-        ? window.SpeechRecognition || window.webkitSpeechRecognition
-        : null;
+  // ── Wysłanie nagrania do szybkiego endpointu /api/voice (Whisper Turbo) ──
+  const processAudio = useCallback(
+    async (audioBlob: Blob) => {
+      setStatus("processing");
+      try {
+        const formData = new FormData();
+        formData.append("file", audioBlob, "audio.webm");
 
-    if (!SpeechRecognition) {
-      showError(
-        lang === "pl"
-          ? "Przeglądarka nie wspiera wbudowanego rozpoznawania głosu."
-          : "Browser does not support speech recognition.",
-      );
-      isActiveRef.current = false;
-      setStatus("idle");
-      return;
-    }
+        const res = await fetch("/api/voice", {
+          method: "POST",
+          body: formData,
+        });
 
-    try {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {}
-      }
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
 
-      const recognition = new SpeechRecognition();
-      recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
+        const data = await res.json();
+        const transcript = data.transcript?.trim() || "";
 
-      recognition.onstart = () => {
-        if (!isMountedRef.current) return;
-        setStatus("listening");
-      };
-
-      recognition.onresult = (event: any) => {
-        if (!isMountedRef.current) return;
-        const lastIndex = event.results.length - 1;
-        const transcript =
-          event.results[lastIndex]?.[0]?.transcript?.trim() || "";
         if (transcript) {
           dispatchCommand(transcript);
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        if (!isMountedRef.current) return;
-        // Błąd braku mowy w czasie ciszy jest ignorowany, aby nasłuch trwał dalej
-        if (event.error === "no-speech") return;
-
-        if (event.error === "not-allowed") {
-          isActiveRef.current = false;
+        } else {
           showError(
             lang === "pl"
-              ? "⚠️ Zezwól na dostęp do mikrofonu w przeglądarce."
-              : "⚠️ Please allow microphone access.",
+              ? "Nic nie usłyszałem. Spróbuj ponownie."
+              : "No speech detected. Try again.",
           );
+        }
+      } catch (err) {
+        console.warn("[VoiceCoach] Audio processing error", err);
+        showError(
+          lang === "pl"
+            ? "Błąd rozpoznawania głosu."
+            : "Voice recognition error.",
+        );
+      }
+    },
+    [dispatchCommand, lang, showError],
+  );
+
+  // ── Zatrzymanie nagrywania ──────────────────────────────────────────
+  const stopRecording = useCallback(() => {
+    clearTimers();
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
+    }
+  }, [clearTimers]);
+
+  // ── Start nagrywania bez kradzieży Audio Focus (Muzyka gra dalej!) ───
+  const startRecording = useCallback(async () => {
+    clearTimers();
+    audioChunksRef.current = [];
+
+    try {
+      // Pobieramy mikrofon bez wyciszania innych źródeł audio
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      streamRef.current = stream;
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+
+      const options = mimeType ? { mimeType } : undefined;
+      const mediaRecorder = new MediaRecorder(stream, options);
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
       };
 
-      recognition.onend = () => {
-        if (!isMountedRef.current) return;
+      mediaRecorder.onstop = () => {
+        // Zwalniamy ścieżki
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
 
-        // Jeśli użytkownik nie wyłączył mikrofonu, natychmiast płynnie wznawiamy
-        if (isActiveRef.current) {
-          if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-          restartTimerRef.current = setTimeout(() => {
-            if (isMountedRef.current && isActiveRef.current) {
-              try {
-                recognition.start();
-              } catch {
-                // Jeśli silnik potrzebuje ułamka sekundy na reset
-                setTimeout(() => {
-                  if (isMountedRef.current && isActiveRef.current) {
-                    try {
-                      recognition.start();
-                    } catch {}
-                  }
-                }, 200);
-              }
-            }
-          }, 50);
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mimeType || "audio/webm",
+        });
+
+        if (audioBlob.size > 300) {
+          void processAudio(audioBlob);
         } else {
           setStatus("idle");
         }
       };
 
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err) {
-      console.warn("[VoiceCoach] SpeechRecognition start error", err);
-      isActiveRef.current = false;
-      setStatus("idle");
-    }
-  }, [dispatchCommand, lang, showError]);
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+      setStatus("recording");
 
-  // ── Przełącznik mikrofonu (Włącz ciągły nasłuch / Wyłącz) ─────────
-  const handleMicToggle = useCallback(() => {
-    if (isActiveRef.current) {
-      // Wyłączenie ciągłego nasłuchu
-      isActiveRef.current = false;
-      if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {}
-        recognitionRef.current = null;
-      }
-      setStatus("idle");
-    } else {
-      // Włączenie ciągłego nasłuchu
-      isActiveRef.current = true;
-      initSpeechEngine();
+      // Nagrywa 3 sekundy na komendę (np. "Start", "Zwolnij")
+      recordTimeoutRef.current = setTimeout(() => {
+        stopRecording();
+      }, 3000);
+    } catch (err) {
+      console.warn("[VoiceCoach] Mic access error", err);
+      showError(
+        lang === "pl"
+          ? "⚠️ Zezwól na dostęp do mikrofonu."
+          : "⚠️ Microphone access denied.",
+      );
     }
-  }, [initSpeechEngine]);
+  }, [clearTimers, lang, processAudio, showError, stopRecording]);
+
+  const handleMicClick = useCallback(() => {
+    if (status === "recording") {
+      stopRecording();
+    } else if (
+      status === "idle" ||
+      status === "feedback" ||
+      status === "error"
+    ) {
+      void startRecording();
+    }
+  }, [startRecording, status, stopRecording]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      isActiveRef.current = false;
-      if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {}
+      clearTimers();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
       }
     };
-  }, []);
+  }, [clearTimers]);
 
-  const isListening =
-    status === "listening" || (isActiveRef.current && status !== "error");
+  const isRecording = status === "recording";
+  const isProcessing = status === "processing";
   const hasFeedback = Boolean(feedback);
 
-  const statusBadge = isListening
+  const statusBadge = isRecording
     ? lang === "pl"
-      ? "Ciągły nasłuch aktywny"
-      : "Continuous listening"
-    : status === "error"
-      ? "Błąd"
-      : "Voice AI Coach";
+      ? "Słucham..."
+      : "Listening..."
+    : isProcessing
+      ? lang === "pl"
+        ? "AI Myśli..."
+        : "Processing..."
+      : status === "error"
+        ? "Błąd"
+        : "Voice AI Coach";
 
-  const messageText = isListening
-    ? feedback ||
-      (lang === "pl"
-        ? "🎙️ Mikrofon jest aktywny. Mów w dowolnym momencie: start, pauza, zwolnij, włącz Szaloną..."
-        : "🎙️ Microphone is active. Speak anytime: start, pause, slow down, play Szalona...")
-    : feedback ||
-      (lang === "pl"
-        ? "Kliknij mikrofon raz, aby włączyć ciągłe sterowanie głosem (Hands-Free)"
-        : "Tap microphone once to enable continuous hands-free coaching");
+  const messageText = isRecording
+    ? lang === "pl"
+      ? "🎙️ Mów teraz: start, pauza, zwolnij, włącz Szaloną..."
+      : "🎙️ Speak now: start, pause, slow down, play Szalona..."
+    : isProcessing
+      ? lang === "pl"
+        ? "✨ Przetwarzanie polecenia..."
+        : "✨ Processing command..."
+      : feedback ||
+        (lang === "pl"
+          ? "Kliknij mikrofon, aby wydać komendę głosową"
+          : "Tap microphone to speak command");
 
   return (
     <aside
@@ -441,7 +457,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       className="pointer-events-auto fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2.5"
     >
       <AnimatePresence>
-        {(isListening || hasFeedback) && (
+        {(isRecording || isProcessing || hasFeedback) && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -461,9 +477,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               </div>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
-                  isListening
+                  isRecording
                     ? "bg-pink-500/20 text-pink-600 dark:text-pink-300 animate-pulse"
-                    : "bg-muted text-muted-foreground"
+                    : isProcessing
+                      ? "bg-primary/20 text-primary animate-pulse"
+                      : "bg-muted text-muted-foreground"
                 }`}
               >
                 {statusBadge}
@@ -476,27 +494,31 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       <button
         type="button"
-        onClick={handleMicToggle}
+        onClick={handleMicClick}
         title={
-          isListening
+          isRecording
             ? lang === "pl"
-              ? "Wyłącz ciągłe sterowanie głosem"
-              : "Disable continuous voice control"
+              ? "Zatrzymaj nagrywanie"
+              : "Stop recording"
             : lang === "pl"
-              ? "Włącz ciągłe sterowanie głosem (Hands-Free)"
-              : "Enable continuous voice control"
+              ? "Kliknij i powiedz komendę"
+              : "Tap to speak command"
         }
         aria-label="Voice AI Control"
         className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-transform active:scale-95 ${
-          isListening
+          isRecording
             ? "border-pink-500 bg-pink-500 text-white shadow-pink-500/50 ring-4 ring-pink-500/30"
-            : "border-border bg-card/90 text-foreground hover:border-primary/50 hover:bg-primary/10 shadow-black/10"
+            : isProcessing
+              ? "border-primary bg-primary text-primary-foreground shadow-primary/50"
+              : "border-border bg-card/90 text-foreground hover:border-primary/50 hover:bg-primary/10 shadow-black/10"
         }`}
       >
-        {isListening && (
+        {isRecording && (
           <span className="absolute inset-0 animate-ping rounded-full bg-pink-500/40" />
         )}
-        {isListening ? (
+        {isProcessing ? (
+          <Sparkles className="size-6 animate-spin text-primary-foreground" />
+        ) : isRecording ? (
           <Mic className="size-6 animate-pulse text-white" />
         ) : (
           <Mic className="size-6 text-foreground transition-colors group-hover:text-primary" />
