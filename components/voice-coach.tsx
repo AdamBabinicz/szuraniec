@@ -16,13 +16,16 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  const isActiveHandsFreeRef = useRef<boolean>(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
+  // Pobieramy teksty ze słownika na podstawie aktywnego języka
   const t = translations[lang] || translations.pl;
 
   const clearTimers = useCallback(() => {
@@ -34,33 +37,62 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       clearTimeout(feedbackTimeoutRef.current);
       feedbackTimeoutRef.current = null;
     }
+    if (loopTimerRef.current) {
+      clearTimeout(loopTimerRef.current);
+      loopTimerRef.current = null;
+    }
   }, []);
 
-  const showFeedback = useCallback((text: string) => {
-    if (!isMountedRef.current) return;
-    setFeedback(text);
-    setStatus("feedback");
+  // ── Przejście do kolejnego cyklu nasłuchu (Continuous Loop) ────────
+  const triggerNextCycle = useCallback(() => {
+    if (!isMountedRef.current || !isActiveHandsFreeRef.current) return;
+    if (loopTimerRef.current) clearTimeout(loopTimerRef.current);
+    loopTimerRef.current = setTimeout(() => {
+      if (isMountedRef.current && isActiveHandsFreeRef.current) {
+        void startRecordingCycle();
+      }
+    }, 400);
+  }, []);
 
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    feedbackTimeoutRef.current = setTimeout(() => {
+  const showFeedback = useCallback(
+    (text: string) => {
       if (!isMountedRef.current) return;
-      setFeedback(null);
-      setStatus("idle");
-    }, 3500);
-  }, []);
+      setFeedback(text);
+      setStatus("feedback");
 
-  const showError = useCallback((text: string) => {
-    if (!isMountedRef.current) return;
-    setFeedback(text);
-    setStatus("error");
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = setTimeout(() => {
+        if (!isMountedRef.current) return;
+        setFeedback(null);
+        if (isActiveHandsFreeRef.current) {
+          triggerNextCycle();
+        } else {
+          setStatus("idle");
+        }
+      }, 2500);
+    },
+    [triggerNextCycle],
+  );
 
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    feedbackTimeoutRef.current = setTimeout(() => {
+  const showError = useCallback(
+    (text: string) => {
       if (!isMountedRef.current) return;
-      setFeedback(null);
-      setStatus("idle");
-    }, 4000);
-  }, []);
+      setFeedback(text);
+      setStatus("error");
+
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = setTimeout(() => {
+        if (!isMountedRef.current) return;
+        setFeedback(null);
+        if (isActiveHandsFreeRef.current) {
+          triggerNextCycle();
+        } else {
+          setStatus("idle");
+        }
+      }, 3000);
+    },
+    [triggerNextCycle],
+  );
 
   // ── Dispatcher komend głosowych do WebMCP Bridge ───────────────────
   const dispatchCommand = useCallback(
@@ -69,11 +101,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       const bridge = getActiveTrainerBridge();
       if (!bridge) {
-        showError(
-          lang === "pl"
-            ? "Trenażer nie jest jeszcze gotowy."
-            : "Dance trainer is not ready.",
-        );
+        showError(t.VOICE_COACH_NOT_READY);
         return;
       }
 
@@ -91,9 +119,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("play")
       ) {
         bridge.start();
-        showFeedback(
-          lang === "pl" ? "▶️ Wystartowano trening!" : "▶️ Practice started!",
-        );
+        showFeedback(t.VOICE_COACH_START);
         return;
       }
 
@@ -107,9 +133,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("pause")
       ) {
         bridge.pause();
-        showFeedback(
-          lang === "pl" ? "⏸️ Trening wstrzymany" : "⏸️ Practice paused",
-        );
+        showFeedback(t.VOICE_COACH_PAUSE);
         return;
       }
 
@@ -120,12 +144,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("początek") ||
         text.includes("reset") ||
         text.includes("restart") ||
-        text.includes("jeszcze raz")
+        text.includes("jeszcze raz") ||
+        text.includes("again")
       ) {
         bridge.reset();
-        showFeedback(
-          lang === "pl" ? "🔄 Zresetowano do początku" : "🔄 Reset to start",
-        );
+        showFeedback(t.VOICE_COACH_RESET);
         return;
       }
 
@@ -141,9 +164,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       ) {
         const res = bridge.setTempo(0.5);
         showFeedback(
-          lang === "pl"
-            ? `⏱️ Ustawiono wolne tempo: 0.5× (${res?.effectiveBpm ?? 60} BPM)`
-            : `⏱️ Set slow tempo: 0.5× (${res?.effectiveBpm ?? 60} BPM)`,
+          `${t.VOICE_COACH_TEMPO_SLOW} (${res?.effectiveBpm ?? 60} ${t.BPM_LABEL})`,
         );
         return;
       }
@@ -159,9 +180,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       ) {
         const res = bridge.setTempo(1);
         showFeedback(
-          lang === "pl"
-            ? `⏱️ Ustawiono normalne tempo: 1.0× (${res?.effectiveBpm ?? 128} BPM)`
-            : `⏱️ Set normal tempo: 1.0× (${res?.effectiveBpm ?? 128} BPM)`,
+          `${t.VOICE_COACH_TEMPO_NORMAL} (${res?.effectiveBpm ?? 128} ${t.BPM_LABEL})`,
         );
         return;
       }
@@ -177,9 +196,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       ) {
         const res = bridge.setTempo(1.25);
         showFeedback(
-          lang === "pl"
-            ? `🚀 Ustawiono szybkie tempo: 1.25× (${res?.effectiveBpm ?? 160} BPM)`
-            : `🚀 Set fast tempo: 1.25× (${res?.effectiveBpm ?? 160} BPM)`,
+          `${t.VOICE_COACH_TEMPO_FAST} (${res?.effectiveBpm ?? 160} ${t.BPM_LABEL})`,
         );
         return;
       }
@@ -193,11 +210,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("small")
       ) {
         bridge.setPracticeMode("baby_steps");
-        showFeedback(
-          lang === "pl"
-            ? "👣 Włączono tryb małych kroków (Baby Steps)"
-            : "👣 Baby Steps mode activated",
-        );
+        showFeedback(t.VOICE_COACH_BABY_ON);
         return;
       }
 
@@ -210,11 +223,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("full")
       ) {
         bridge.setPracticeMode("full_steps");
-        showFeedback(
-          lang === "pl"
-            ? "🕺 Włączono pełny krok weselny"
-            : "🕺 Full steps mode activated",
-        );
+        showFeedback(t.VOICE_COACH_FULL_STEPS);
         return;
       }
 
@@ -259,25 +268,20 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           const res = bridge.setSong(sId);
           if (res?.success && res?.song) {
             showFeedback(
-              lang === "pl"
-                ? `🎵 Wybrano utwór: ${res.song.artist} — ${res.song.title}`
-                : `🎵 Selected song: ${res.song.artist} — ${res.song.title}`,
+              `${t.VOICE_COACH_SONG_PREFIX} ${res.song.artist} — ${res.song.title}`,
             );
             return;
           }
         }
       }
 
-      showFeedback(
-        lang === "pl"
-          ? `❓ Rozpoznano: "${rawTranscript}" (spróbuj: start, pauza, zwolnij, Szalona)`
-          : `❓ Recognized: "${rawTranscript}" (try: start, pause, slow down, Szalona)`,
-      );
+      // Jeśli nie dopasowano do konkretnego wzorca komendy
+      triggerNextCycle();
     },
-    [lang, showFeedback, showError],
+    [t, showFeedback, showError, triggerNextCycle],
   );
 
-  // ── Wysłanie nagrania do szybkiego endpointu /api/voice (Whisper Turbo) ──
+  // ── Przetworzenie fragmentu audio ──────────────────────────────────
   const processAudio = useCallback(
     async (audioBlob: Blob) => {
       setStatus("processing");
@@ -300,53 +304,33 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         if (transcript) {
           dispatchCommand(transcript);
         } else {
-          showError(
-            lang === "pl"
-              ? "Nic nie usłyszałem. Spróbuj ponownie."
-              : "No speech detected. Try again.",
-          );
+          // Jeśli była cisza, natychmiast słuchaj dalej
+          triggerNextCycle();
         }
       } catch (err) {
         console.warn("[VoiceCoach] Audio processing error", err);
-        showError(
-          lang === "pl"
-            ? "Błąd rozpoznawania głosu."
-            : "Voice recognition error.",
-        );
+        triggerNextCycle();
       }
     },
-    [dispatchCommand, lang, showError],
+    [dispatchCommand, triggerNextCycle],
   );
 
-  // ── Zatrzymanie nagrywania ──────────────────────────────────────────
-  const stopRecording = useCallback(() => {
-    clearTimers();
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state !== "inactive"
-    ) {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch {}
-    }
-  }, [clearTimers]);
-
-  // ── Start nagrywania bez kradzieży Audio Focus (Muzyka gra dalej!) ───
-  const startRecording = useCallback(async () => {
+  // ── Start pojedynczego cyklu nasłuchu w pętli ──────────────────────
+  const startRecordingCycle = async () => {
+    if (!isActiveHandsFreeRef.current) return;
     clearTimers();
     audioChunksRef.current = [];
 
     try {
-      // Pobieramy mikrofon bez wyciszania innych źródeł audio
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-
-      streamRef.current = stream;
+      if (!streamRef.current || !streamRef.current.active) {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+      }
 
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
@@ -355,7 +339,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           : "";
 
       const options = mimeType ? { mimeType } : undefined;
-      const mediaRecorder = new MediaRecorder(stream, options);
+      const mediaRecorder = new MediaRecorder(streamRef.current, options);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -364,18 +348,14 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       };
 
       mediaRecorder.onstop = () => {
-        // Zwalniamy ścieżki
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((track) => track.stop());
-          streamRef.current = null;
-        }
-
         const audioBlob = new Blob(audioChunksRef.current, {
           type: mimeType || "audio/webm",
         });
 
-        if (audioBlob.size > 300) {
+        if (audioBlob.size > 400 && isActiveHandsFreeRef.current) {
           void processAudio(audioBlob);
+        } else if (isActiveHandsFreeRef.current) {
+          triggerNextCycle();
         } else {
           setStatus("idle");
         }
@@ -385,79 +365,89 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       mediaRecorder.start();
       setStatus("recording");
 
-      // Nagrywa 3 sekundy na komendę (np. "Start", "Zwolnij")
+      // Okienko nasłuchu trwa 2.8 sekundy
       recordTimeoutRef.current = setTimeout(() => {
-        stopRecording();
-      }, 3000);
+        if (
+          mediaRecorderRef.current &&
+          mediaRecorderRef.current.state !== "inactive"
+        ) {
+          try {
+            mediaRecorderRef.current.stop();
+          } catch {}
+        }
+      }, 2800);
     } catch (err) {
-      console.warn("[VoiceCoach] Mic access error", err);
-      showError(
-        lang === "pl"
-          ? "⚠️ Zezwól na dostęp do mikrofonu."
-          : "⚠️ Microphone access denied.",
-      );
+      console.warn("[VoiceCoach] Mic loop error", err);
+      isActiveHandsFreeRef.current = false;
+      showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
     }
-  }, [clearTimers, lang, processAudio, showError, stopRecording]);
+  };
 
+  // ── Włącz / Wyłącz ciągły nasłuch (Hands-Free) ───────────────────
   const handleMicClick = useCallback(() => {
-    if (status === "recording") {
-      stopRecording();
-    } else if (
-      status === "idle" ||
-      status === "feedback" ||
-      status === "error"
-    ) {
-      void startRecording();
+    if (isActiveHandsFreeRef.current) {
+      // Wyłączenie ciągłego nasłuchu
+      isActiveHandsFreeRef.current = false;
+      clearTimers();
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {}
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((trk) => trk.stop());
+        streamRef.current = null;
+      }
+      setStatus("idle");
+      setFeedback(null);
+    } else {
+      // Włączenie ciągłego nasłuchu
+      isActiveHandsFreeRef.current = true;
+      void startRecordingCycle();
     }
-  }, [startRecording, status, stopRecording]);
+  }, [clearTimers]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      isActiveHandsFreeRef.current = false;
       clearTimers();
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current.getTracks().forEach((trk) => trk.stop());
       }
     };
   }, [clearTimers]);
 
+  const isHandsFreeActive = isActiveHandsFreeRef.current;
   const isRecording = status === "recording";
   const isProcessing = status === "processing";
   const hasFeedback = Boolean(feedback);
 
-  const statusBadge = isRecording
-    ? lang === "pl"
-      ? "Słucham..."
-      : "Listening..."
-    : isProcessing
-      ? lang === "pl"
-        ? "AI Myśli..."
-        : "Processing..."
-      : status === "error"
-        ? "Błąd"
-        : "Voice AI Coach";
+  const statusBadge = isHandsFreeActive
+    ? isRecording
+      ? t.VOICE_COACH_LISTEN_START.split(" ")[0] || "🎙️"
+      : isProcessing
+        ? "..."
+        : t.VOICE_COACH_TITLE
+    : status === "error"
+      ? "!"
+      : t.VOICE_COACH_TITLE;
 
-  const messageText = isRecording
-    ? lang === "pl"
-      ? "🎙️ Mów teraz: start, pauza, zwolnij, włącz Szaloną..."
-      : "🎙️ Speak now: start, pause, slow down, play Szalona..."
-    : isProcessing
-      ? lang === "pl"
-        ? "✨ Przetwarzanie polecenia..."
-        : "✨ Processing command..."
-      : feedback ||
-        (lang === "pl"
-          ? "Kliknij mikrofon, aby wydać komendę głosową"
-          : "Tap microphone to speak command");
+  const messageText = isHandsFreeActive
+    ? feedback || t.VOICE_COACH_LISTEN_START
+    : feedback || t.VOICE_COACH_ENABLE;
 
   return (
     <aside
-      aria-label="Voice AI Coach"
+      aria-label={t.VOICE_COACH_TITLE}
       className="pointer-events-auto fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2.5"
     >
       <AnimatePresence>
-        {(isRecording || isProcessing || hasFeedback) && (
+        {(isHandsFreeActive || hasFeedback) && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -472,7 +462,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               <div className="flex items-center gap-2 text-primary">
                 <Sparkles className="size-3.5" />
                 <span className="font-black uppercase tracking-wider">
-                  Voice AI Coach
+                  {t.VOICE_COACH_TITLE}
                 </span>
               </div>
               <span
@@ -495,30 +485,20 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       <button
         type="button"
         onClick={handleMicClick}
-        title={
-          isRecording
-            ? lang === "pl"
-              ? "Zatrzymaj nagrywanie"
-              : "Stop recording"
-            : lang === "pl"
-              ? "Kliknij i powiedz komendę"
-              : "Tap to speak command"
-        }
-        aria-label="Voice AI Control"
+        title={isHandsFreeActive ? t.VOICE_COACH_DISABLE : t.VOICE_COACH_ENABLE}
+        aria-label={t.VOICE_COACH_TITLE}
         className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-transform active:scale-95 ${
-          isRecording
+          isHandsFreeActive
             ? "border-pink-500 bg-pink-500 text-white shadow-pink-500/50 ring-4 ring-pink-500/30"
-            : isProcessing
-              ? "border-primary bg-primary text-primary-foreground shadow-primary/50"
-              : "border-border bg-card/90 text-foreground hover:border-primary/50 hover:bg-primary/10 shadow-black/10"
+            : "border-border bg-card/90 text-foreground hover:border-primary/50 hover:bg-primary/10 shadow-black/10"
         }`}
       >
-        {isRecording && (
+        {isHandsFreeActive && (
           <span className="absolute inset-0 animate-ping rounded-full bg-pink-500/40" />
         )}
         {isProcessing ? (
           <Sparkles className="size-6 animate-spin text-primary-foreground" />
-        ) : isRecording ? (
+        ) : isHandsFreeActive ? (
           <Mic className="size-6 animate-pulse text-white" />
         ) : (
           <Mic className="size-6 text-foreground transition-colors group-hover:text-primary" />
