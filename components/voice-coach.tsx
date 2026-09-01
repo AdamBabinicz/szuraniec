@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Sparkles } from "lucide-react";
+import { Mic, Sparkles, AlertTriangle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getActiveTrainerBridge } from "@/lib/webmcp-client";
 import { translations, type Lang } from "@/lib/translations";
@@ -20,64 +20,107 @@ declare global {
 }
 
 /**
- * VoiceCoach — Browser-Native Web Speech API bridge.
+ * VoiceCoach — Browser-Native Web Speech API bridge z adaptacyjnym auto-restartem.
  *
- * Architektura adaptacyjna dla Audio Focus na platformach mobilnych:
- *  • DESKTOP (Windows 11 / macOS / Linux): tryb ciągły (continuous = true)
- *    z automatycznym restartem w onend — tancerz mówi w dowolnym momencie
- *    bez dotykania myszki.
- *  • MOBILE (Android / iOS / Safari Mobile / Chrome Mobile): tryb bezpieczny
- *    Tap-to-Speak (continuous = false). Po zakończeniu wypowiedzi mikrofon
- *    jest całkowicie zamykany, sesja recognition jest przerywana przez
- *    stop()+abort(), a strumień MediaStream jest zwalniany (track.stop()),
- *    aby YouTube odzyskał Audio Focus i odtwarzał płynnie, bez duckingu
- *    i szarpania.
+ * Uwaga dla platform mobilnych (Android Chrome / iOS Safari / Chrome Mobile):
+ *  • parametr `continuous` jest ignorowany — silnik kończy sesję po każdej
+ *    wypowiedzi (`final`), wysyłając zdarzenie `onend`.
+ *  • Rozwiązanie: po `onend` (jeśli użytkownik nadal chce słuchać) tworzona
+ *    jest świeża instancja `SpeechRecognition` i wywoływane `start()` z
+ *    krótkim opóźnieniem. Całość dzieje się w pętli, więc mikrofon pozostaje
+ *    „włączony" dla tancerza, dopóki nie wyłączy go ręcznie.
+ *  • Nie otwieramy równoległego `getUserMedia`, bo konkurowałoby z YouTube
+ *    o Audio Focus na Android/iOS i powodowało ducking odtwarzacza.
  */
+
+const RESTART_DELAY_MS = 80;
+
+function normalizeText(s: string): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip diacritics (ą -> a, ę -> e, ł -> l, …)
+    .replace(/[^\w\s]/g, " ") // strip punctuation
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Warianty bez spacji polskich dla bezpiecznego TS Record<string, string>.
+const SONG_KEYWORDS: Record<string, string> = {
+  szalona: "szalona",
+  szalon: "szalona",
+  crazy: "szalona",
+  chwile: "chwile",
+  chwil: "chwile",
+  zycie: "chwile",
+  zyc: "chwile",
+  life: "chwile",
+  ruda: "ruda",
+  rud: "ruda",
+  tancz: "ruda",
+  redhead: "ruda",
+  zielone: "zielone",
+  zielon: "zielone",
+  ocz: "zielone",
+  green: "zielone",
+  miod: "miod",
+  miodmalina: "miod",
+  miodmalin: "miod",
+  malin: "miod",
+  honey: "miod",
+  niewiara: "niewiara",
+  niewiar: "niewiara",
+  wiar: "niewiara",
+  wolnosc: "wolnosc",
+  wolnos: "wolnosc",
+  freedom: "wolnosc",
+  onatanczy: "ona_tanczy",
+  onatanc: "ona_tanczy",
+  dances: "ona_tanczy",
+  zono: "zono",
+  zon: "zono",
+  wife: "zono",
+  mama: "mama",
+  ostrzega: "mama",
+  ostrzeg: "mama",
+  warned: "mama",
+  dziewczyno: "dziewczyno",
+  dziewczyn: "dziewczyno",
+  girl: "dziewczyno",
+  kochana: "kochana",
+  kochan: "kochana",
+  beloved: "kochana",
+  ukoch: "kochana",
+  cudowna: "cudowna",
+  cudown: "cudowna",
+  prawdziw: "cudowna",
+  milosc: "cudowna",
+  love: "cudowna",
+};
 
 export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [lastTranscript, setLastTranscript] = useState<string | null>(null);
 
-  // Refy sterujące cyklem życia silnika mowy (nie powodują renderów).
   const isMountedRef = useRef<boolean>(true);
   const recognitionRef = useRef<any>(null);
-  const recognitionStreamRef = useRef<MediaStream | null>(null);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Niezależne flagi:
-  //  isListeningDesired = intencja użytkownika (kliknął włącz),
-  //  shouldRestart      = zgoda na auto-restart WYŁĄCZNIE na desktopie.
-  const isListeningDesiredRef = useRef<boolean>(false);
-  const shouldRestartRef = useRef<boolean>(false);
+  const shouldListenRef = useRef<boolean>(false);
 
   const t = translations[lang] || translations.pl;
 
-  // Wykrywanie środowiska mobilnego — UA + maxTouchPoints + coarse pointer.
-  // Computed raz (useMemo) i utrwalone w refie dla handlerów asynchronicznych.
   const isMobile = useMemo<boolean>(() => {
     if (typeof window === "undefined" || typeof navigator === "undefined") {
       return false;
     }
     const ua = navigator.userAgent || "";
-    const uaMobile =
-      /Android|iPhone|iPad|iPod|Mobile|BlackBerry|IEMobile|Opera Mini/i.test(
-        ua,
-      );
-    const touchCapable =
-      (navigator.maxTouchPoints ?? 0) > 0 ||
-      "ontouchstart" in
-        (typeof window !== "undefined" ? window : ({} as Window));
-    const coarsePointer =
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(pointer: coarse)").matches;
-    return uaMobile || (touchCapable && coarsePointer);
+    return /Android|iPhone|iPad|iPod|Mobile|BlackBerry|IEMobile|Opera Mini/i.test(
+      ua,
+    );
   }, []);
 
-  const isMobileRef = useRef<boolean>(isMobile);
-  useEffect(() => {
-    isMobileRef.current = isMobile;
-  }, [isMobile]);
-
-  // Bezpieczne ustawianie stanu tylko gdy komponent jest zamontowany.
   const safeSetStatus = useCallback((next: VoiceStatus) => {
     if (isMountedRef.current) setStatus(next);
   }, []);
@@ -86,26 +129,20 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     if (isMountedRef.current) setFeedback(text);
   }, []);
 
-  // ── Wyświetlanie feedbacku z automatycznym powrotem do nasłuchu ─────
+  const safeSetTranscript = useCallback((text: string | null) => {
+    if (isMountedRef.current) setLastTranscript(text);
+  }, []);
+
   const showFeedback = useCallback(
     (text: string) => {
       safeSetFeedback(text);
       safeSetStatus("feedback");
-
       if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
       feedbackTimeoutRef.current = setTimeout(() => {
         if (!isMountedRef.current) return;
         safeSetFeedback(null);
-        // Desktop: po 2.5 s wracamy do nasłuchu (jeśli użytkownik nadal chce słuchać).
-        // Mobile: zwalniamy Audio Focus dla YouTube i przechodzimy w idle.
-        if (isListeningDesiredRef.current && shouldRestartRef.current) {
-          safeSetStatus("listening");
-        } else {
-          safeSetStatus("idle");
-          isListeningDesiredRef.current = false;
-          shouldRestartRef.current = false;
-        }
-      }, 2500);
+        safeSetStatus(shouldListenRef.current ? "listening" : "idle");
+      }, 2200);
     },
     [safeSetFeedback, safeSetStatus],
   );
@@ -114,29 +151,19 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     (text: string) => {
       safeSetFeedback(text);
       safeSetStatus("error");
-
       if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
       feedbackTimeoutRef.current = setTimeout(() => {
         if (!isMountedRef.current) return;
         safeSetFeedback(null);
-        if (isListeningDesiredRef.current && shouldRestartRef.current) {
-          safeSetStatus("listening");
-        } else {
-          safeSetStatus("idle");
-          isListeningDesiredRef.current = false;
-          shouldRestartRef.current = false;
-        }
+        safeSetStatus(shouldListenRef.current ? "listening" : "idle");
       }, 3500);
     },
     [safeSetFeedback, safeSetStatus],
   );
 
-  // ── Dyspozytor komend głosowych → WebMCP TrainerBridge ──────────────
-  // Obsługuje 9 grup komend: Start, Pauza, Reset, Tempo (0.5×/1×/1.25×),
-  // Baby Steps, Full Steps + 13 utworów z bazy `bridge.setSong(...)`.
   const dispatchCommand = useCallback(
     (rawTranscript: string) => {
-      const text = (rawTranscript || "").toLowerCase().trim();
+      const text = normalizeText(rawTranscript);
       const bridge = getActiveTrainerBridge();
       if (!bridge) {
         showError(t.VOICE_COACH_NOT_READY);
@@ -148,13 +175,16 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("start") ||
         text.includes("strat") ||
         text.includes("graj") ||
-        text.includes("włącz") ||
         text.includes("wlacz") ||
-        text.includes("tańcz") ||
         text.includes("tancz") ||
-        text.includes("zacznij") ||
+        text.includes("zaczynaj") ||
+        text.includes("zaczni") ||
         text.includes("odpal") ||
-        text.includes("play")
+        text.includes("ruszaj") ||
+        text.includes("play") ||
+        text.includes("dalej") ||
+        text.includes("jedzi") ||
+        text.includes("hej")
       ) {
         bridge.start();
         showFeedback(t.VOICE_COACH_START);
@@ -166,9 +196,13 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("pauza") ||
         text.includes("stop") ||
         text.includes("zatrzymaj") ||
+        text.includes("zatrzym") ||
         text.includes("czekaj") ||
         text.includes("przerwij") ||
-        text.includes("pause")
+        text.includes("pauzuj") ||
+        text.includes("pause") ||
+        text.includes("halt") ||
+        text.includes("czek")
       ) {
         bridge.pause();
         showFeedback(t.VOICE_COACH_PAUSE);
@@ -178,12 +212,15 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       // 3. RESTART / RESET
       if (
         text.includes("od nowa") ||
-        text.includes("od początku") ||
-        text.includes("początek") ||
+        text.includes("od poczatku") ||
+        text.includes("poczatek") ||
+        text.includes("od pocz") ||
         text.includes("reset") ||
         text.includes("restart") ||
         text.includes("jeszcze raz") ||
-        text.includes("again")
+        text.includes("jeszcze") ||
+        text.includes("again") ||
+        text.includes("ponow")
       ) {
         bridge.reset();
         showFeedback(t.VOICE_COACH_RESET);
@@ -194,11 +231,14 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       if (
         text.includes("wolno") ||
         text.includes("zwolnij") ||
-        text.includes("pół tempa") ||
-        text.includes("połowa") ||
+        text.includes("wolniej") ||
+        text.includes("pol tempa") ||
+        text.includes("polowa") ||
+        text.includes("woln") ||
         text.includes("0.5") ||
-        text.includes("zero pięć") ||
-        text.includes("slow")
+        text.includes("zero piec") ||
+        text.includes("slow") ||
+        text.includes("pol")
       ) {
         const res = bridge.setTempo(0.5);
         showFeedback(
@@ -212,9 +252,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("normalnie") ||
         text.includes("standard") ||
         text.includes("normalne tempo") ||
+        text.includes("normal") ||
         text.includes("1x") ||
+        text.includes("1.0") ||
         text.includes("jeden") ||
-        text.includes("normal")
+        text.includes("domysl")
       ) {
         const res = bridge.setTempo(1);
         showFeedback(
@@ -230,7 +272,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         text.includes("szybciej") ||
         text.includes("wyzwanie") ||
         text.includes("1.25") ||
-        text.includes("fast")
+        text.includes("fast") ||
+        text.includes("challenge") ||
+        text.includes("mocniej")
       ) {
         const res = bridge.setTempo(1.25);
         showFeedback(
@@ -242,10 +286,13 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       // 7. BABY STEPS
       if (
         text.includes("baby") ||
-        text.includes("małe kroki") ||
+        text.includes("male kroki") ||
         text.includes("kroczki") ||
-        text.includes("dla początkujących") ||
-        text.includes("small")
+        text.includes("poczatkujacych") ||
+        text.includes("poczatk") ||
+        text.includes("small") ||
+        text.includes("krusz") ||
+        text.includes("dzieck")
       ) {
         bridge.setPracticeMode("baby_steps");
         showFeedback(t.VOICE_COACH_BABY_ON);
@@ -254,11 +301,14 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       // 8. FULL STEPS
       if (
-        text.includes("pełne kroki") ||
-        text.includes("duże kroki") ||
+        text.includes("pelne kroki") ||
+        text.includes("duze kroki") ||
         text.includes("normalne kroki") ||
-        text.includes("pełny krok") ||
-        text.includes("full")
+        text.includes("pelny krok") ||
+        text.includes("full") ||
+        text.includes("w pelni") ||
+        text.includes("pelno") ||
+        text.includes("duze")
       ) {
         bridge.setPracticeMode("full_steps");
         showFeedback(t.VOICE_COACH_FULL_STEPS);
@@ -266,42 +316,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       }
 
       // 9. 13 utworów z bazy WebMCP TrainerBridge.setSong(id)
-      const songMatches: Record<string, string> = {
-        szalon: "szalona",
-        crazy: "szalona",
-        chwil: "chwile",
-        życie: "chwile",
-        zycie: "chwile",
-        life: "chwile",
-        rud: "ruda",
-        redhead: "ruda",
-        zielon: "zielone",
-        ocz: "zielone",
-        green: "zielone",
-        malin: "miod",
-        miód: "miod",
-        honey: "miod",
-        niewiar: "niewiara",
-        wolnoś: "wolnosc",
-        wolnosc: "wolnosc",
-        freedom: "wolnosc",
-        tańczy: "ona_tanczy",
-        dances: "ona_tanczy",
-        żon: "zono",
-        wife: "zono",
-        mam: "mama",
-        ostrzega: "mama",
-        warned: "mama",
-        dziewczyn: "dziewczyno",
-        girl: "dziewczyno",
-        kochan: "kochana",
-        beloved: "kochana",
-        prawdziw: "cudowna",
-        miłość: "cudowna",
-        love: "cudowna",
-      };
-
-      for (const [keyword, sId] of Object.entries(songMatches)) {
+      for (const [keyword, sId] of Object.entries(SONG_KEYWORDS)) {
         if (text.includes(keyword)) {
           const res = bridge.setSong(sId);
           if (res?.success && res?.song) {
@@ -320,12 +335,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     [t, showFeedback, showError],
   );
 
-  // ── Całkowite zwolnienie zasobów silnika mowy ──────────────────────
-  // Wywoływane z onend (mobile), z onerror (mobile), z handleMicToggle
-  // (wyłączenie przez użytkownika) i przy unmount komponentu.
-  // Zamyka recognition, zwalnia wszystkie tracki MediaStream, zeruje refy
-  // — oddaje Audio Focus odtwarzaczowi YouTube.
   const releaseSpeechEngine = useCallback(() => {
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
     if (recognitionRef.current) {
       try {
         recognitionRef.current.onstart = null;
@@ -347,62 +361,25 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       }
       recognitionRef.current = null;
     }
-    if (recognitionStreamRef.current) {
-      try {
-        recognitionStreamRef.current
-          .getTracks()
-          .forEach((track) => track.stop());
-      } catch {
-        // ignore
-      }
-      recognitionStreamRef.current = null;
-    }
   }, []);
 
-  // ── Start silnika mowy (z rozróżnieniem desktop / mobile) ───────────
-  const startSpeechEngine = useCallback(() => {
+  const startRecognitionInstance = useCallback(() => {
     if (typeof window === "undefined") return;
-
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
-
     if (!SpeechRecognition) {
-      showError(t.VOICE_COACH_NOT_SUPPORTED);
-      isListeningDesiredRef.current = false;
-      shouldRestartRef.current = false;
+      shouldListenRef.current = false;
       safeSetStatus("idle");
+      safeSetFeedback(t.VOICE_COACH_NOT_SUPPORTED);
       return;
     }
-
-    // Sprzątamy ewentualną poprzednią sesję zanim wystartujemy nową.
-    releaseSpeechEngine();
 
     try {
       const recognition = new SpeechRecognition();
       recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
-
-      // ── Najważniejsza różnica architektoniczna ─────────────────────
-      // DESKTOP: continuous = true (Hands-Free Loop, auto-restart w onend)
-      // MOBILE:  continuous = false (Tap-to-Speak, brak pętli restartów)
-      recognition.continuous = !isMobileRef.current;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
-
-      // Na mobile łapiemy strumień audio, by móc zwolnić go po zakończeniu
-      // sesji i oddać Audio Focus odtwarzaczowi YouTube.
-      if (isMobileRef.current && navigator.mediaDevices?.getUserMedia) {
-        navigator.mediaDevices
-          .getUserMedia({ audio: true })
-          .then((stream) => {
-            recognitionStreamRef.current = stream;
-          })
-          .catch(() => {
-            recognitionStreamRef.current = null;
-          });
-      }
-
-      // shouldRestart dotyczy WYŁĄCZNIE desktopu (ciągły nasłuch).
-      shouldRestartRef.current = !isMobileRef.current;
 
       recognition.onstart = () => {
         if (!isMountedRef.current) return;
@@ -411,165 +388,130 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       recognition.onresult = (event: any) => {
         if (!isMountedRef.current) return;
-        const lastIndex = event.results.length - 1;
-        const transcript =
-          event.results[lastIndex]?.[0]?.transcript?.trim() || "";
-        if (transcript) {
-          dispatchCommand(transcript);
+        let finalTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i];
+          const transcript = (res?.[0]?.transcript || "").trim();
+          if (transcript) safeSetTranscript(transcript);
+          if (res?.isFinal && transcript) {
+            finalTranscript += " " + transcript;
+          }
         }
+        finalTranscript = finalTranscript.trim();
+        if (finalTranscript) dispatchCommand(finalTranscript);
       };
 
       recognition.onerror = (event: any) => {
         if (!isMountedRef.current) return;
-
-        // Błędy "no-speech" i "aborted" na mobile to naturalne zamknięcie
-        // sesji Tap-to-Speak — nie restartujemy, nie pokazujemy błędu.
-        if (event.error === "no-speech" || event.error === "aborted") {
-          if (isMobileRef.current) {
-            isListeningDesiredRef.current = false;
-            shouldRestartRef.current = false;
-            safeSetStatus("idle");
-            releaseSpeechEngine();
-          }
-          return;
-        }
-
+        const err = event?.error || "";
         if (
-          event.error === "not-allowed" ||
-          event.error === "service-not-allowed"
+          err === "no-speech" ||
+          err === "aborted" ||
+          err === "network" ||
+          err === "audio-capture"
         ) {
-          isListeningDesiredRef.current = false;
-          shouldRestartRef.current = false;
-          showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
-          releaseSpeechEngine();
           return;
         }
-
-        // Każdy inny błąd: na mobile zamykamy natychmiast,
-        // na desktopie pozwalamy na restart w onend (jeśli intencja trwa).
-        if (isMobileRef.current) {
-          isListeningDesiredRef.current = false;
-          shouldRestartRef.current = false;
-          safeSetStatus("idle");
+        if (err === "not-allowed" || err === "service-not-allowed") {
+          shouldListenRef.current = false;
+          showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
           releaseSpeechEngine();
         }
       };
 
       recognition.onend = () => {
         if (!isMountedRef.current) return;
-
-        // ── KLUCZOWE: auto-restart wyłącznie na desktopie ────────────
-        if (
-          isListeningDesiredRef.current &&
-          shouldRestartRef.current &&
-          !isMobileRef.current
-        ) {
-          // Sprzątamy starą instancję i tworzymy świeżą, by uniknąć wyścigu
-          // z wewnętrznym stanem recognition (Chrome na Windows blokuje
-          // ponowne start() na tej samej instancji po onend).
-          releaseSpeechEngine();
+        if (recognitionRef.current) {
           try {
-            const fresh = new SpeechRecognition();
-            fresh.lang = lang === "pl" ? "pl-PL" : "en-US";
-            fresh.continuous = !isMobileRef.current;
-            fresh.interimResults = false;
-            fresh.maxAlternatives = 1;
-            fresh.onstart = () => {
-              if (isMountedRef.current) safeSetStatus("listening");
-            };
-            fresh.onresult = (e: any) => {
-              if (!isMountedRef.current) return;
-              const li = e.results.length - 1;
-              const tr = e.results[li]?.[0]?.transcript?.trim() || "";
-              if (tr) dispatchCommand(tr);
-            };
-            fresh.onerror = (e: any) => {
-              if (!isMountedRef.current) return;
-              if (
-                e.error === "not-allowed" ||
-                e.error === "service-not-allowed"
-              ) {
-                isListeningDesiredRef.current = false;
-                shouldRestartRef.current = false;
-                showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
-                releaseSpeechEngine();
-              }
-            };
-            fresh.onend = recognition.onend;
-            recognitionRef.current = fresh;
-            fresh.start();
+            recognitionRef.current.onstart = null;
+            recognitionRef.current.onresult = null;
+            recognitionRef.current.onerror = null;
+            recognitionRef.current.onend = null;
           } catch {
-            setTimeout(() => {
-              if (
-                isMountedRef.current &&
-                isListeningDesiredRef.current &&
-                shouldRestartRef.current &&
-                !isMobileRef.current
-              ) {
+            // ignore
+          }
+          recognitionRef.current = null;
+        }
+        if (shouldListenRef.current) {
+          if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+          restartTimerRef.current = setTimeout(() => {
+            if (!isMountedRef.current || !shouldListenRef.current) return;
+            try {
+              startRecognitionInstance();
+            } catch {
+              restartTimerRef.current = setTimeout(() => {
+                if (!isMountedRef.current || !shouldListenRef.current) return;
                 try {
-                  startSpeechEngine();
+                  startRecognitionInstance();
                 } catch {
-                  isListeningDesiredRef.current = false;
-                  shouldRestartRef.current = false;
+                  shouldListenRef.current = false;
                   safeSetStatus("idle");
                 }
-              }
-            }, 250);
-          }
+              }, 400);
+            }
+          }, RESTART_DELAY_MS);
         } else {
-          // MOBILE lub użytkownik wyłączył mikrofon: czyste zakończenie,
-          // brak pętli restartów, pełne zwolnienie Audio Focus.
-          isListeningDesiredRef.current = false;
-          shouldRestartRef.current = false;
           safeSetStatus("idle");
-          releaseSpeechEngine();
         }
       };
 
       recognitionRef.current = recognition;
       recognition.start();
-    } catch (err) {
-      console.warn("[VoiceCoach] Error starting SpeechRecognition", err);
-      isListeningDesiredRef.current = false;
-      shouldRestartRef.current = false;
+    } catch (err: any) {
+      if (err?.name === "InvalidStateError") {
+        if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = setTimeout(() => {
+          if (!isMountedRef.current || !shouldListenRef.current) return;
+          try {
+            startRecognitionInstance();
+          } catch {
+            // ignore
+          }
+        }, RESTART_DELAY_MS);
+        return;
+      }
+      console.warn("[VoiceCoach] start() failed", err);
+      shouldListenRef.current = false;
       safeSetStatus("idle");
-      releaseSpeechEngine();
     }
-  }, [dispatchCommand, lang, releaseSpeechEngine, showError, safeSetStatus, t]);
+  }, [
+    dispatchCommand,
+    lang,
+    releaseSpeechEngine,
+    safeSetFeedback,
+    safeSetStatus,
+    safeSetTranscript,
+    showError,
+    t,
+  ]);
 
-  // ── Kliknięcie przycisku mikrofonu (Toggle) ─────────────────────────
   const handleMicToggle = useCallback(() => {
-    if (status === "listening" || isListeningDesiredRef.current) {
-      // Wyłączanie mikrofonu przez użytkownika — pełne zwolnienie zasobów.
-      isListeningDesiredRef.current = false;
-      shouldRestartRef.current = false;
+    if (shouldListenRef.current) {
+      shouldListenRef.current = false;
       releaseSpeechEngine();
       safeSetStatus("idle");
       safeSetFeedback(null);
+      safeSetTranscript(null);
     } else {
-      isListeningDesiredRef.current = true;
-      startSpeechEngine();
+      shouldListenRef.current = true;
+      safeSetTranscript(null);
+      startRecognitionInstance();
     }
   }, [
     releaseSpeechEngine,
     safeSetFeedback,
     safeSetStatus,
-    startSpeechEngine,
-    status,
+    safeSetTranscript,
+    startRecognitionInstance,
   ]);
 
-  // Cleanup przy unmount.
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      isListeningDesiredRef.current = false;
-      shouldRestartRef.current = false;
+      shouldListenRef.current = false;
       releaseSpeechEngine();
-      if (feedbackTimeoutRef.current) {
-        clearTimeout(feedbackTimeoutRef.current);
-        feedbackTimeoutRef.current = null;
-      }
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
     };
   }, [releaseSpeechEngine]);
 
@@ -592,7 +534,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       className="pointer-events-auto fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2.5"
     >
       <AnimatePresence>
-        {(isListening || hasFeedback) && (
+        {(isListening || hasFeedback || lastTranscript) && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -609,18 +551,35 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
                 <span className="font-black uppercase tracking-wider">
                   {t.VOICE_COACH_TITLE}
                 </span>
+                {isMobile && (
+                  <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase text-blue-600 dark:text-blue-300">
+                    Mobile
+                  </span>
+                )}
               </div>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
                   isListening
                     ? "bg-pink-500/20 text-pink-600 dark:text-pink-300 animate-pulse"
-                    : "bg-muted text-muted-foreground"
+                    : status === "error"
+                      ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                      : "bg-muted text-muted-foreground"
                 }`}
               >
                 {statusBadge}
               </span>
             </div>
+
             <p className="leading-snug text-foreground/90">{messageText}</p>
+
+            {lastTranscript && (
+              <div className="mt-2 flex items-start gap-1.5 border-t border-border/40 pt-2 text-[10px] font-medium text-muted-foreground">
+                <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+                <span className="break-words">
+                  heard: <span className="font-mono">{lastTranscript}</span>
+                </span>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -628,7 +587,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       <button
         type="button"
         onClick={handleMicToggle}
-        title={isListening ? t.VOICE_COACH_DISABLE : t.VOICE_COACH_ENABLE}
+        title={
+          shouldListenRef.current ? t.VOICE_COACH_DISABLE : t.VOICE_COACH_ENABLE
+        }
         aria-label={t.VOICE_COACH_TITLE}
         className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-transform active:scale-95 ${
           isListening
