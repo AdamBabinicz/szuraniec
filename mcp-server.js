@@ -83,6 +83,20 @@ const RESOURCE_URIS = {
   songs: "dance://songs/wedding-hits",
 };
 
+// Stan sesji w trybie serwera standalone
+let sessionState = {
+  songId: SONGS[0].id,
+  speed: 1,
+  playing: false,
+  mode: "full_steps",
+  step: 1,
+  cycle: 1,
+  role: "leader",
+  source: "youtube",
+  muted: false,
+  vibrate: false,
+};
+
 function getSongUrl(song) {
   return `${APP_URL}/?song=${encodeURIComponent(song.id)}`;
 }
@@ -134,6 +148,44 @@ function recommendSong(level) {
       max: selectedRange.max,
     },
     reason: selectedRange.explanation,
+  };
+}
+
+function getTrainingStatePayload() {
+  const currentSong =
+    SONGS.find((s) => s.id === sessionState.songId) || SONGS[0];
+  const effectiveBpm = Math.round(currentSong.bpm * sessionState.speed);
+  const phase =
+    INSTRUCTIONS.phases[sessionState.step - 1] || INSTRUCTIONS.phases[0];
+
+  return {
+    song: {
+      id: currentSong.id,
+      title: currentSong.title,
+      artist: currentSong.artist,
+      bpm: currentSong.bpm,
+      effectiveBpm,
+    },
+    training: {
+      playing: sessionState.playing,
+      speed: sessionState.speed,
+      mode: sessionState.mode,
+      step: sessionState.step,
+      beatName: phase.name,
+      cycle: sessionState.cycle,
+      source: sessionState.source,
+      role: sessionState.role,
+      muted: sessionState.muted,
+      vibrate: sessionState.vibrate,
+    },
+    movement: {
+      direction: sessionState.cycle % 2 === 1 ? "left" : "right",
+      weightFoot:
+        sessionState.step === 1 || sessionState.step === 3 ? "right" : "left",
+      movingFoot:
+        sessionState.step === 1 || sessionState.step === 3 ? "left" : "right",
+      instruction: phase.action,
+    },
   };
 }
 
@@ -194,6 +246,90 @@ function listTools() {
           },
         },
         required: ["level"],
+      },
+    },
+    {
+      name: "get_training_state",
+      description:
+        "Returns real-time dance trainer state: active song, tempo/BPM, playback state, current step phase (One/Two/Three/And), cycle bar, direction, moving foot, and weight foot.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "set_song",
+      description:
+        "Changes the active wedding song in the dance trainer by song ID.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          songId: {
+            type: "string",
+            description:
+              "The ID of the song to select (e.g., 'szalona', 'zycie', 'niewiara', 'miod_malina').",
+          },
+        },
+        required: ["songId"],
+      },
+    },
+    {
+      name: "set_tempo",
+      description:
+        "Sets the practice speed multiplier for the trainer (0.5 for half speed, 1 for normal speed, 1.25 for fast speed).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          speed: {
+            type: "number",
+            enum: [0.5, 1, 1.25],
+            description: "Playback speed multiplier: 0.5, 1, or 1.25.",
+          },
+        },
+        required: ["speed"],
+      },
+    },
+    {
+      name: "set_practice_mode",
+      description:
+        "Configures the footwork practice mode: 'baby_steps' (smaller movements for beginners) or 'full_steps' (standard dance steps).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          mode: {
+            type: "string",
+            enum: ["baby_steps", "full_steps"],
+            description: "Practice mode: 'baby_steps' or 'full_steps'.",
+          },
+        },
+        required: ["mode"],
+      },
+    },
+    {
+      name: "start_practice",
+      description:
+        "Starts or resumes the dance practice session, metronome, and video playback.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "pause_practice",
+      description:
+        "Pauses the current dance practice session, stopping audio and step progression.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "reset_practice",
+      description:
+        "Resets the dance practice session to the beginning (phase 1, bar 1, video seek to 0).",
+      inputSchema: {
+        type: "object",
+        properties: {},
       },
     },
   ];
@@ -330,12 +466,160 @@ function handleRpc(req) {
 
     if (name === "recommend_song_by_bpm") {
       const recommendation = recommendSong(args.level);
-
       return jsonRpcResult(id, {
         content: [
           {
             type: "text",
             text: stringifyTextContent(recommendation),
+          },
+        ],
+      });
+    }
+
+    if (name === "get_training_state") {
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent(getTrainingStatePayload()),
+          },
+        ],
+      });
+    }
+
+    if (name === "set_song") {
+      const found = SONGS.find((s) => s.id === args.songId);
+      if (!found) {
+        return jsonRpcResult(id, {
+          content: [
+            {
+              type: "text",
+              text: stringifyTextContent({
+                success: false,
+                error: `Song '${args.songId}' not found. Available: ${SONGS.map((s) => s.id).join(", ")}`,
+              }),
+            },
+          ],
+        });
+      }
+      sessionState.songId = found.id;
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent({
+              success: true,
+              message: `Song changed to ${found.artist} - ${found.title}`,
+              song: serializeSong(found),
+            }),
+          },
+        ],
+      });
+    }
+
+    if (name === "set_tempo") {
+      const speed = Number(args.speed);
+      if (![0.5, 1, 1.25].includes(speed)) {
+        return jsonRpcResult(id, {
+          content: [
+            {
+              type: "text",
+              text: stringifyTextContent({
+                success: false,
+                error: "Invalid speed. Allowed values: 0.5, 1, 1.25.",
+              }),
+            },
+          ],
+        });
+      }
+      sessionState.speed = speed;
+      const currentSong =
+        SONGS.find((s) => s.id === sessionState.songId) || SONGS[0];
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent({
+              success: true,
+              speed,
+              effectiveBpm: Math.round(currentSong.bpm * speed),
+            }),
+          },
+        ],
+      });
+    }
+
+    if (name === "set_practice_mode") {
+      const mode = args.mode;
+      if (!["baby_steps", "full_steps"].includes(mode)) {
+        return jsonRpcResult(id, {
+          content: [
+            {
+              type: "text",
+              text: stringifyTextContent({
+                success: false,
+                error: "Invalid mode. Allowed: 'baby_steps' or 'full_steps'.",
+              }),
+            },
+          ],
+        });
+      }
+      sessionState.mode = mode;
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent({
+              success: true,
+              mode,
+            }),
+          },
+        ],
+      });
+    }
+
+    if (name === "start_practice") {
+      sessionState.playing = true;
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent({
+              success: true,
+              status: "playing",
+            }),
+          },
+        ],
+      });
+    }
+
+    if (name === "pause_practice") {
+      sessionState.playing = false;
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent({
+              success: true,
+              status: "paused",
+            }),
+          },
+        ],
+      });
+    }
+
+    if (name === "reset_practice") {
+      sessionState.playing = false;
+      sessionState.step = 1;
+      sessionState.cycle = 1;
+      return jsonRpcResult(id, {
+        content: [
+          {
+            type: "text",
+            text: stringifyTextContent({
+              success: true,
+              status: "reset",
+            }),
           },
         ],
       });

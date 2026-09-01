@@ -38,6 +38,82 @@
         },
         "required": ["level"]
       }
+    },
+    {
+      "name": "get_training_state",
+      "description": "Returns real-time dance trainer state: active song, tempo/BPM, playback state, current step phase (One/Two/Three/And), cycle bar, direction, moving foot, and weight foot.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "set_song",
+      "description": "Changes the active wedding song in the dance trainer by song ID.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "songId": {
+            "type": "string",
+            "description": "The ID of the song to select (e.g., 'szalona', 'zycie', 'niewiara', 'miod_malina')."
+          }
+        },
+        "required": ["songId"]
+      }
+    },
+    {
+      "name": "set_tempo",
+      "description": "Sets the practice speed multiplier for the trainer (0.5 for half speed, 1 for normal speed, 1.25 for fast speed).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "speed": {
+            "type": "number",
+            "enum": [0.5, 1, 1.25],
+            "description": "Playback speed multiplier: 0.5, 1, or 1.25."
+          }
+        },
+        "required": ["speed"]
+      }
+    },
+    {
+      "name": "set_practice_mode",
+      "description": "Configures the footwork practice mode: 'baby_steps' (smaller movements for beginners) or 'full_steps' (standard dance steps).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["baby_steps", "full_steps"],
+            "description": "Practice mode: 'baby_steps' or 'full_steps'."
+          }
+        },
+        "required": ["mode"]
+      }
+    },
+    {
+      "name": "start_practice",
+      "description": "Starts or resumes the dance practice session, metronome, and video playback.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "pause_practice",
+      "description": "Pauses the current dance practice session, stopping audio and step progression.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "reset_practice",
+      "description": "Resets the dance practice session to the beginning (phase 1, bar 1, video seek to 0).",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
     }
   ],
   "resources": [

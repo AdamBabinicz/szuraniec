@@ -22,6 +22,7 @@ import { SiteHeader } from "@/components/site-header";
 import { useRhythm } from "@/hooks/use-rhythm";
 import { unlockAudio } from "@/lib/metronome";
 import { reportIssue } from "@/lib/logger";
+import { SONGS_DATA } from "@/lib/songs-data";
 import {
   PHASES,
   SONGS,
@@ -33,6 +34,11 @@ import {
   type Speed,
   translations,
 } from "@/lib/translations";
+import {
+  registerTrainerBridge,
+  unregisterTrainerBridge,
+  serializeSong,
+} from "@/lib/webmcp-client";
 
 declare global {
   interface Window {
@@ -152,7 +158,6 @@ function loadYtApiPromise(): Promise<void> {
         resolve();
       };
 
-      // Zabezpieczenie przed brakiem odpowiedzi ze strony YouTube
       setTimeout(() => {
         if (window.YT?.Player) {
           resolve();
@@ -628,6 +633,129 @@ export function DanceTrainer() {
       sendYtIframeCommand("seekTo", [0, true]);
     }
   }, [reset, source, safeYtCall, sendYtIframeCommand]);
+
+  // Podłączenie mostka WebMCP do stanu komponentu DanceTrainer
+  useEffect(() => {
+    registerTrainerBridge({
+      getState: () => {
+        const songData =
+          SONGS_DATA.find((item) => item.id === songId) ?? SONGS_DATA[0];
+        const effectiveBpm = Math.round(songData.bpm * speed);
+        const currentEffectiveBar = role === "follower" ? cycle + 1 : cycle;
+        const currentPhase = PHASES[beat];
+        const currentDirection = directionFor(currentEffectiveBar);
+        const { moving: currentMoving, weight: currentWeight } = rolesFor(
+          currentPhase,
+          currentEffectiveBar,
+        );
+
+        return {
+          song: {
+            id: songData.id,
+            title: songData.title[lang] || songData.title.pl,
+            artist: songData.artist,
+            bpm: songData.bpm,
+            effectiveBpm,
+          },
+          training: {
+            playing,
+            speed,
+            mode: baby ? "baby_steps" : "full_steps",
+            step: beat + 1,
+            beatName: t[currentPhase.counterKey] as string,
+            cycle,
+            source,
+            role,
+            muted,
+            vibrate,
+          },
+          movement: {
+            direction: currentDirection,
+            weightFoot: currentWeight,
+            movingFoot: currentMoving,
+            instruction:
+              t.INSTRUCTIONS[
+                currentDirection.toUpperCase() as "LEFT" | "RIGHT"
+              ][currentPhase.id] || "",
+          },
+        };
+      },
+      setSong: (newSongId: string) => {
+        const found = SONGS_DATA.find((s) => s.id === newSongId);
+        if (!found) {
+          return {
+            success: false,
+            message: `Song '${newSongId}' not found. Available: ${SONGS_DATA.map((s) => s.id).join(", ")}`,
+          };
+        }
+        setSongId(found.id as Song["id"]);
+        return {
+          success: true,
+          message: `Song changed to ${found.artist} - ${found.title[lang] || found.title.pl}`,
+          song: serializeSong({
+            id: found.id,
+            title: found.title[lang] || found.title.pl,
+            artist: found.artist,
+            bpm: found.bpm,
+            youtubeId: found.youtubeId,
+          }),
+        };
+      },
+      setTempo: (newSpeed: 0.5 | 1 | 1.25) => {
+        setSpeed(newSpeed);
+        const songData =
+          SONGS_DATA.find((item) => item.id === songId) ?? SONGS_DATA[0];
+        return {
+          success: true,
+          speed: newSpeed,
+          effectiveBpm: Math.round(songData.bpm * newSpeed),
+        };
+      },
+      setPracticeMode: (mode: "baby_steps" | "full_steps") => {
+        const isBaby = mode === "baby_steps";
+        setBaby(isBaby);
+        return {
+          success: true,
+          mode,
+        };
+      },
+      start: () => {
+        if (!playingRef.current) {
+          togglePlay();
+        }
+        return { success: true, status: "playing" };
+      },
+      pause: () => {
+        if (playingRef.current) {
+          togglePlay();
+        }
+        return { success: true, status: "paused" };
+      },
+      reset: () => {
+        restart();
+        return { success: true, status: "reset" };
+      },
+    });
+
+    return () => {
+      unregisterTrainerBridge();
+    };
+  }, [
+    songId,
+    speed,
+    playing,
+    baby,
+    role,
+    beat,
+    cycle,
+    source,
+    muted,
+    vibrate,
+    lang,
+    t,
+    togglePlay,
+    restart,
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
