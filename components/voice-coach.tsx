@@ -50,7 +50,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [liveTranscript, setLiveTranscript] = useState<string>("");
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
-  const isListeningRef = useRef(false);
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const t = translations[lang] as typeof translations.pl & {
@@ -275,90 +274,58 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     recognition.interimResults = true;
     recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
 
+    recognition.onstart = () => {
+      setIsListening(true);
+      showFeedback(t.VOICE_COACH_LISTEN_START || "🎙️ Listening...");
+    };
+
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const current = event.resultIndex;
-      const transcriptText = event.results[current][0].transcript;
-      handleVoiceCommand(transcriptText);
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcriptText = event.results[i][0].transcript;
+        handleVoiceCommand(transcriptText);
+      }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error === "no-speech") return;
-
-      if (
-        event.error === "not-allowed" ||
-        event.error === "service-not-allowed"
-      ) {
-        isListeningRef.current = false;
-        setIsListening(false);
-        showFeedback(
-          lang === "pl"
-            ? "⚠️ Dostęp do mikrofonu zablokowany."
-            : "⚠️ Microphone access blocked.",
-        );
-        return;
-      }
-
       console.warn("[VoiceCoach] Speech error:", event.error);
+      setIsListening(false);
     };
 
     recognition.onend = () => {
-      if (isListeningRef.current) {
-        try {
-          recognition.start();
-        } catch {
-          isListeningRef.current = false;
-          setIsListening(false);
-        }
-      }
+      setIsListening(false);
     };
 
     recognitionRef.current = recognition;
 
     return () => {
-      isListeningRef.current = false;
       try {
-        recognition.stop();
+        recognition.abort();
       } catch {
         // Ignoruj
       }
     };
-  }, [lang, handleVoiceCommand, showFeedback]);
+  }, [lang, handleVoiceCommand, showFeedback, t]);
 
-  const toggleListening = useCallback(async () => {
+  const toggleListening = useCallback(() => {
     if (!recognitionRef.current) return;
 
     if (isListening) {
-      isListeningRef.current = false;
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // Ignoruj
+      }
       setIsListening(false);
       setLiveTranscript("");
       showFeedback(t.VOICE_COACH_OFF || "Microphone off");
     } else {
       try {
-        // 1. Jawne wybudzenie mikrofonu przez Web Audio Media Stream (odblokowuje Chrome)
-        if (navigator.mediaDevices?.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-          });
-          stream.getTracks().forEach((track) => track.stop());
-        }
-
-        // 2. Start rozpoznawania mowy
         setLiveTranscript("");
         recognitionRef.current.lang = lang === "pl" ? "pl-PL" : "en-US";
         recognitionRef.current.start();
-        isListeningRef.current = true;
-        setIsListening(true);
-        showFeedback(t.VOICE_COACH_LISTEN_START || "🎙️ Listening...");
       } catch (err: any) {
         console.warn("[VoiceCoach] Start error:", err);
-        isListeningRef.current = false;
-        setIsListening(false);
-        showFeedback(
-          lang === "pl"
-            ? "⚠️ Nie udało się uruchomić mikrofonu. Sprawdź uprawnienia w przeglądarce."
-            : "⚠️ Could not access microphone. Check permissions.",
-        );
       }
     }
   }, [isListening, lang, t, showFeedback]);
