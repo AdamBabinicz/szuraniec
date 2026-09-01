@@ -1,12 +1,12 @@
 # Dwa na Jeden — Wedding Dance AI Coach 💃🕺
 
-**An AI-powered interactive coach for learning the Polish wedding dance step "Dwa na Jeden" (Szuraniec / Disco Fox 2-on-1) — now with full autonomous agent control.**
+**An AI-powered interactive coach for learning the Polish wedding dance step "Dwa na Jeden" (Szuraniec / Disco Fox 2-on-1) — now with full autonomous agent control and a real-time Voice AI Coach powered by Groq Whisper Large v3 Turbo.**
 
 🌐 **Live demo:** https://dwanajeden.netlify.app/
 
 🎥 **Demo video:** https://www.youtube.com/watch?v=6MDFggcT04g
 
-Dwa na Jeden is a web application that helps people learn, practice, and improve a popular Polish wedding dance step through **rhythm-based guidance, visual footwork instructions, interactive audio cues, adjustable practice speed, and real wedding music**.
+Dwa na Jeden is a web application that helps people learn, practice, and improve a popular Polish wedding dance step through **rhythm-based guidance, visual footwork instructions, interactive audio cues, adjustable practice speed, real wedding music, and a hands-free Voice AI Coach**.
 
 The project exposes structured capabilities through **WebMCP (Model Context Protocol for the Web)**, allowing AI agents to interact with the application using tools instead of simply describing what the user should click.
 
@@ -21,6 +21,73 @@ The following video demonstrates the application and its core functionality:
 **▶️ [Dwa na Jeden — Wedding Dance AI Coach Demo](https://www.youtube.com/watch?v=6MDFggcT04g)**
 
 The demo showcases the interactive dance-learning experience, including the visual step guidance, rhythm-based practice, music integration, and the overall application workflow.
+
+---
+
+## 🎙️ Voice AI Coach Integration (Groq Whisper Turbo)
+
+The application now includes a **real-time, hands-free Voice AI Coach** powered by **Groq Cloud Whisper Large v3 Turbo**, allowing dancers to control practice sessions with natural spoken commands in **Polish and English**.
+
+This addition does not replace the existing WebMCP tool architecture — it extends it with a voice-driven control layer that maps speech directly into the same structured `TrainerBridge` actions already used by autonomous agents. In practice, this means the browser can now be controlled in three complementary ways:
+
+- **by the human through the visual UI**,
+- **by an autonomous AI agent through WebMCP tools**,
+- **and by the dancer's voice through the Voice AI Coach bridge**.
+
+### Hands-Free Voice Control Architecture
+
+#### 1. HTML5 MediaRecorder Pipeline
+
+The voice layer uses the **HTML5 MediaRecorder API** as a cross-browser audio capture standard. This avoids the reliability, permission, and sandbox limitations often associated with legacy browser speech APIs and keeps the input layer aligned with modern web platform primitives.
+
+The result is a recording pipeline that works across:
+
+- Chrome
+- Safari
+- Edge
+- Firefox
+- iOS browsers
+- Android browsers
+
+This makes the Voice AI Coach suitable for realistic dance-floor practice, where the dancer may be using a phone, tablet, or laptop and cannot rely on desktop-only browser speech features.
+
+#### 2. Groq Cloud Whisper Large v3 Turbo (`/api/voice`)
+
+Recorded audio is streamed to the application's **`/api/voice`** endpoint, which uses **Groq Cloud Whisper Large v3 Turbo** for ultra-fast multilingual speech-to-text inference. The system is designed for **sub-200ms turnaround** so that spoken commands can feel immediate during active practice.
+
+Because Whisper Large v3 Turbo is multilingual, the application can recognize both **Polish** and **English** coaching commands without requiring the user to switch input modes or reconfigure the session.
+
+#### 3. WebMCP Bridge Dispatcher
+
+Once a spoken phrase is transcribed, the Voice AI Coach passes the interpreted command through a **WebMCP bridge dispatcher** that maps natural language onto the application's structured `TrainerBridge` actions.
+
+Examples include:
+
+- **"Start"** → `start_practice`
+- **"Pauza" / "Pause"** → `pause_practice`
+- **"Od nowa" / "Reset" / "Again"** → `reset_practice`
+- **"Zwolnij" / "Slow down"** → `set_tempo`
+- **"Baby steps"** → `set_practice_mode("baby_steps")`
+- **"Włącz Szaloną"** → `set_song` for *Boys — Jesteś Szalona*
+
+This architecture preserves the core design principle of the project: the application should expose **structured, deterministic capabilities** instead of relying on fragile UI interpretation. Voice becomes another natural-language entry point into the same action system already used by AI agents.
+
+#### 4. Continuous Hands-Free Coaching Loop
+
+The complete interaction loop is optimized for actual movement practice:
+
+1. The dancer taps the microphone once.
+2. The browser begins the continuous voice-listening workflow.
+3. Speech is recorded via MediaRecorder.
+4. Audio is transcribed by Groq Whisper Turbo through `/api/voice`.
+5. The dispatcher resolves the command into a `TrainerBridge` action.
+6. The dance trainer updates song, tempo, mode, or playback in real-time.
+
+This enables a true **continuous hands-free coaching loop**: dancers can step away from the device, practice on the dance floor, and issue commands such as **"Start"**, **"Zwolnij"**, **"Baby steps"**, **"Pauza"**, or **"Od nowa"** at any time without touching the screen.
+
+### Why This Matters
+
+A wedding dance trainer is especially well suited to voice interaction because practice often happens **while moving**, with limited ability to tap controls accurately. The Voice AI Coach reduces friction between instruction and action, making the system feel closer to a real dance coach standing nearby and responding instantly to spoken requests.
 
 ---
 
@@ -561,6 +628,8 @@ The application combines several browser-native and web technologies:
 - React
 - TypeScript
 - WebMCP / Model Context Protocol
+- HTML5 MediaRecorder API
+- Groq Cloud (Whisper Large v3 Turbo)
 - Web Audio API
 - Web Vibration API
 - YouTube IFrame API
@@ -709,6 +778,7 @@ In accordance with the hackathon guidelines, the following core WebMCP systems a
 - **Real-Time State Inspection**: `get_training_state` exposing live step phase, direction, weight-bearing foot, moving foot, playback status, and effective BPM.
 - **Agent-Driven Action & Control**: `set_song`, `set_tempo`, `set_practice_mode`, `start_practice`, `pause_practice`, `reset_practice` — enabling fully autonomous agent orchestration.
 - **Real-Time Agent Orchestration**: Connecting Web Audio/Vibration sync engine to agent-driven parameters — agents can chain tools to set up and launch complete practice sessions from a single user prompt.
+- **Voice AI Coach Integration**: A real-time hands-free coaching layer built with HTML5 MediaRecorder, Groq Cloud Whisper Large v3 Turbo, `/api/voice`, and the WebMCP bridge dispatcher — enabling spoken PL/EN commands to trigger live trainer actions.
 - **Automated Quality & Canonical Data Architecture**: Vitest unit tests (8/8 passing, 0 TypeScript errors) run through GitHub Actions CI, while the complete 13-song library is maintained in one canonical data source shared by React, WebMCP, and the Node.js server.
 
 ---
@@ -768,6 +838,8 @@ The project combines a real-world human problem with an agent-friendly web inter
 - 🔊 Real-time audio rhythm guidance
 - 🎥 YouTube music integration
 - 🎬 Application demo video
+- 🎙️ **Real-time Voice AI Coach** powered by Groq Whisper Large v3 Turbo
+- 🎤 **HTML5 MediaRecorder voice pipeline** for cross-browser hands-free control
 - 🤖 **10 WebMCP tools for AI agents** (3 knowledge + 1 state inspection + 6 action & control)
 - 🔍 **Real-time state inspection** (`get_training_state`) — step phase, direction, feet, playback status
 - 🎮 **Agent-driven control** — set song, tempo, mode, start/pause/reset
