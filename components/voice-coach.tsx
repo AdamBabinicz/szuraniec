@@ -23,16 +23,21 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Flaga decydująca czy użytkownik chce ciągłego nasłuchu (Hands-Free)
   const isListeningDesiredRef = useRef<boolean>(false);
   const recognitionRef = useRef<any>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const restartDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
   const isMountedRef = useRef(true);
+  const isMobileRef = useRef<boolean>(false);
 
   const t = translations[lang] || translations.pl;
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      isMobileRef.current = /Android|iPhone|iPad|iPod|Mobile/i.test(
+        navigator.userAgent,
+      );
+    }
+  }, []);
 
   const showFeedback = useCallback((text: string) => {
     if (!isMountedRef.current) return;
@@ -43,10 +48,12 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       setFeedback(null);
-      if (isListeningDesiredRef.current) {
+      // Na desktopie wracamy do nasłuchu, na telefonie zwalniamy audio dla YouTube
+      if (isListeningDesiredRef.current && !isMobileRef.current) {
         setStatus("listening");
       } else {
         setStatus("idle");
+        isListeningDesiredRef.current = false;
       }
     }, 2500);
   }, []);
@@ -60,10 +67,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       setFeedback(null);
-      if (isListeningDesiredRef.current) {
+      if (isListeningDesiredRef.current && !isMobileRef.current) {
         setStatus("listening");
       } else {
         setStatus("idle");
+        isListeningDesiredRef.current = false;
       }
     }, 3500);
   }, []);
@@ -256,7 +264,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     [t, showFeedback, showError],
   );
 
-  // ── Bezpieczne uruchomienie i wznawianie rozpoznawania mowy ─────────
+  // ── Start silnika mowy ─────────────────────────────────────────────
   const startSpeechEngine = useCallback(() => {
     const SpeechRecognition =
       typeof window !== "undefined"
@@ -279,7 +287,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       const recognition = new SpeechRecognition();
       recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
-      recognition.continuous = true;
+
+      // Na desktopie continuous = true, na telefonie continuous = false (dla ochrony YouTube)
+      recognition.continuous = !isMobileRef.current;
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
@@ -300,40 +310,49 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       recognition.onerror = (event: any) => {
         if (!isMountedRef.current) return;
-        // Błąd 'no-speech' jest naturalny przy ciszy – ignorujemy go, aby nasłuch trwał
-        if (event.error === "no-speech") return;
+        if (event.error === "no-speech") {
+          if (isMobileRef.current) {
+            setStatus("idle");
+            isListeningDesiredRef.current = false;
+          }
+          return;
+        }
 
         if (event.error === "not-allowed") {
           isListeningDesiredRef.current = false;
           showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
+        } else {
+          if (isMobileRef.current) {
+            setStatus("idle");
+            isListeningDesiredRef.current = false;
+          }
         }
       };
 
       recognition.onend = () => {
         if (!isMountedRef.current) return;
 
-        // Jeśli użytkownik chce ciągłego nasłuchu, wznawiamy go automatycznie (zarówno PC jak i Mobile)
-        if (isListeningDesiredRef.current) {
-          if (restartDelayTimerRef.current)
-            clearTimeout(restartDelayTimerRef.current);
-
-          restartDelayTimerRef.current = setTimeout(() => {
-            if (isMountedRef.current && isListeningDesiredRef.current) {
-              try {
-                recognition.start();
-              } catch {
-                setTimeout(() => {
-                  if (isMountedRef.current && isListeningDesiredRef.current) {
-                    try {
-                      recognition.start();
-                    } catch {}
-                  }
-                }, 300);
+        // Desktop: wznawiamy ciągły nasłuch
+        if (isListeningDesiredRef.current && !isMobileRef.current) {
+          try {
+            recognition.start();
+          } catch {
+            setTimeout(() => {
+              if (
+                isMountedRef.current &&
+                isListeningDesiredRef.current &&
+                !isMobileRef.current
+              ) {
+                try {
+                  recognition.start();
+                } catch {}
               }
-            }
-          }, 100);
+            }, 200);
+          }
         } else {
+          // Mobile: bezpiecznie wyłączamy mikrofon, aby YouTube grał płynnie
           setStatus("idle");
+          isListeningDesiredRef.current = false;
         }
       };
 
@@ -346,13 +365,10 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     }
   }, [dispatchCommand, lang, showError, t]);
 
-  // ── Przełącznik mikrofonu (Włącz ciągły nasłuch / Wyłącz) ─────────
+  // ── Kliknięcie przycisku mikrofonu ────────────────────────────────
   const handleMicToggle = useCallback(() => {
-    if (isListeningDesiredRef.current) {
-      // Wyłączenie ciągłego nasłuchu
+    if (status === "listening" || isListeningDesiredRef.current) {
       isListeningDesiredRef.current = false;
-      if (restartDelayTimerRef.current)
-        clearTimeout(restartDelayTimerRef.current);
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
@@ -362,31 +378,28 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       setStatus("idle");
       setFeedback(null);
     } else {
-      // Włączenie ciągłego nasłuchu
       isListeningDesiredRef.current = true;
       startSpeechEngine();
     }
-  }, [startSpeechEngine]);
+  }, [startSpeechEngine, status]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
       isListeningDesiredRef.current = false;
-      if (restartDelayTimerRef.current)
-        clearTimeout(restartDelayTimerRef.current);
-      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
         } catch {}
       }
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
     };
   }, []);
 
-  const isListening =
-    status === "listening" ||
-    (isListeningDesiredRef.current && status !== "error");
+  const isListening = status === "listening";
   const hasFeedback = Boolean(feedback);
 
   const statusBadge = isListening
