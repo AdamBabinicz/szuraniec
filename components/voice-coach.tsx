@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, Sparkles } from "lucide-react";
+import { Mic, MicOff, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getActiveTrainerBridge } from "@/lib/webmcp-client";
 import { translations, type Lang } from "@/lib/translations";
@@ -15,64 +15,41 @@ type VoiceStatus = "idle" | "recording" | "processing" | "feedback" | "error";
 export function VoiceCoach({ lang }: VoiceCoachProps) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isActiveListening, setIsActiveListening] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isActiveRef = useRef(false);
   const isMountedRef = useRef(true);
 
+  const t = translations[lang] || translations.pl;
+
   const clearTimers = useCallback(() => {
-    if (recordTimeoutRef.current) {
-      clearTimeout(recordTimeoutRef.current);
-      recordTimeoutRef.current = null;
-    }
-    if (feedbackTimeoutRef.current) {
-      clearTimeout(feedbackTimeoutRef.current);
-      feedbackTimeoutRef.current = null;
-    }
+    if (recordTimeoutRef.current) clearTimeout(recordTimeoutRef.current);
+    if (loopTimeoutRef.current) clearTimeout(loopTimeoutRef.current);
+    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
   }, []);
 
   const showFeedback = useCallback((text: string) => {
     if (!isMountedRef.current) return;
     setFeedback(text);
-    setStatus("feedback");
-
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
     feedbackTimeoutRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       setFeedback(null);
-      setStatus("idle");
-    }, 4000);
-  }, []);
-
-  const showError = useCallback((text: string) => {
-    if (!isMountedRef.current) return;
-    setFeedback(text);
-    setStatus("error");
-
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    feedbackTimeoutRef.current = setTimeout(() => {
-      if (!isMountedRef.current) return;
-      setFeedback(null);
-      setStatus("idle");
-    }, 5000);
+    }, 3500);
   }, []);
 
   // ── Dispatcher komend głosowych do WebMCP Bridge ───────────────────
   const dispatchCommand = useCallback(
     (rawTranscript: string) => {
       const text = rawTranscript.toLowerCase().trim();
-
       const bridge = getActiveTrainerBridge();
-      if (!bridge) {
-        showError(
-          lang === "pl"
-            ? "Trenażer nie jest jeszcze gotowy."
-            : "Dance trainer is not ready.",
-        );
-        return;
-      }
+      if (!bridge) return;
 
       // 1. START / PLAY
       if (
@@ -245,10 +222,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         dziewczyn: "dziewczyno",
         girl: "dziewczyno",
         kochan: "kochana",
-        beloved: "kochana",
         prawdziw: "cudowna",
         miłość: "cudowna",
-        love: "cudowna",
       };
 
       for (const [keyword, sId] of Object.entries(songMatches)) {
@@ -257,8 +232,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           if (res.success && res.song) {
             showFeedback(
               lang === "pl"
-                ? `🎵 Wybrano utwór: ${res.song.artist} — ${res.song.title}`
-                : `🎵 Selected song: ${res.song.artist} — ${res.song.title}`,
+                ? `🎵 Wybrano: ${res.song.artist} — ${res.song.title}`
+                : `🎵 Selected: ${res.song.artist} — ${res.song.title}`,
             );
             return;
           }
@@ -267,15 +242,15 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
       showFeedback(
         lang === "pl"
-          ? `❓ Rozpoznano: "${rawTranscript}" (spróbuj: start, pauza, zwolnij, Szalona)`
-          : `❓ Recognized: "${rawTranscript}" (try: start, pause, slow down, Szalona)`,
+          ? `❓ Rozpoznano: "${rawTranscript}"`
+          : `❓ Recognized: "${rawTranscript}"`,
       );
     },
-    [lang, showFeedback, showError],
+    [lang, showFeedback],
   );
 
-  // ── Przesłanie nagrania do /api/voice (Groq Whisper AI) ────────────
-  const sendAudioToWhisper = useCallback(
+  // ── Przesłanie nagrania do Whisper AI i kontynuacja pętli ─────────
+  const processAudioChunk = useCallback(
     async (audioBlob: Blob) => {
       setStatus("processing");
       try {
@@ -287,42 +262,112 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           body: formData,
         });
 
-        if (!res.ok) {
-          const data = (await res.json()) as { error?: string };
-          throw new Error(data.error || `HTTP ${res.status}`);
+        if (res.ok) {
+          const data = (await res.json()) as { transcript?: string };
+          const transcript = data.transcript?.trim() || "";
+          if (transcript) {
+            dispatchCommand(transcript);
+          }
         }
-
-        const data = (await res.json()) as { transcript?: string };
-        const transcript = data.transcript?.trim() || "";
-
-        if (!transcript) {
-          showError(
-            lang === "pl"
-              ? "Nic nie usłyszałem. Spróbuj ponownie."
-              : "No speech detected. Please try again.",
-          );
-          return;
+      } catch (err) {
+        console.warn("[VoiceCoach] Chunk error:", err);
+      } finally {
+        // Jeśli tryb ciągły jest nadal włączony, natychmiast nagrywamy kolejny fragment
+        if (isMountedRef.current && isActiveRef.current) {
+          loopTimeoutRef.current = setTimeout(() => {
+            if (isActiveRef.current) recordNextSlice();
+          }, 300);
+        } else {
+          setStatus("idle");
         }
-
-        dispatchCommand(transcript);
-      } catch (err: any) {
-        console.warn("[VoiceCoach] Whisper error:", err?.message || err);
-        showError(
-          lang === "pl"
-            ? "Błąd rozpoznawania AI. Sprawdź połączenie."
-            : "AI recognition error. Check connection.",
-        );
       }
     },
-    [lang, dispatchCommand, showError],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dispatchCommand],
   );
 
-  // ── Zatrzymanie nagrywania ─────────────────────────────────────────
-  const stopRecording = useCallback(() => {
-    if (recordTimeoutRef.current) {
-      clearTimeout(recordTimeoutRef.current);
-      recordTimeoutRef.current = null;
+  // ── Nagranie 3-sekundowego fragmentu mowy w pętli ─────────────────
+  const recordNextSlice = useCallback(() => {
+    if (!isActiveRef.current || !streamRef.current) return;
+
+    audioChunksRef.current = [];
+    setStatus("recording");
+
+    try {
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+
+      const recorder = new MediaRecorder(
+        streamRef.current,
+        mimeType ? { mimeType } : undefined,
+      );
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mimeType || "audio/webm",
+        });
+        if (audioBlob.size > 600) {
+          void processAudioChunk(audioBlob);
+        } else if (isActiveRef.current) {
+          recordNextSlice();
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+
+      // Zakończenie fragmentu po 3.5 sekundy i wysyłka do analizy
+      recordTimeoutRef.current = setTimeout(() => {
+        if (recorder.state !== "inactive") {
+          try {
+            recorder.stop();
+          } catch {
+            // ignore
+          }
+        }
+      }, 2200);
+    } catch (err) {
+      console.warn("[VoiceCoach] Recorder slice error:", err);
+      stopContinuousListening();
     }
+  }, [processAudioChunk]);
+
+  // ── Start ciągłego nasłuchiwania ───────────────────────────────────
+  const startContinuousListening = useCallback(async () => {
+    clearTimers();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      isActiveRef.current = true;
+      setIsActiveListening(true);
+      showFeedback(
+        lang === "pl"
+          ? "🎙️ Asystent aktywny! Mów komendy w dowolnym momencie..."
+          : "🎙️ Voice Coach active! Speak commands anytime...",
+      );
+      recordNextSlice();
+    } catch (err) {
+      console.warn("[VoiceCoach] Mic permission error:", err);
+      showFeedback(
+        lang === "pl"
+          ? "⚠️ Brak dostępu do mikrofonu."
+          : "⚠️ Microphone access denied.",
+      );
+    }
+  }, [clearTimers, lang, recordNextSlice, showFeedback]);
+
+  // ── Zatrzymanie ciągłego nasłuchiwania ──────────────────────────────
+  const stopContinuousListening = useCallback(() => {
+    isActiveRef.current = false;
+    setIsActiveListening(false);
+    clearTimers();
 
     if (
       mediaRecorderRef.current &&
@@ -330,118 +375,44 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     ) {
       try {
         mediaRecorderRef.current.stop();
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
-  }, []);
 
-  // ── Główny handler kliknięcia (Czysty, bezpośredni gest DOM) ────────
-  const handleMicClick = useCallback(async () => {
-    if (status === "recording") {
-      stopRecording();
-      return;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
 
-    if (status === "processing") return;
+    setStatus("idle");
+    showFeedback(
+      lang === "pl" ? "Mikrofon wyłączony" : "Microphone turned off",
+    );
+  }, [clearTimers, lang, showFeedback]);
 
-    clearTimers();
-    audioChunksRef.current = [];
-
-    try {
-      // Bezpośrednie wywołanie getUserMedia z gestu użytkownika
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/mp4")
-          ? "audio/mp4"
-          : "";
-
-      const options = mimeType ? { mimeType } : undefined;
-      const mediaRecorder = new MediaRecorder(stream, options);
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        stream.getTracks().forEach((track) => track.stop());
-
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: mimeType || "audio/webm",
-        });
-
-        if (audioBlob.size > 500) {
-          void sendAudioToWhisper(audioBlob);
-        } else {
-          setStatus("idle");
-        }
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(200);
-      setStatus("recording");
-
-      // Automatyczne zatrzymanie nagrania po 3.5 sekundy
-      recordTimeoutRef.current = setTimeout(() => {
-        stopRecording();
-      }, 3500);
-    } catch (err: any) {
-      console.warn("[VoiceCoach] Mic permission warning:", err?.message || err);
-      showError(
-        lang === "pl"
-          ? "⚠️ Brak dostępu do mikrofonu. Zezwól na mikrofon w przeglądarce."
-          : "⚠️ Microphone access denied. Please allow microphone.",
-      );
+  const toggleContinuousListening = useCallback(() => {
+    if (isActiveListening) {
+      stopContinuousListening();
+    } else {
+      void startContinuousListening();
     }
-  }, [clearTimers, lang, sendAudioToWhisper, showError, status, stopRecording]);
+  }, [isActiveListening, startContinuousListening, stopContinuousListening]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      isActiveRef.current = false;
       clearTimers();
-      if (
-        mediaRecorderRef.current &&
-        mediaRecorderRef.current.state !== "inactive"
-      ) {
-        mediaRecorderRef.current.stop();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
       }
     };
   }, [clearTimers]);
 
   const isRecording = status === "recording";
   const isProcessing = status === "processing";
-  const hasFeedback =
-    (status === "feedback" || status === "error") && Boolean(feedback);
-
-  const statusBadge = isRecording
-    ? lang === "pl"
-      ? "Nagrywanie..."
-      : "Listening..."
-    : isProcessing
-      ? lang === "pl"
-        ? "AI Myśli..."
-        : "AI Processing..."
-      : status === "error"
-        ? "Błąd"
-        : "Voice AI Coach";
-
-  const messageText = isRecording
-    ? lang === "pl"
-      ? "🎙️ Mów teraz: start, zwolnij, włącz Szaloną..."
-      : "🎙️ Speak now: start, slow down, play Szalona..."
-    : isProcessing
-      ? lang === "pl"
-        ? "✨ Whisper AI przetwarza mowę..."
-        : "✨ Whisper AI is transcribing..."
-      : feedback ||
-        (lang === "pl"
-          ? "Kliknij, aby wydać polecenie głosowe"
-          : "Click to speak voice command");
 
   return (
     <aside
@@ -449,16 +420,12 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       className="pointer-events-auto fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2.5"
     >
       <AnimatePresence>
-        {(isRecording || isProcessing || hasFeedback) && (
+        {(isActiveListening || feedback) && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className={`max-w-xs rounded-2xl border p-3.5 text-xs font-bold shadow-2xl backdrop-blur-md ${
-              status === "error"
-                ? "border-amber-400/60 bg-amber-50/95 text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/90 dark:text-amber-200"
-                : "border-border bg-card/95 text-foreground dark:border-pink-500/40"
-            }`}
+            className="max-w-xs rounded-2xl border border-border bg-card/95 p-3.5 text-xs font-bold text-foreground shadow-2xl backdrop-blur-md dark:border-pink-500/40"
           >
             <div className="mb-1.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-primary">
@@ -469,40 +436,49 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               </div>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
-                  isRecording
+                  isActiveListening
                     ? "bg-pink-500/20 text-pink-600 dark:text-pink-300 animate-pulse"
-                    : isProcessing
-                      ? "bg-primary/20 text-primary animate-pulse"
-                      : "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
-                {statusBadge}
+                {isActiveListening
+                  ? lang === "pl"
+                    ? "Aktywny (Mów...)"
+                    : "Live Listening"
+                  : "Info"}
               </span>
             </div>
-            <p className="leading-snug text-foreground/90">{messageText}</p>
+            <p className="leading-snug text-foreground/90">
+              {feedback ||
+                (lang === "pl"
+                  ? "🎙️ Słucham w tle: start, zwolnij, włącz Szaloną, pauza..."
+                  : "🎙️ Listening continuously: start, slow down, play Szalona, pause...")}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
 
       <button
         type="button"
-        onClick={handleMicClick}
-        title={isRecording ? "Zatrzymaj nagrywanie" : "Włącz komendę głosową"}
+        onClick={toggleContinuousListening}
+        title={
+          isActiveListening
+            ? "Wyłącz ciągłe nasłuchiwanie"
+            : "Włącz ciągłe sterowanie głosem"
+        }
         aria-label="Voice AI Control"
         className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-transform active:scale-95 ${
-          isRecording
+          isActiveListening
             ? "border-pink-500 bg-pink-500 text-white shadow-pink-500/50 ring-4 ring-pink-500/30"
-            : isProcessing
-              ? "border-primary bg-primary text-primary-foreground shadow-primary/50"
-              : "border-border bg-card/90 text-foreground hover:border-primary/50 hover:bg-primary/10 shadow-black/10"
+            : "border-border bg-card/90 text-foreground hover:border-primary/50 hover:bg-primary/10 shadow-black/10"
         }`}
       >
-        {isRecording && (
+        {isActiveListening && (
           <span className="absolute inset-0 animate-ping rounded-full bg-pink-500/40" />
         )}
         {isProcessing ? (
-          <Sparkles className="size-6 animate-spin text-primary-foreground" />
-        ) : isRecording ? (
+          <Sparkles className="size-6 animate-spin text-white" />
+        ) : isActiveListening ? (
           <Mic className="size-6 animate-pulse text-white" />
         ) : (
           <Mic className="size-6 text-foreground transition-colors group-hover:text-primary" />
