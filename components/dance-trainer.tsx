@@ -371,8 +371,7 @@ export function DanceTrainer() {
     [teardownPlayer],
   );
 
-  const ytIframeOrigin = "https://www.youtube-nocookie.com";
-
+  // Bezpieczne polecenie postMessage (z uniwersalnym targetOrigin)
   const sendYtIframeCommand = useCallback(
     (
       func: "playVideo" | "pauseVideo" | "seekTo" | "setPlaybackRate",
@@ -393,7 +392,7 @@ export function DanceTrainer() {
             func,
             args,
           }),
-          ytIframeOrigin,
+          "*", // Eliminuje błąd DOMWindow target origin mismatch
         );
         return true;
       } catch (err) {
@@ -429,7 +428,6 @@ export function DanceTrainer() {
       setYtLoading(true);
 
       player = new window.YT.Player("yt-player-iframe", {
-        host: ytIframeOrigin,
         events: {
           onReady: (event) => {
             if (!isSubscribed) return;
