@@ -105,6 +105,12 @@
   "VOICE_COACH_UNKNOWN_HINT": "(spróbuj: start, pauza, zwolnij, Baby Steps, Szalona)",
   "VOICE_COACH_ENABLE": "Włącz sterowanie głosowe AI",
   "VOICE_COACH_DISABLE": "Wyłącz sterowanie głosowe",
+  "VOICE_COACH_HEARD_PREFIX": "🎙️ Słyszę:",
+  "VOICE_COACH_ERROR_NOT_ALLOWED": "🎤 Dostęp do mikrofonu zablokowany. Zezwól na dostęp do mikrofonu w ustawieniach przeglądarki (kliknij ikonę kamery/mikrofonu w pasku adresu) i spróbuj ponownie.",
+  "VOICE_COACH_ERROR_SERVICE": "📡 Usługa rozpoznawania mowy niedostępna. Sprawdź połączenie internetowe i spróbuj ponownie.",
+  "VOICE_COACH_ERROR_AUDIO": "🎤 Nie wykryto mikrofonu. Podłącz mikrofon i spróbuj ponownie.",
+  "VOICE_COACH_ERROR_GENERIC": "⚠️ Rozpoznawanie głosu nie powiodło się. Kliknij przycisk mikrofonu ponownie.",
+  "VOICE_COACH_NOT_SUPPORTED": "Twoja przeglądarka nie obsługuje rozpoznawania mowy. Spróbuj Chrome, Edge lub Safari.",
   "INSTRUCTIONS": {
     "LEFT": {
       "one": "Lewa stopa szura w lewo. Ciężar zostaje na prawej.",

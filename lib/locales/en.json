@@ -105,6 +105,12 @@
   "VOICE_COACH_UNKNOWN_HINT": "(try: start, pause, slow down, baby steps, Szalona)",
   "VOICE_COACH_ENABLE": "Enable AI voice control",
   "VOICE_COACH_DISABLE": "Disable voice control",
+  "VOICE_COACH_HEARD_PREFIX": "🎙️ I hear:",
+  "VOICE_COACH_ERROR_NOT_ALLOWED": "🎤 Microphone access blocked. Please allow microphone permission in your browser settings (click the camera/mic icon in the address bar) and try again.",
+  "VOICE_COACH_ERROR_SERVICE": "📡 Speech recognition service unavailable. Check your internet connection and try again.",
+  "VOICE_COACH_ERROR_AUDIO": "🎤 No microphone found. Please connect a microphone and try again.",
+  "VOICE_COACH_ERROR_GENERIC": "⚠️ Voice recognition failed. Please try clicking the microphone button again.",
+  "VOICE_COACH_NOT_SUPPORTED": "Your browser does not support voice recognition. Try Chrome, Edge, or Safari.",
   "INSTRUCTIONS": {
     "LEFT": {
       "one": "Left foot slides to the left. Weight stays on the right.",
