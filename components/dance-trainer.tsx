@@ -19,6 +19,7 @@ import { CookieBanner } from "@/components/ui/CookieBanner";
 import { DanceControls } from "@/components/dance-controls";
 import { DanceFloor } from "@/components/dance-floor";
 import { SiteHeader } from "@/components/site-header";
+import { VoiceCoach } from "@/components/voice-coach";
 import { useRhythm } from "@/hooks/use-rhythm";
 import { unlockAudio } from "@/lib/metronome";
 import { reportIssue } from "@/lib/logger";
@@ -1133,6 +1134,8 @@ export function DanceTrainer() {
           </div>
         </footer>
       </main>
+
+      <VoiceCoach lang={lang} />
 
       <CookieBanner
         title={t.COOKIE_BANNER_TITLE}
