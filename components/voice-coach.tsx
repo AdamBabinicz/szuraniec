@@ -336,12 +336,20 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     }
   }, []);
 
-  // ── Start nagrywania (MediaRecorder) ───────────────────────────────
-  const startRecording = useCallback(async () => {
+  // ── Główny handler kliknięcia (Czysty, bezpośredni gest DOM) ────────
+  const handleMicClick = useCallback(async () => {
+    if (status === "recording") {
+      stopRecording();
+      return;
+    }
+
+    if (status === "processing") return;
+
     clearTimers();
     audioChunksRef.current = [];
 
     try {
+      // Bezpośrednie wywołanie getUserMedia z gestu użytkownika
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -377,7 +385,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       mediaRecorder.start(200);
       setStatus("recording");
 
-      // Automatyczne zatrzymanie po 3.5 sekundy
+      // Automatyczne zatrzymanie nagrania po 3.5 sekundy
       recordTimeoutRef.current = setTimeout(() => {
         stopRecording();
       }, 3500);
@@ -389,19 +397,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           : "⚠️ Microphone access denied. Please allow microphone.",
       );
     }
-  }, [clearTimers, lang, sendAudioToWhisper, showError, stopRecording]);
-
-  const toggleRecording = useCallback(() => {
-    if (status === "recording") {
-      stopRecording();
-    } else if (
-      status === "idle" ||
-      status === "feedback" ||
-      status === "error"
-    ) {
-      void startRecording();
-    }
-  }, [status, startRecording, stopRecording]);
+  }, [clearTimers, lang, sendAudioToWhisper, showError, status, stopRecording]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -488,14 +484,12 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         )}
       </AnimatePresence>
 
-      <motion.button
+      <button
         type="button"
-        onClick={toggleRecording}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.92 }}
+        onClick={handleMicClick}
         title={isRecording ? "Zatrzymaj nagrywanie" : "Włącz komendę głosową"}
         aria-label="Voice AI Control"
-        className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-all ${
+        className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-transform active:scale-95 ${
           isRecording
             ? "border-pink-500 bg-pink-500 text-white shadow-pink-500/50 ring-4 ring-pink-500/30"
             : isProcessing
@@ -513,7 +507,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         ) : (
           <Mic className="size-6 text-foreground transition-colors group-hover:text-primary" />
         )}
-      </motion.button>
+      </button>
     </aside>
   );
 }
