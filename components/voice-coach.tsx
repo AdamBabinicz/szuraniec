@@ -33,7 +33,6 @@ function normalizeText(s: string): string {
     .trim();
 }
 
-// Mapa piosenek
 const SONG_KEYWORDS: Record<string, string> = {
   szalona: "szalona",
   szalon: "szalona",
@@ -49,7 +48,7 @@ const SONG_KEYWORDS: Record<string, string> = {
   redhead: "ruda",
   zielone: "zielone",
   zielon: "zielone",
-  oczy: "zielone", // ZMIENIONO: z "ocz" na "oczy", aby nie kolidowało z "kroczkami"
+  oczy: "zielone",
   green: "zielone",
   miod: "miod",
   miodmalina: "miod",
@@ -164,9 +163,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // --- PRIORYTET 1: TRYBY ĆWICZEŃ (Baby / Full steps) ---
-      // Przeniesione na górę, aby słowo "kroczki" nie kolidowało z "oczy" w piosenkach
-
+      // 1. PRIORYTET: TRYBY ĆWICZEŃ
       if (
         [
           "male kroczki",
@@ -182,12 +179,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         ].some((k) => text.includes(k))
       ) {
         bridge.setPracticeMode("baby_steps");
-
-        // Obsługa "Włącz małe kroczki"
         if (["start", "graj", "wlacz", "play"].some((k) => text.includes(k))) {
           setTimeout(() => bridge.start(), 150);
         }
-
         showFeedback(t.VOICE_COACH_BABY_ON);
         return;
       }
@@ -205,17 +199,14 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         ].some((k) => text.includes(k))
       ) {
         bridge.setPracticeMode("full_steps");
-
-        // Obsługa "Włącz duże kroki"
         if (["start", "graj", "wlacz", "play"].some((k) => text.includes(k))) {
           setTimeout(() => bridge.start(), 150);
         }
-
         showFeedback(t.VOICE_COACH_FULL_STEPS);
         return;
       }
 
-      // --- PRIORYTET 2: ZMIANA UTWORU ---
+      // 2. PRIORYTET: ZMIANA UTWORU
       for (const [keyword, sId] of Object.entries(SONG_KEYWORDS)) {
         if (text.includes(keyword)) {
           const res = bridge.setSong(sId);
@@ -229,13 +220,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               "zaczynaj",
               "tancz",
             ].some((k) => text.includes(k));
-
             if (alsoStart) {
               setTimeout(() => {
                 getActiveTrainerBridge()?.start();
               }, 150);
             }
-
             showFeedback(
               `${t.VOICE_COACH_SONG_PREFIX} ${res.song.artist} — ${res.song.title}`,
             );
@@ -244,9 +233,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         }
       }
 
-      // --- PRIORYTET 3: STEROWANIE ODTWARZANIEM ---
-
-      // Start / Wznowienie
+      // 3. PRIORYTET: STEROWANIE ODTWARZANIEM
       if (
         [
           "start",
@@ -270,7 +257,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // Pauza / Stop
       if (
         [
           "pauza",
@@ -288,7 +274,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // Reset
       if (
         [
           "reset",
@@ -305,7 +290,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // Tempo Wolne (0.5x)
+      // TEMPO
       if (
         [
           "wolno",
@@ -327,7 +312,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // Tempo Normalne (1.0x)
       if (
         [
           "normalnie",
@@ -346,7 +330,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // Tempo Szybkie (1.25x)
       if (
         [
           "szybko",
@@ -395,7 +378,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
 
   const startRecognitionInstance = useCallback(() => {
     if (typeof window === "undefined" || isEngagedRef.current) return;
-
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       shouldListenRef.current = false;
@@ -426,10 +408,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         }
         final = final.trim();
         if (interim) setThrottledTranscript(interim);
-
         if (final) {
           if (isMountedRef.current) setLastTranscript(final);
-
           if (isMobile) {
             recognition.stop();
             setTimeout(() => {
@@ -441,22 +421,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         }
       };
 
-      recognition.onerror = (event: any) => {
-        const err = event?.error || "";
-        if (err === "not-allowed" || err === "service-not-allowed") {
-          shouldListenRef.current = false;
-          showFeedback(t.VOICE_COACH_ERROR_NOT_ALLOWED, true);
-          releaseSpeechEngine();
-        }
-      };
-
       recognition.onend = () => {
         isEngagedRef.current = false;
         if (recognitionRef.current === recognition)
           recognitionRef.current = null;
-
         if (!isMountedRef.current) return;
-
         if (shouldListenRef.current && !isMobile) {
           if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
           restartTimerRef.current = setTimeout(() => {
@@ -574,28 +543,18 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       </AnimatePresence>
       <button
         onClick={handleMicToggle}
+        aria-label={
+          status === "listening" ? t.VOICE_COACH_PAUSE : t.VOICE_COACH_TITLE
+        }
         className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-transform active:scale-95 ${status === "listening" ? "border-pink-500 bg-pink-500 text-white ring-4 ring-pink-500/30 shadow-pink-500/50" : "border-border bg-card/90 text-foreground hover:border-primary/50"}`}
       >
         {status === "listening" && (
-          <span className="absolute inset-0 rounded-full bg-pink-500/40 animate-[ping_1.6s_infinite]" />
+          <span className="absolute inset-0 rounded-full bg-pink-500/40 animate-ping opacity-60" />
         )}
         <Mic
           className={`size-6 relative z-10 ${status === "listening" ? "text-white" : "text-foreground group-hover:text-primary"}`}
         />
       </button>
-      <style jsx global>{`
-        @keyframes ping {
-          0% {
-            transform: scale(1);
-            opacity: 0.6;
-          }
-          75%,
-          100% {
-            transform: scale(1.8);
-            opacity: 0;
-          }
-        }
-      `}</style>
     </aside>
   );
 }
