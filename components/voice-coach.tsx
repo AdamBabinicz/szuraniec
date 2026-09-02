@@ -21,7 +21,7 @@ declare global {
 
 const RESTART_DELAY_MS = 400;
 const UI_TRANSCRIPT_THROTTLE_MS = 300;
-const MOBILE_ACTION_DELAY = 300; // Kluczowy czas na przełączenie Focus Audio na smartfonie
+const MOBILE_ACTION_DELAY = 300; // Czas na przełączenie Focus Audio na smartfonie
 
 function normalizeText(s: string): string {
   return (s || "")
@@ -33,7 +33,7 @@ function normalizeText(s: string): string {
     .trim();
 }
 
-// Sprawdzona mapa piosenek użytkownika
+// Mapa piosenek (identyczna z Twoim oryginałem)
 const SONG_KEYWORDS: Record<string, string> = {
   szalona: "szalona",
   szalon: "szalona",
@@ -143,11 +143,14 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       safeSetFeedback(text);
       safeSetStatus(isError ? "error" : "feedback");
       if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+
       feedbackTimeoutRef.current = setTimeout(() => {
         if (!isMountedRef.current) return;
         safeSetFeedback(null);
+        // KLUCZ POPRAWKI: Czyścimy transkrypt, aby chmurka mogła zniknąć
+        setLastTranscript(null);
         safeSetStatus(shouldListenRef.current ? "listening" : "idle");
-      }, 2200);
+      }, 3000); // 3 sekundy widoczności chmurki po akcji
     },
     [safeSetFeedback, safeSetStatus],
   );
@@ -294,7 +297,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // Rozpoznawanie piosenek
       for (const [keyword, sId] of Object.entries(SONG_KEYWORDS)) {
         if (text.includes(keyword)) {
           const res = bridge.setSong(sId);
@@ -370,9 +372,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           if (isMountedRef.current) setLastTranscript(final);
 
           if (isMobile) {
-            // KLUCZOWE: Najpierw stopujemy silnik, aby system zwolnił Focus Audio.
             recognition.stop();
-            // Czekamy chwilę przed wykonaniem akcji, by YouTube IFrame "usłyszał" komendę.
             setTimeout(() => {
               if (isMountedRef.current) dispatchCommand(final);
             }, MOBILE_ACTION_DELAY);
@@ -392,7 +392,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       };
 
       recognition.onend = () => {
-        // Gwarantowany reset flag przy każdym zakończeniu sesji na Mobile
         isEngagedRef.current = false;
         if (recognitionRef.current === recognition)
           recognitionRef.current = null;
@@ -410,7 +409,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               startRecognitionInstance();
           }, RESTART_DELAY_MS);
         } else {
-          // Na Mobile zawsze wracamy do IDLE, aby YouTube odzyskał Focus sprzętowy.
           safeSetStatus("idle");
           shouldListenRef.current = false;
         }
@@ -445,7 +443,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       safeSetFeedback(null);
       flushTranscript();
     } else {
-      // Przy każdym ręcznym włączeniu czyścimy stan, by uniknąć blokady "nie reaguje"
       isEngagedRef.current = false;
       shouldListenRef.current = true;
       flushTranscript();
@@ -490,8 +487,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           >
             <div className="mb-1.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-primary">
-                <Sparkles className="size-3.5" />{" "}
+                <Sparkles className="size-3.5" />
                 <span className="font-black uppercase tracking-wider">
+                  {/* KLUCZ: Używamy t.VOICE_COACH_TITLE dla poprawnego języka */}
                   {t.VOICE_COACH_TITLE}
                 </span>
               </div>
@@ -509,7 +507,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
             </p>
             {lastTranscript && (
               <div className="mt-2 flex items-start gap-1.5 border-t border-border/40 pt-2 text-[10px] font-medium text-muted-foreground italic break-words">
-                <AlertTriangle className="mt-0.5 size-3 shrink-0" />{" "}
+                <AlertTriangle className="mt-0.5 size-3 shrink-0" />
                 <span>{lastTranscript}</span>
               </div>
             )}
