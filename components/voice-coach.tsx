@@ -21,6 +21,7 @@ declare global {
 
 const RESTART_DELAY_MS = 400;
 const UI_TRANSCRIPT_THROTTLE_MS = 300;
+const MOBILE_FOCUS_BUFFER_MS = 150; // Czas na zwolnienie sprzętu audio przez system mobilny
 
 function normalizeText(s: string): string {
   return (s || "")
@@ -32,7 +33,7 @@ function normalizeText(s: string): string {
     .trim();
 }
 
-// ORYGINALNA MAPA PIOSENEK (Zgodna z Twoją wersją bazową)
+// Sprawdzona mapa piosenek (identyczna z wersją bazową użytkownika)
 const SONG_KEYWORDS: Record<string, string> = {
   szalona: "szalona",
   szalon: "szalona",
@@ -151,34 +152,26 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     [safeSetFeedback, safeSetStatus],
   );
 
-  const showError = useCallback(
-    (text: string) => {
-      showFeedback(text, true);
-    },
-    [showFeedback],
-  );
-
   const dispatchCommand = useCallback(
     (rawTranscript: string) => {
       const text = normalizeText(rawTranscript);
       const bridge = getActiveTrainerBridge();
       if (!bridge) {
-        showError(t.VOICE_COACH_NOT_READY);
+        showFeedback(t.VOICE_COACH_NOT_READY, true);
         return;
       }
 
-      // Komendy Startu
+      // Grupy komend (Start, Stop, Reset, Tempo, Tryby, Utwory)
       if (
         [
           "start",
           "graj",
           "wlacz",
           "tancz",
-          "zaczynaj",
-          "zacznij",
+          "play",
           "odpal",
           "ruszaj",
-          "play",
+          "zaczynaj",
           "dalej",
           "jedziemy",
           "hej",
@@ -188,12 +181,10 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(t.VOICE_COACH_START);
         return;
       }
-
-      // Komendy Pauzy
       if (
         [
-          "pauza",
           "stop",
+          "pauza",
           "zatrzymaj",
           "czekaj",
           "przerwij",
@@ -205,15 +196,13 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(t.VOICE_COACH_PAUSE);
         return;
       }
-
-      // Komendy Resetu
       if (
         [
+          "reset",
+          "restart",
           "od nowa",
           "od poczatku",
           "poczatek",
-          "reset",
-          "restart",
           "jeszcze raz",
           "again",
         ].some((k) => text.includes(k))
@@ -222,8 +211,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(t.VOICE_COACH_RESET);
         return;
       }
-
-      // Tempo
       if (
         [
           "wolno",
@@ -269,8 +256,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         );
         return;
       }
-
-      // Tryby
       if (
         [
           "baby",
@@ -302,7 +287,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // Wybór utworu
+      // Rozpoznawanie piosenek
       for (const [keyword, sId] of Object.entries(SONG_KEYWORDS)) {
         if (text.includes(keyword)) {
           const res = bridge.setSong(sId);
@@ -319,7 +304,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         `${t.VOICE_COACH_UNKNOWN_PREFIX} "${rawTranscript}" ${t.VOICE_COACH_UNKNOWN_HINT}`,
       );
     },
-    [t, showFeedback, showError],
+    [t, showFeedback],
   );
 
   const releaseSpeechEngine = useCallback(() => {
@@ -341,9 +326,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
   const startRecognitionInstance = useCallback(() => {
     if (typeof window === "undefined" || isEngagedRef.current) return;
 
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
       shouldListenRef.current = false;
       safeSetStatus("idle");
       safeSetFeedback(t.VOICE_COACH_NOT_SUPPORTED);
@@ -351,10 +335,10 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     }
 
     try {
-      const recognition = new SpeechRecognition();
+      const recognition = new SR();
       recognition.lang = lang === "pl" ? "pl-PL" : "en-US";
 
-      // KLUCZ DLA MOBILE: continuous = false zwalnia Audio Focus i naprawia YouTube.
+      // Desktop: continuous (hands-free). Mobile: discrete (release focus).
       recognition.continuous = !isMobile;
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
@@ -365,31 +349,30 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       };
 
       recognition.onresult = (event: any) => {
-        let finalTranscript = "";
+        let final = "";
         let interim = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const res = event.results[i];
-          const transcript = (res?.[0]?.transcript || "").trim();
-          if (res?.isFinal && transcript) {
-            finalTranscript += " " + transcript;
-          } else if (transcript) {
-            interim += " " + transcript;
+          if (event.results[i].isFinal) {
+            final += " " + event.results[i][0].transcript;
+          } else {
+            interim += " " + event.results[i][0].transcript;
           }
         }
-        finalTranscript = finalTranscript.trim();
+        final = final.trim();
         if (interim) setThrottledTranscript(interim);
 
-        if (finalTranscript) {
-          if (isMountedRef.current) {
-            setLastTranscript(finalTranscript);
-          }
+        if (final) {
+          if (isMountedRef.current) setLastTranscript(final);
 
-          // Wykonujemy komendę natychmiast
-          dispatchCommand(finalTranscript);
-
-          // Na Mobile: stopujemy rozpoznawanie, aby YouTube odzyskał płynność.
           if (isMobile) {
+            // KLUCZ: Najpierw stopujemy silnik mowy, aby system zwolnił Audio Focus
             recognition.stop();
+            // Czekamy chwilę przed wykonaniem komendy start/song-change, by YT mógł przejąć Focus
+            setTimeout(() => {
+              if (isMountedRef.current) dispatchCommand(final);
+            }, MOBILE_FOCUS_BUFFER_MS);
+          } else {
+            dispatchCommand(final);
           }
         }
       };
@@ -398,7 +381,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         const err = event?.error || "";
         if (err === "not-allowed" || err === "service-not-allowed") {
           shouldListenRef.current = false;
-          showError(t.VOICE_COACH_ERROR_NOT_ALLOWED);
+          showFeedback(t.VOICE_COACH_ERROR_NOT_ALLOWED, true);
           releaseSpeechEngine();
         }
       };
@@ -409,7 +392,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           recognitionRef.current = null;
         if (!isMountedRef.current) return;
 
-        // Auto-restart TYLKO na Desktopie. Na Smartfonie czekamy na ponowne tapnięcie.
+        // Desktop: Auto-restart dla pętli Hands-Free.
+        // Mobile: Przywracamy przycisk do stanu Idle, by pozwolić YouTube grać płynnie.
         if (shouldListenRef.current && !isMobile) {
           if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
           restartTimerRef.current = setTimeout(() => {
@@ -423,7 +407,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           }, RESTART_DELAY_MS);
         } else {
           safeSetStatus("idle");
-          shouldListenRef.current = false; // Reset stanu, aby kolejne tapnięcie zadziałało
+          shouldListenRef.current = false;
         }
       };
 
@@ -444,7 +428,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
     safeSetFeedback,
     safeSetStatus,
     setThrottledTranscript,
-    showError,
+    showFeedback,
     t,
   ]);
 
@@ -484,7 +468,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       className="pointer-events-auto fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2.5"
     >
       <AnimatePresence>
-        {(isListening || feedback || lastTranscript) && (
+        {(status !== "idle" || lastTranscript) && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -505,11 +489,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
                 <span className="font-black uppercase tracking-wider">
                   {t.VOICE_COACH_TITLE}
                 </span>
-                {isMobile && (
-                  <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase text-blue-600 dark:text-blue-300">
-                    Mobile
-                  </span>
-                )}
               </div>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${isListening ? "bg-pink-500/20 text-pink-600 dark:text-pink-300" : "bg-muted text-muted-foreground"}`}
@@ -524,11 +503,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
                   : t.VOICE_COACH_ENABLE)}
             </p>
             {lastTranscript && (
-              <div className="mt-2 flex items-start gap-1.5 border-t border-border/40 pt-2 text-[10px] font-medium text-muted-foreground italic">
+              <div className="mt-2 flex items-start gap-1.5 border-t border-border/40 pt-2 text-[10px] font-medium text-muted-foreground italic break-words">
                 <AlertTriangle className="mt-0.5 size-3 shrink-0" />
-                <span className="break-words font-mono italic">
-                  {lastTranscript}
-                </span>
+                <span>{lastTranscript}</span>
               </div>
             )}
           </motion.div>
@@ -540,7 +517,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         onClick={handleMicToggle}
         className={`group relative flex size-14 items-center justify-center rounded-full border shadow-2xl backdrop-blur-md transition-transform active:scale-95 ${
           isListening
-            ? "border-pink-500 bg-pink-500 text-white ring-4 ring-pink-500/30"
+            ? "border-pink-500 bg-pink-500 text-white ring-4 ring-pink-500/30 shadow-pink-500/50"
             : "border-border bg-card/90 text-foreground hover:border-primary/50"
         }`}
       >
@@ -548,11 +525,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           <span className="absolute inset-0 rounded-full bg-pink-500/40 animate-[ping_1.6s_infinite]" />
         )}
         <Mic
-          className={`size-6 ${isListening ? "text-white" : "text-foreground group-hover:text-primary"}`}
+          className={`size-6 relative z-10 ${isListening ? "text-white" : "text-foreground group-hover:text-primary"}`}
         />
       </button>
 
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes ping {
           0% {
             transform: scale(1);
