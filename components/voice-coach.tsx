@@ -21,7 +21,7 @@ declare global {
 
 const RESTART_DELAY_MS = 400;
 const UI_TRANSCRIPT_THROTTLE_MS = 300;
-const MOBILE_ACTION_DELAY = 300; // Czas na przełączenie Focus Audio na smartfonie
+const MOBILE_ACTION_DELAY = 300;
 
 function normalizeText(s: string): string {
   return (s || "")
@@ -33,7 +33,7 @@ function normalizeText(s: string): string {
     .trim();
 }
 
-// Mapa piosenek (identyczna z Twoim oryginałem)
+// Mapa piosenek
 const SONG_KEYWORDS: Record<string, string> = {
   szalona: "szalona",
   szalon: "szalona",
@@ -64,6 +64,7 @@ const SONG_KEYWORDS: Record<string, string> = {
   freedom: "wolnosc",
   onatanczy: "ona_tanczy",
   onatanc: "ona_tanczy",
+  "ona tanczy": "ona_tanczy",
   dances: "ona_tanczy",
   zono: "zono",
   zon: "zono",
@@ -147,10 +148,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       feedbackTimeoutRef.current = setTimeout(() => {
         if (!isMountedRef.current) return;
         safeSetFeedback(null);
-        // KLUCZ POPRAWKI: Czyścimy transkrypt, aby chmurka mogła zniknąć
         setLastTranscript(null);
         safeSetStatus(shouldListenRef.current ? "listening" : "idle");
-      }, 3000); // 3 sekundy widoczności chmurki po akcji
+      }, 3000);
     },
     [safeSetFeedback, safeSetStatus],
   );
@@ -164,7 +164,37 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 1. Start
+      // 1. NAJPIERW sprawdzamy zmianę utworu (aby uniknąć kolizji z komendą "start/włącz")
+      for (const [keyword, sId] of Object.entries(SONG_KEYWORDS)) {
+        if (text.includes(keyword)) {
+          const res = bridge.setSong(sId);
+          if (res?.success && res?.song) {
+            // Jeśli użytkownik powiedział "włącz/graj/play/start [piosenka]", uruchamiamy od razu
+            const alsoStart = [
+              "start",
+              "graj",
+              "wlacz",
+              "play",
+              "odpal",
+              "zaczynaj",
+              "tancz",
+            ].some((k) => text.includes(k));
+
+            if (alsoStart) {
+              setTimeout(() => {
+                getActiveTrainerBridge()?.start();
+              }, 150);
+            }
+
+            showFeedback(
+              `${t.VOICE_COACH_SONG_PREFIX} ${res.song.artist} — ${res.song.title}`,
+            );
+            return;
+          }
+        }
+      }
+
+      // 2. Start / Wznowienie
       if (
         [
           "start",
@@ -178,13 +208,17 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           "dalej",
           "jedziemy",
           "hej",
+          "resume",
+          "continue",
+          "go",
         ].some((k) => text.includes(k))
       ) {
         bridge.start();
         showFeedback(t.VOICE_COACH_START);
         return;
       }
-      // 2. Pauza
+
+      // 3. Pauza / Stop
       if (
         [
           "pauza",
@@ -194,13 +228,15 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           "przerwij",
           "pause",
           "halt",
+          "freeze",
         ].some((k) => text.includes(k))
       ) {
         bridge.pause();
         showFeedback(t.VOICE_COACH_PAUSE);
         return;
       }
-      // 3. Reset
+
+      // 4. Reset
       if (
         [
           "reset",
@@ -216,7 +252,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(t.VOICE_COACH_RESET);
         return;
       }
-      // 4. Tempo Wolne
+
+      // 5. Tempo Wolne (0.5x)
       if (
         [
           "wolno",
@@ -225,6 +262,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           "pol tempa",
           "polowa",
           "slow",
+          "slow down",
+          "half",
+          "half speed",
           "pol",
         ].some((k) => text.includes(k))
       ) {
@@ -234,11 +274,18 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         );
         return;
       }
-      // 5. Tempo Normalne
+
+      // 6. Tempo Normalne (1.0x)
       if (
-        ["normalnie", "standard", "normalne tempo", "normal", "domysl"].some(
-          (k) => text.includes(k),
-        )
+        [
+          "normalnie",
+          "standard",
+          "normalne tempo",
+          "normal",
+          "normal speed",
+          "full speed",
+          "domysl",
+        ].some((k) => text.includes(k))
       ) {
         const res = bridge.setTempo(1);
         showFeedback(
@@ -246,7 +293,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         );
         return;
       }
-      // 6. Tempo Szybkie
+
+      // 7. Tempo Szybkie (1.25x)
       if (
         [
           "szybko",
@@ -254,6 +302,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           "szybciej",
           "wyzwanie",
           "fast",
+          "faster",
+          "speed up",
+          "speed",
           "challenge",
           "mocniej",
         ].some((k) => text.includes(k))
@@ -264,14 +315,17 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         );
         return;
       }
-      // 7. Baby Steps
+
+      // 8. Baby Steps
       if (
         [
           "baby",
+          "baby steps",
           "male kroki",
           "kroczki",
           "poczatkujacych",
           "small",
+          "small steps",
           "krusz",
           "dzieck",
         ].some((k) => text.includes(k))
@@ -280,7 +334,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(t.VOICE_COACH_BABY_ON);
         return;
       }
-      // 8. Full Steps
+
+      // 9. Full Steps
       if (
         [
           "pelne kroki",
@@ -288,6 +343,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           "normalne kroki",
           "pelny krok",
           "full",
+          "full steps",
           "w pelni",
           "duze",
         ].some((k) => text.includes(k))
@@ -295,18 +351,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         bridge.setPracticeMode("full_steps");
         showFeedback(t.VOICE_COACH_FULL_STEPS);
         return;
-      }
-
-      for (const [keyword, sId] of Object.entries(SONG_KEYWORDS)) {
-        if (text.includes(keyword)) {
-          const res = bridge.setSong(sId);
-          if (res?.success && res?.song) {
-            showFeedback(
-              `${t.VOICE_COACH_SONG_PREFIX} ${res.song.artist} — ${res.song.title}`,
-            );
-            return;
-          }
-        }
       }
 
       showFeedback(
@@ -489,7 +533,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               <div className="flex items-center gap-2 text-primary">
                 <Sparkles className="size-3.5" />
                 <span className="font-black uppercase tracking-wider">
-                  {/* KLUCZ: Używamy t.VOICE_COACH_TITLE dla poprawnego języka */}
                   {t.VOICE_COACH_TITLE}
                 </span>
               </div>

@@ -4,7 +4,7 @@
 
 🌐 **Live demo:** https://dwanajeden.netlify.app/
 
-🎥 **Demo video:** https://www.youtube.com/watch?v=6MDFggcT04g
+🎥 **Demo video:** https://www.youtube.com/watch?v=Oi15GSd201I
 
 Dwa na Jeden is a web application that helps people learn, practice, and improve a popular Polish wedding dance step through **rhythm-based guidance, visual footwork instructions, interactive audio cues, adjustable practice speed, real wedding music, and a hands-free Voice AI Coach**.
 
@@ -18,7 +18,7 @@ The project exposes structured capabilities through **WebMCP (Model Context Prot
 
 The following video demonstrates the application and its core functionality:
 
-**▶️ [Dwa na Jeden — Wedding Dance AI Coach Demo](https://www.youtube.com/watch?v=6MDFggcT04g)**
+**▶️ [Dwa na Jeden — Wedding Dance AI Coach Demo](https://www.youtube.com/watch?v=Oi15GSd201I)**
 
 The demo showcases the interactive dance-learning experience, including the visual step guidance, rhythm-based practice, music integration, and the overall application workflow.
 
@@ -42,10 +42,10 @@ The Voice AI Coach is **device-aware**: one listening strategy cannot serve ever
 
 #### 1. Adaptive Audio Focus — Device-Aware Listening Strategies
 
-| Strategy | Target Device | Listening Model | Interaction Pattern |
-| --- | --- | --- | --- |
-| **Continuous Hands-Free** | 🖥️ **Desktop** (Chrome, Edge, Safari, Firefox) | Microphone stays open for the entire training session | One tap — fully conversational control, no further clicks |
-| **Discrete Adaptive Listening** | 📱 **Mobile** (Android / iOS) | Push-to-Talk — one clean, focused listening window per command | Tap → speak → command resolved → **Hardware Audio Release** |
+| Strategy                        | Target Device                                  | Listening Model                                                | Interaction Pattern                                         |
+| ------------------------------- | ---------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Continuous Hands-Free**       | 🖥️ **Desktop** (Chrome, Edge, Safari, Firefox) | Microphone stays open for the entire training session          | One tap — fully conversational control, no further clicks   |
+| **Discrete Adaptive Listening** | 📱 **Mobile** (Android / iOS)                  | Push-to-Talk — one clean, focused listening window per command | Tap → speak → command resolved → **Hardware Audio Release** |
 
 **🖥️ Desktop — Continuous Hands-Free Mode.** A single tap on the microphone button opens the native `SpeechRecognition` engine in continuous listening mode with the Hands-Free flag enabled, and keeps it open for the whole session. The dancer never touches the screen again.
 
@@ -885,7 +885,7 @@ The project combines a real-world human problem with an agent-friendly web inter
 
 🌐 **Live Demo:** https://dwanajeden.netlify.app/
 
-🎥 **Demo Video:** https://www.youtube.com/watch?v=6MDFggcT04g
+🎥 **Demo Video:** https://www.youtube.com/watch?v=Oi15GSd201I
 
 📡 **WebMCP Manifest:** https://dwanajeden.netlify.app/.well-known/mcp.json
 
