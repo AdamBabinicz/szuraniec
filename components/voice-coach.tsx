@@ -21,7 +21,7 @@ declare global {
 
 const RESTART_DELAY_MS = 400;
 const UI_TRANSCRIPT_THROTTLE_MS = 300;
-const MOBILE_FOCUS_BUFFER_MS = 150;
+const MOBILE_ACTION_DELAY = 300; // Kluczowy czas na przełączenie Focus Audio na smartfonie
 
 function normalizeText(s: string): string {
   return (s || "")
@@ -33,7 +33,7 @@ function normalizeText(s: string): string {
     .trim();
 }
 
-// Sprawdzona mapa piosenek (identyczna z wersją bazową użytkownika)
+// Sprawdzona mapa piosenek użytkownika
 const SONG_KEYWORDS: Record<string, string> = {
   szalona: "szalona",
   szalon: "szalona",
@@ -161,6 +161,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
+      // 1. Start
       if (
         [
           "start",
@@ -180,6 +181,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(t.VOICE_COACH_START);
         return;
       }
+      // 2. Pauza
       if (
         [
           "pauza",
@@ -195,6 +197,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(t.VOICE_COACH_PAUSE);
         return;
       }
+      // 3. Reset
       if (
         [
           "reset",
@@ -210,6 +213,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(t.VOICE_COACH_RESET);
         return;
       }
+      // 4. Tempo Wolne
       if (
         [
           "wolno",
@@ -227,6 +231,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         );
         return;
       }
+      // 5. Tempo Normalne
       if (
         ["normalnie", "standard", "normalne tempo", "normal", "domysl"].some(
           (k) => text.includes(k),
@@ -238,6 +243,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         );
         return;
       }
+      // 6. Tempo Szybkie
       if (
         [
           "szybko",
@@ -255,6 +261,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         );
         return;
       }
+      // 7. Baby Steps
       if (
         [
           "baby",
@@ -270,6 +277,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(t.VOICE_COACH_BABY_ON);
         return;
       }
+      // 8. Full Steps
       if (
         [
           "pelne kroki",
@@ -286,6 +294,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
+      // Rozpoznawanie piosenek
       for (const [keyword, sId] of Object.entries(SONG_KEYWORDS)) {
         if (text.includes(keyword)) {
           const res = bridge.setSong(sId);
@@ -320,6 +329,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       recognitionRef.current = null;
     }
     isEngagedRef.current = false;
+    shouldListenRef.current = false;
   }, []);
 
   const startRecognitionInstance = useCallback(() => {
@@ -360,10 +370,12 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
           if (isMountedRef.current) setLastTranscript(final);
 
           if (isMobile) {
+            // KLUCZOWE: Najpierw stopujemy silnik, aby system zwolnił Focus Audio.
             recognition.stop();
+            // Czekamy chwilę przed wykonaniem akcji, by YouTube IFrame "usłyszał" komendę.
             setTimeout(() => {
               if (isMountedRef.current) dispatchCommand(final);
-            }, MOBILE_FOCUS_BUFFER_MS);
+            }, MOBILE_ACTION_DELAY);
           } else {
             dispatchCommand(final);
           }
@@ -371,7 +383,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       };
 
       recognition.onerror = (event: any) => {
-        if (event.error === "not-allowed") {
+        const err = event?.error || "";
+        if (err === "not-allowed" || err === "service-not-allowed") {
           shouldListenRef.current = false;
           showFeedback(t.VOICE_COACH_ERROR_NOT_ALLOWED, true);
           releaseSpeechEngine();
@@ -379,9 +392,11 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       };
 
       recognition.onend = () => {
+        // Gwarantowany reset flag przy każdym zakończeniu sesji na Mobile
         isEngagedRef.current = false;
         if (recognitionRef.current === recognition)
           recognitionRef.current = null;
+
         if (!isMountedRef.current) return;
 
         if (shouldListenRef.current && !isMobile) {
@@ -395,6 +410,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
               startRecognitionInstance();
           }, RESTART_DELAY_MS);
         } else {
+          // Na Mobile zawsze wracamy do IDLE, aby YouTube odzyskał Focus sprzętowy.
           safeSetStatus("idle");
           shouldListenRef.current = false;
         }
@@ -429,6 +445,8 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
       safeSetFeedback(null);
       flushTranscript();
     } else {
+      // Przy każdym ręcznym włączeniu czyścimy stan, by uniknąć blokady "nie reaguje"
+      isEngagedRef.current = false;
       shouldListenRef.current = true;
       flushTranscript();
       startRecognitionInstance();
