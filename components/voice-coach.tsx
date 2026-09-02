@@ -49,7 +49,7 @@ const SONG_KEYWORDS: Record<string, string> = {
   redhead: "ruda",
   zielone: "zielone",
   zielon: "zielone",
-  ocz: "zielone",
+  oczy: "zielone", // ZMIENIONO: z "ocz" na "oczy", aby nie kolidowało z "kroczkami"
   green: "zielone",
   miod: "miod",
   miodmalina: "miod",
@@ -164,12 +164,62 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 1. NAJPIERW sprawdzamy zmianę utworu (aby uniknąć kolizji z komendą "start/włącz")
+      // --- PRIORYTET 1: TRYBY ĆWICZEŃ (Baby / Full steps) ---
+      // Przeniesione na górę, aby słowo "kroczki" nie kolidowało z "oczy" w piosenkach
+
+      if (
+        [
+          "male kroczki",
+          "male kroki",
+          "kroczki",
+          "kroczek",
+          "baby steps",
+          "baby",
+          "poczatkujacych",
+          "small steps",
+          "small",
+          "dzieck",
+        ].some((k) => text.includes(k))
+      ) {
+        bridge.setPracticeMode("baby_steps");
+
+        // Obsługa "Włącz małe kroczki"
+        if (["start", "graj", "wlacz", "play"].some((k) => text.includes(k))) {
+          setTimeout(() => bridge.start(), 150);
+        }
+
+        showFeedback(t.VOICE_COACH_BABY_ON);
+        return;
+      }
+
+      if (
+        [
+          "pelne kroki",
+          "duze kroki",
+          "normalne kroki",
+          "pelny krok",
+          "duzy krok",
+          "full steps",
+          "full",
+          "duze",
+        ].some((k) => text.includes(k))
+      ) {
+        bridge.setPracticeMode("full_steps");
+
+        // Obsługa "Włącz duże kroki"
+        if (["start", "graj", "wlacz", "play"].some((k) => text.includes(k))) {
+          setTimeout(() => bridge.start(), 150);
+        }
+
+        showFeedback(t.VOICE_COACH_FULL_STEPS);
+        return;
+      }
+
+      // --- PRIORYTET 2: ZMIANA UTWORU ---
       for (const [keyword, sId] of Object.entries(SONG_KEYWORDS)) {
         if (text.includes(keyword)) {
           const res = bridge.setSong(sId);
           if (res?.success && res?.song) {
-            // Jeśli użytkownik powiedział "włącz/graj/play/start [piosenka]", uruchamiamy od razu
             const alsoStart = [
               "start",
               "graj",
@@ -194,7 +244,9 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         }
       }
 
-      // 2. Start / Wznowienie
+      // --- PRIORYTET 3: STEROWANIE ODTWARZANIEM ---
+
+      // Start / Wznowienie
       if (
         [
           "start",
@@ -218,7 +270,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 3. Pauza / Stop
+      // Pauza / Stop
       if (
         [
           "pauza",
@@ -236,7 +288,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 4. Reset
+      // Reset
       if (
         [
           "reset",
@@ -253,7 +305,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 5. Tempo Wolne (0.5x)
+      // Tempo Wolne (0.5x)
       if (
         [
           "wolno",
@@ -275,7 +327,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 6. Tempo Normalne (1.0x)
+      // Tempo Normalne (1.0x)
       if (
         [
           "normalnie",
@@ -294,7 +346,7 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         return;
       }
 
-      // 7. Tempo Szybkie (1.25x)
+      // Tempo Szybkie (1.25x)
       if (
         [
           "szybko",
@@ -313,43 +365,6 @@ export function VoiceCoach({ lang }: VoiceCoachProps) {
         showFeedback(
           `${t.VOICE_COACH_TEMPO_FAST} (${res?.effectiveBpm ?? 160} ${t.BPM_LABEL})`,
         );
-        return;
-      }
-
-      // 8. Baby Steps
-      if (
-        [
-          "baby",
-          "baby steps",
-          "male kroki",
-          "kroczki",
-          "poczatkujacych",
-          "small",
-          "small steps",
-          "krusz",
-          "dzieck",
-        ].some((k) => text.includes(k))
-      ) {
-        bridge.setPracticeMode("baby_steps");
-        showFeedback(t.VOICE_COACH_BABY_ON);
-        return;
-      }
-
-      // 9. Full Steps
-      if (
-        [
-          "pelne kroki",
-          "duze kroki",
-          "normalne kroki",
-          "pelny krok",
-          "full",
-          "full steps",
-          "w pelni",
-          "duze",
-        ].some((k) => text.includes(k))
-      ) {
-        bridge.setPracticeMode("full_steps");
-        showFeedback(t.VOICE_COACH_FULL_STEPS);
         return;
       }
 
