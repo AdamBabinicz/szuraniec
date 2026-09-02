@@ -81,11 +81,11 @@
   "LEFT_FOOT": "Left foot",
   "RIGHT_FOOT": "Right foot",
   "BREAKDOWN_TITLE": "Step-by-Step Dance Guide: The Shuffle",
-  "FOOTER_TEXT": "Interactive wedding dance trainer. Practice before the wedding, not at the wedding.",
+  "FOOTER_TEXT": "Interactive wedding dance trainer. Created by Adam Gierczak. Practice before the wedding, not at the wedding.",
   "FOOTER_PRIVACY": "Privacy Policy",
   "FOOTER_TERMS": "Terms of Service",
   "BACK_TO_APP": "Back to training",
-  "LAST_UPDATED": "Last updated: August 2026",
+  "LAST_UPDATED": "Last updated: September 2026",
   "PRIVACY_SLUG": "privacy-policy",
   "TERMS_SLUG": "terms-of-service",
   "VOICE_COACH_TITLE": "Voice AI Coach",
@@ -106,7 +106,7 @@
   "VOICE_COACH_ENABLE": "Enable AI voice control",
   "VOICE_COACH_DISABLE": "Disable voice control",
   "VOICE_COACH_HEARD_PREFIX": "🎙️ I hear:",
-  "VOICE_COACH_ERROR_NOT_ALLOWED": "🎤 Microphone access blocked. Please allow microphone permission in your browser settings (click the camera/mic icon in the address bar) and try again.",
+  "VOICE_COACH_ERROR_NOT_ALLOWED": "🎤 Microphone access blocked. Please allow microphone permission in your browser settings and try again.",
   "VOICE_COACH_ERROR_SERVICE": "📡 Speech recognition service unavailable. Check your internet connection and try again.",
   "VOICE_COACH_ERROR_AUDIO": "🎤 No microphone found. Please connect a microphone and try again.",
   "VOICE_COACH_ERROR_GENERIC": "⚠️ Voice recognition failed. Please try clicking the microphone button again.",
@@ -163,21 +163,21 @@
     "SEC_1_TITLE": "1. Administrator & Personal Data",
     "SEC_1_TEXT": "The administrator of your data is the owner of the dwanajeden.pl domain. The app requires no account creation, allowing fully anonymous training.",
     "SEC_2_TITLE": "2. Analytics (Google Analytics / GTM)",
-    "SEC_2_TEXT": "To improve training quality, we utilize Google Tag Manager and Google Analytics. Collected data is fully anonymized and used strictly for statistics.",
+    "SEC_2_TEXT": "To improve training quality, we utilize Google Tag Manager and Google Analytics. Collected data is fully anonymized.",
     "SEC_3_TITLE": "3. Cookies & Google Services",
-    "SEC_3_TEXT": "We use cookies for audio engine operation, saving user preferences (e.g. tempo, dance role), and YouTube API integration. Detailed rules for data processing by Google services are set forth in the Google Privacy Policy.",
+    "SEC_3_TEXT": "We use cookies for audio engine operation and YouTube API integration. Detailed rules are set forth in the Google Privacy Policy.",
     "SEC_4_TITLE": "4. Local Storage",
-    "SEC_4_TEXT": "We utilize browser Local Storage to maintain technical parameters and app state for a smooth experience without reloading on every refresh."
+    "SEC_4_TEXT": "We utilize browser Local Storage to maintain technical parameters and app state for a smooth experience."
   },
   "TERMS": {
     "TITLE": "Terms of Service & Legal Statement",
     "SEC_1_TITLE": "1. Purpose of the Application",
-    "SEC_1_TEXT": "The 'Two on One' application is an interactive educational tool designed to teach the traditional wedding dance step (Szuraniec / Disco Fox). It is completely free to use.",
+    "SEC_1_TEXT": "The 'Two on One' application is an interactive educational tool designed by Adam Gierczak to teach the traditional wedding dance step. It is completely free to use.",
     "SEC_2_TITLE": "2. Safety & Liability",
-    "SEC_2_TEXT": "Dancing is a physical activity. The administrator is not liable for any injuries, strains, or partner's stepped-on toes resulting from improper technique.",
+    "SEC_2_TEXT": "Dancing is a physical activity. The administrator is not liable for any injuries resulting from improper technique.",
     "SEC_3_TITLE": "3. Human + AI Synergy",
-    "SEC_3_TEXT": "We declare transparently: this application was created through the synergy of human methodological expertise and artificial intelligence models. While AI assisted with code and rhythm logic, the vision was directed by a human.",
+    "SEC_3_TEXT": "We declare transparently: this application was created through the synergy of Adam Gierczak's methodological expertise and artificial intelligence models. While AI assisted with code, the vision was directed by a human.",
     "SEC_4_TITLE": "4. YouTube Integration & Copyrights",
-    "SEC_4_TEXT": "This application utilizes official YouTube API Services. By using the video playback feature, users agree to be bound by the YouTube Terms of Service and Google Privacy Policy. The application does not host, duplicate, or redistribute audio/video files — all media is streamed directly from YouTube servers in compliance with CJEU case law (Case C-348/13 BestWater). All copyrights and trademarks belong to their respective artists and record labels."
+    "SEC_4_TEXT": "This application utilizes official YouTube API Services. All media is streamed directly from YouTube servers. All copyrights belong to their respective artists."
   }
 }
